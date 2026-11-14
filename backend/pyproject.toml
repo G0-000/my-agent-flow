@@ -1,0 +1,30 @@
+[project]
+name = "my-agent-flow"
+version = "0.1.0"
+description = "my-agent-flow — 0→1 复刻 EvoFlow 的 Agent Runtime 与控制面"
+requires-python = ">=3.12"
+dependencies = [
+    "myagentflow-harness",
+    # 应用层依赖随阶段启用：Gateway/渠道阶段再打开
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "httpx>=0.28.0",
+    "sse-starlette>=2.1.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.14.0",
+]
+
+[tool.uv.workspace]
+members = ["packages/harness"]
+
+[tool.uv.sources]
+myagentflow-harness = { workspace = true }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

@@ -1,0 +1,20 @@
+[project]
+name = "myagentflow-harness"
+version = "0.1.0"
+description = "my-agent-flow 核心：Agent 运行时、工具、记忆、知识与沙箱执行"
+requires-python = ">=3.12"
+dependencies = [
+    # 阶段 S1：配置 / 模型 / 单轮 / 持久化
+    "pydantic>=2.12.0",
+    "pyyaml>=6.0.3",
+    "dotenv>=0.9.9",
+    "langchain>=1.2.3",
+    "langchain-openai>=1.1.7",
+    "langgraph>=1.0.6,<1.0.10",
+    "langgraph-checkpoint-sqlite>=3.0.3",
+    # 阶段 S2：工具与流式
+    "tiktoken>=0.8.0",
+    # 后续阶段按需启用（不要在 S1 全装）：
+    # langchain-anthropic / langchain-deepseek / langgraph-api / langgraph-cli
+    # langchain-mcp-adapters / markitdown / tree-sitter / playwright / watchfiles
+]

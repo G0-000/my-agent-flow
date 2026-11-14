@@ -1,0 +1,36 @@
+# my-agent-flow 配置样例
+# 用法：复制为 config.yaml（已被 .gitignore 忽略），真实密钥放 .env，不写进本文件。
+# 字段值支持环境变量占位：api_key: $OPENAI_API_KEY
+
+config_version: 1
+log_level: info
+
+# S1：模型配置（最小闭环阶段可用 provider: fake）
+models:
+  - name: main
+    provider: fake          # fake / openai / anthropic / deepseek ...
+    model: fake-chat-model
+    # base_url: http://127.0.0.1:11434/v1
+    # api_key: $OPENAI_API_KEY
+primary_model: main
+
+# S1：持久化
+persistence:
+  backend: sqlite
+  path: ./data/myagentflow.db   # data/ 已被 .gitignore 忽略
+
+# S1：checkpoint
+checkpointer:
+  backend: sqlite
+  path: ./data/checkpoints.db
+
+# S2：工具
+tools:
+  workspace_root: ./data/workspace
+  output_max_chars: 20000
+
+# S3：上下文与记忆
+context:
+  token_budget: 120000
+memory:
+  enabled: false               # S3 阶段再打开

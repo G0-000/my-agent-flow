@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node / 前端（后续 EvoPanel 类面板）
+node_modules/
+*.log
+.pnpm-store/
+
+# 密钥与本地配置：任何真实凭证都不入库
+.env
+.env.*
+!.env.example
+config.yaml
+*.local.yaml
+secrets/
+*.pem
+*.key
+
+# 运行期数据与状态（SQLite、checkpoint、日志、上传、产物）
+data/
+*.db
+*.db-shm
+*.db-wal
+.langgraph_api/
+.ua/
+.intermediate/
+logs/
+tmp/
+uploads/
+artifacts/
+term_logs/
+
+# 测试与覆盖率产物
+coverage/
+htmlcov/
+.coverage
+playwright-report/
+test-results/
+
+# 系统与 IDE
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# 文档站点构建产物（如后续接入 VitePress）
+doc/.vitepress/dist/
+doc/.vitepress/.temp/

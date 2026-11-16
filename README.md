@@ -4,11 +4,18 @@
 
 ## 文档在哪里
 
-文档已并入 Agent-Book，本仓库只保留代码。
+正文在 Agent-Book，本仓库额外保留一份**合订本**，方便整份投喂给其他 AI。
 
-- 正文（13 个 Part，74 篇）：`agent-book` 仓库的 `work-agent-harness/doc/evoflow-学习规划/`
+- **合订本（单文件，推荐给外部 AI）**：`EvoFlow-学习规划-总文档.md`（71 篇合并，约 450 KB）
+- 正文（13 个 Part）：`agent-book` 仓库的 `work-agent-harness/doc/evoflow-学习规划/`
 - 渲染入口（独立分区）：`agent-book` 仓库的 `my-agent-flow/index.md` → 站点 `/agent-book/my-agent-flow/`
 - 溯源归档：同目录 `溯源/`（`EvoFlow从0到1复刻手册.md`、单文件版学习规划）
+
+合订本由 `agent-book/scripts/build_evoflow_master.py` 自动生成，**不要手改**：
+
+```bash
+cd ../agent-book && python3 scripts/build_evoflow_master.py
+```
 
 原「主文档」即 `溯源/EvoFlow从0到1复刻手册.md`，每章固定六段：
 

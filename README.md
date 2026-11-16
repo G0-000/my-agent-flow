@@ -2,11 +2,15 @@
 
 基于 EvoFlow 最新源码（`f22af53910a470ddba633be35e25878214c2984ec`，v1.3.22）的 0→1 复刻项目。
 
-## 只有一份主文档
+## 文档在哪里
 
-**[doc/EvoFlow从0到1复刻手册.md](doc/EvoFlow从0到1复刻手册.md)**
+文档已并入 Agent-Book，本仓库只保留代码。
 
-它把多份学习资料整合成一条线，每章固定六段：
+- 正文（13 个 Part，74 篇）：`agent-book` 仓库的 `work-agent-harness/doc/evoflow-学习规划/`
+- 渲染入口（独立分区）：`agent-book` 仓库的 `my-agent-flow/index.md` → 站点 `/agent-book/my-agent-flow/`
+- 溯源归档：同目录 `溯源/`（`EvoFlow从0到1复刻手册.md`、单文件版学习规划）
+
+原「主文档」即 `溯源/EvoFlow从0到1复刻手册.md`，每章固定六段：
 
 1. 功能理解（用户能做什么）
 2. 源码导读（教材读哪几个文件、按什么顺序读）
@@ -21,7 +25,6 @@
 
 ```
 my-agent-flow/
-├── doc/EvoFlow从0到1复刻手册.md   # 唯一主文档
 ├── backend/
 │   ├── pyproject.toml             # uv workspace
 │   ├── langgraph.json             # 图与 checkpointer 注册
@@ -47,4 +50,4 @@ uv sync
 cp config.example.yaml config.yaml
 ```
 
-然后打开手册，从第 1 章 `myagentflow/config`、`myagentflow/models` 开始写。
+然后按 `agent-book/work-agent-harness/doc/evoflow-学习规划/01-最小闭环/01-配置与模型` 的顺序，从 `myagentflow/config`、`myagentflow/models` 开始写。

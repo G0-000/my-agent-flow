@@ -4,8 +4,8 @@ __pycache__/
 *$py.class
 *.egg-info/
 .eggs/
-build/
-dist/
+/build/
+/dist/
 .venv/
 venv/
 .pytest_cache/
@@ -14,39 +14,50 @@ venv/
 
 # Node / 前端（后续 EvoPanel 类面板）
 node_modules/
-*.log
 .pnpm-store/
+*.log
 
 # 密钥与本地配置：任何真实凭证都不入库
+# 注意：config.yaml / secrets/ 加根锚点，避免误伤同名文档与源码目录
 .env
 .env.*
 !.env.example
-config.yaml
+/config.yaml
+/backend/config.yaml
 *.local.yaml
-secrets/
+/secrets/
+/backend/secrets/
 *.pem
 *.key
 
 # 运行期数据与状态（SQLite、checkpoint、日志、上传、产物）
-data/
+# 目录规则一律锚定到项目根 / backend 下，否则会匹配任意层级的同名目录
+# （例如源码包 myagentflow/uploads/、文档 doc/data/ 曾被误伤）
+/data/
+/backend/data/
 *.db
 *.db-shm
 *.db-wal
 .langgraph_api/
 .ua/
 .intermediate/
-logs/
-tmp/
-uploads/
-artifacts/
-term_logs/
+/logs/
+/backend/logs/
+/tmp/
+/backend/tmp/
+/uploads/
+/backend/uploads/
+/artifacts/
+/backend/artifacts/
+/term_logs/
+/backend/term_logs/
 
 # 测试与覆盖率产物
-coverage/
-htmlcov/
+/coverage/
+/htmlcov/
 .coverage
-playwright-report/
-test-results/
+/playwright-report/
+/test-results/
 
 # 系统与 IDE
 .DS_Store
@@ -54,6 +65,10 @@ test-results/
 .idea/
 *.swp
 
-# 文档站点构建产物（如后续接入 VitePress）
+# 文档：任何情况下都不忽略（作为兜底，防止后续新增规则再次误伤）
+!doc/
+!doc/**
+
+# 文档站点构建产物（必须放在豁免之后，保持最高优先级）
 doc/.vitepress/dist/
 doc/.vitepress/.temp/

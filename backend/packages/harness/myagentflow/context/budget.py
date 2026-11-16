@@ -1,0 +1,35 @@
+"""上下文预算：估算、阈值、封顶。
+
+为什么要有绝对上限：
+模型窗口写着 256K，但实测 334K ctx 时 TTFT 会飙到 10.9s，
+所以「比例阈值」必须再被一个绝对值压住。
+"""
+from __future__ import annotations
+
+DEFAULT_CONTEXT = 256_000
+AUTO_COMPACT_RATIO = 0.9
+ABSOLUTE_CAP = 150_000          # 对应 EVOFLOW_COMPACT_ABSOLUTE_TOKENS
+POST_COMPRESS_REFILL = 1.22     # 压缩后回填到目标的 122%
+SAME_TURN_REFILL = 1.5
+
+
+def estimate_tokens(text: str) -> int:
+    """粗估：中文约 1 字 1 token，英文约 4 字符 1 token。宁可高估。"""
+    if not text:
+        return 0
+    cjk = sum(1 for ch in text if ord(ch) > 0x2E80)
+    return cjk + max(1, (len(text) - cjk) // 3)
+
+
+def compact_threshold(context_length: int = DEFAULT_CONTEXT) -> int:
+    by_ratio = int(context_length * AUTO_COMPACT_RATIO)
+    return min(by_ratio, ABSOLUTE_CAP)   # 两者取小：绝对上限永远生效
+
+
+def should_compact(tokens: int, context_length: int = DEFAULT_CONTEXT) -> bool:
+    return tokens >= compact_threshold(context_length)
+
+
+def refill_target(threshold: int, same_turn: bool = False) -> int:
+    ratio = SAME_TURN_REFILL if same_turn else POST_COMPRESS_REFILL
+    return int(threshold / ratio)

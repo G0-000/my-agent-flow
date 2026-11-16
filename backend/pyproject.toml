@@ -28,3 +28,8 @@ myagentflow-harness = { workspace = true }
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff.lint]
+# BLE001：本项目有一类「失败隔离」层（记忆、通知、外部命令、RPC），
+# 它们必须捕获所有异常并降级返回，而不是让增强项拖垮主流程。
+ignore = ["BLE001"]

@@ -1,0 +1,48 @@
+"""工具注册表：一个数据结构 + 三个方法。
+
+为什么要 ToolSpec 而不是裸函数：模型要的是 name/description/JSON Schema，
+执行要的是可调用对象，两者必须绑在一起，否则迟早对不上。
+"""
+from __future__ import annotations
+
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
+
+
+@dataclass(frozen=True)
+class ToolSpec:
+    name: str
+    description: str
+    input_schema: dict[str, Any]
+    fn: Callable[..., Any]
+
+
+class ToolRegistry:
+    def __init__(self) -> None:
+        self._tools: dict[str, ToolSpec] = {}
+
+    def register(self, spec: ToolSpec) -> None:
+        if spec.name in self._tools:
+            raise ValueError(f"工具重名：{spec.name}")
+        self._tools[spec.name] = spec
+
+    def schemas(self) -> list[dict[str, Any]]:
+        """给模型看的形状。字段名照 OpenAI function calling，别自创。"""
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": s.name,
+                    "description": s.description,
+                    "parameters": s.input_schema,
+                },
+            }
+            for s in self._tools.values()
+        ]
+
+    def call(self, name: str, args: dict[str, Any]) -> Any:
+        spec = self._tools.get(name)
+        if spec is None:
+            raise KeyError(f"未注册的工具：{name}")
+        return spec.fn(**args)

@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 01:11　源提交：`180a683`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 02:45　源提交：`79a971f`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -5266,6 +5266,11 @@ logger = logging.getLogger(__name__)
 DEFAULT = {"facts": [], "context": {}}
 
 
+def _empty() -> dict[str, Any]:
+    """每次返回全新对象：dict(DEFAULT) 是浅拷贝，facts 列表会被所有调用方共享。"""
+    return {"facts": [], "context": {}}
+
+
 def _load(path: Path) -> dict[str, Any]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -5273,10 +5278,10 @@ def _load(path: Path) -> dict[str, Any]:
             return {"facts": list(data.get("facts", [])), "context": dict(data.get("context", {}))}
         logger.error("记忆结构不是对象：%s", path)
     except FileNotFoundError:
-        return dict(DEFAULT)          # 首次运行：空记忆
+        return _empty()               # 首次运行：空记忆
     except (json.JSONDecodeError, OSError) as exc:
         logger.error("记忆读取失败 %s：%s", path, exc)
-    return dict(DEFAULT)
+    return _empty()
 
 
 @dataclass
@@ -12600,9 +12605,12 @@ def scan(root: Path) -> dict[str, int]:
 
 
 def classify(ref: int, ours: int) -> str:
+    """三态：EvoFlow 有、我们一个源文件都没有 → 空壳；实现了六成以上 → 已实现。"""
+    if ref == 0:
+        return "新增"          # 只我们有
     if ours == 0:
-        return "空壳" if True else "缺失"
-    if ref and ours / ref >= 0.6:
+        return "空壳"          # 目录在、没有实现
+    if ours / ref >= 0.6:
         return "已实现"
     return "部分"
 

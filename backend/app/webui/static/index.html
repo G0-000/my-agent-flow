@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh">
+<head><meta charset="utf-8"><title>my-agent-flow</title>
+<style>
+  body{font-family:system-ui;margin:24px;max-width:760px}
+  #log{white-space:pre-wrap;border:1px solid #ddd;padding:12px;height:320px;overflow:auto}
+  input{width:70%;padding:8px} button{padding:8px 14px}
+</style></head>
+<body>
+<h2>my-agent-flow</h2>
+<div>
+  会话：<input id="thread" value="default" size="12">
+  <button id="newThread">新会话</button>
+</div>
+<div id="log"></div>
+<div><input id="text" placeholder="输入消息，回车发送"><button id="send">发送</button></div>
+
+<script>
+const log = document.getElementById('log');
+const threadEl = document.getElementById('thread');
+
+function append(s){ log.textContent += s; log.scrollTop = log.scrollHeight; }
+
+// 读 SSE：按空行切帧，取 data: 行里的 JSON
+async function send(){
+  const text = document.getElementById('text').value.trim();
+  if(!text) return;
+  append(`\n你：${text}\nAI：`);
+  document.getElementById('text').value = '';
+
+  const resp = await fetch('/api/chat', {
+    method:'POST', headers:{'content-type':'application/json'},
+    body: JSON.stringify({thread_id: threadEl.value, text})
+  });
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+  while(true){
+    const {value, done} = await reader.read();
+    if(done) break;
+    buf += decoder.decode(value, {stream:true});
+    const frames = buf.split('\n\n'); buf = frames.pop();   // 最后一段可能不完整
+    for(const f of frames){
+      for(const line of f.split('\n')){
+        if(!line.startsWith('data:')) continue;
+        const evt = JSON.parse(line.slice(5));
+        if('text' in evt) append(evt.text);
+        if('message' in evt) append(`[错误] ${evt.message}`);
+      }
+    }
+  }
+}
+
+document.getElementById('send').onclick = send;
+document.getElementById('text').addEventListener('keydown', e => { if(e.key==='Enter') send(); });
+document.getElementById('newThread').onclick = () => {
+  threadEl.value = 't-' + Math.random().toString(36).slice(2,8);
+  log.textContent = '';
+};
+</script>
+</body></html>

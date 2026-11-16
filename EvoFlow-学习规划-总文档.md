@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 01:01　源提交：`336fae2`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 01:11　源提交：`180a683`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -7688,17 +7688,20 @@ import pytest
 def test_double_claim_and_reclaim():
     from myagentflow.collab.ledger import Ledger, Task
 
-    l = Ledger(); l.add(Task("t1", "写"))
+    l = Ledger()
+    l.add(Task("t1", "写"))
     l.claim("t1", "alice", 0)
+
+    # 第二次认领带的是旧版本号 0：必须被拒（这就是防双领）
     with pytest.raises(RuntimeError):
         l.claim("t1", "bob", 0)
-    assert l.reclaim_stale(timeout=10, now=time_now()) == ["t1"]
 
-
-def time_now():
-    from myagentflow.collab.ledger import Ledger
-
-    return Ledger()._tasks.get("x", None) and 0 or 10**12
+    # 时间不能靠 sleep 凑：把 now 显式推到「最后心跳 + 11 秒」，
+    # 超过 timeout=10 才算过期，测试才是确定的
+    last_seen = l._tasks["t1"].last_seen
+    assert l.reclaim_stale(timeout=10, now=last_seen + 11) == ["t1"]
+    assert l._tasks["t1"].status == "open"
+    assert l._tasks["t1"].version == 2
 ```
 
 **验证**
@@ -10905,7 +10908,53 @@ print(verify(f'{h}.{b}.{sig}', 'k', 'myaf', 'myaf')['sub'])
 "
 ```
 
-##### Step 2　写测试：篡改 payload 必失败
+##### Step 2　新建测试辅助：helpers_jwt.py
+**文件**：`tests/chapters/helpers_jwt.py（新建）`
+**要写的逻辑**：测试里造合法 token 不能靠复制粘贴 Step 1 的 bash 片段，抽成一个可复用的 `make_token()`；**辅助代码不是被测代码**，所以放 `tests/` 而不是 `myagentflow/authz/`。
+
+**代码**
+
+```python
+"""测试用 HS256 token 生成器（只服务测试，不参与运行时）。"""
+from __future__ import annotations
+
+import base64
+import hashlib
+import hmac
+import json
+import time
+
+SECRET = "k"          # 与测试里 verify(..., "k", ...) 保持一致
+
+
+def _b64(obj: dict) -> str:
+    raw = json.dumps(obj, separators=(",", ":")).encode()
+    return base64.urlsafe_b64encode(raw).decode().rstrip("=")   # JWT 用无填充 base64
+
+
+def make_token(sub: str = "u1", exp_offset: float = 60,
+               aud: str = "myaf", iss: str = "myaf",
+               secret: str = SECRET) -> str:
+    """exp_offset 是相对现在的秒数：正数=未来过期，负数=已过期。"""
+    header = _b64({"alg": "HS256", "typ": "JWT"})
+    body = _b64({"sub": sub, "aud": aud, "iss": iss, "exp": time.time() + exp_offset})
+    sig = base64.urlsafe_b64encode(
+        hmac.new(secret.encode(), f"{header}.{body}".encode(), hashlib.sha256).digest()
+    ).decode().rstrip("=")
+    return f"{header}.{body}.{sig}"
+```
+
+**验证**
+
+```bash
+uv run python -c "
+from tests.chapters.helpers_jwt import make_token
+print(make_token()[:24], '...')
+"
+# 期望：打印三段式 token 的开头，形如 eyJhbGciOiJIUzI1NiIs...
+```
+
+##### Step 3　写测试：篡改 payload 必失败
 **文件**：`tests/chapters/test_ch11_02_jwt.py（新建）`
 **要写的逻辑**：改一位 payload 后验签失败；过期 token 报错。
 
@@ -10937,7 +10986,7 @@ def test_tamper_detected():
 
 ```bash
 uv run pytest tests/chapters/test_ch11_02_jwt.py -v
-# 期望：1 passed（helpers_jwt 见同目录）
+# 期望：1 passed（Token 由 Step 2 的 helpers_jwt 生成）
 ```
 
 ##### 与 EvoFlow 对照

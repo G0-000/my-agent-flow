@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 15:25　源提交：`9eff89c`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 15:32　源提交：`6724f60`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -708,8 +708,13 @@ pricing = {"glm-*": (0.6, 2.2), "glm-4-flash*": (0, 0)}
 
 #### 1.4 凭证边界 / Credential boundary
 1. **来源**：密钥来自环境变量（`$VAR`）或模型库，不写在 YAML 明文里。
-2. **表示**：`ModelRecord.__repr__` 固定输出 `api_key='***'`；列表接口只给掩码。
-3. **输出**：`AppConfig.redactor()` 汇总 **所有被 `$VAR` 替换进来的值**（保守地全部当作密钥）+ 可选的模型库密钥；`RedactingFilter` 在日志出口统一替换；再用正则兜底 `sk-...` 形态。
+2. **表示**：EvoFlow **没有 `ModelRecord` 这个类**，也没有统一的 `__repr__` 掩码；掩码是各出口自己做的。
+3. **输出（按源码重写）**：真实存在的三处脱敏是——
+   - `models/vendor_roundtrip.py:124` `_redact_secrets()`：模型配置回传时把敏感键替换成 `<redacted>`；
+   - `admin/platform_handlers.py:3650` `_redact_channel_secrets()`：渠道配置下发前脱敏；
+   - `plans/service.py:161-172`：`redact_key=True` 时把 `api_key` 抹掉。
+   **不存在** `AppConfig.redactor()` 与 `RedactingFilter`——原文这两处是按想象写的，已删。EvoFlow 没有全局日志脱敏过滤器，所以「日志里带出密钥」是真实风险。
+4. **本复刻现状**：`config/settings.py` 里**目前没有**做任何密钥掩码（如实标注为缺口）；要补就在 `__repr__` / 日志出口两处加。
 
 **常见坑**：只在日志里脱敏，却把密钥带进异常消息或 URL → Agent 的 `error` 事件同样要过 `Redactor`（见第 2 章）。
 
@@ -1720,8 +1725,8 @@ uv run pytest tests/chapters/test_ch01_02_graph.py -v
 
 | 我们的做法 | EvoFlow | 为什么 |
 |---|---|---|
-| `StateGraph(MessagesState)` | `lead_agent/agent.py` 的建图部分 | 消息列表就是最小状态 |
-| 单节点 `call_model` | 同文件 `call_model` 节点 | 先复刻主干，再叠中间件 |
+| `StateGraph(MessagesState)` | **EvoFlow 不手写 StateGraph**：它调 `create_agent(...)`（`agents/lead_agent/agent.py:1502`、`:1953` 两处），图由 LangChain 内部编译 | 我们要看懂「图长什么样」，所以显式建一遍；EvoFlow 是「配中间件就给图」 |
+| 单节点 `call_model` | **没有 `call_model` 这个节点**：模型调用是 LangChain 的 model 节点，前后由 `before_model` / `wrap_model_call` / `after_model` 中间件包裹 | 手写节点是为了看清 state 怎么进出；EvoFlow 把这些塞进中间件 |
 
 ##### 知识点
 
@@ -3969,9 +3974,9 @@ sequenceDiagram
     V->>S: resolve(token) → None
 ```
 
-- **入口**：`ShareStore.create()` 生成 token 并把 `hash(token)` 落库——库里永远不存明文 token。
-- **关键节点**：`resolve()` 先比对 hash，再判 `revoked_at`；两步都过才返回只读视图。
-- **出口**：`revoke()` 只改状态不删行，撤销后 `resolve` 返回 `None`（HTTP 层翻译成 404）。
+- **入口（EvoFlow 实际行为）**：token 在路由层生成——`app/gateway/routers/share.py:71` `secrets.token_urlsafe(24)`；落库是 `persistence/chat_share_repositories.py:121` `create_share(*, token, session_key, title, messages, include_tools, expires_in_days=7, created_by)`，**token 原样明文写入 `evoflow_chat_shares`，没有 hash**（列里有 `token` 也有 `revoked_at`，`:172` 的 INSERT 语句可直接看到）。**没有 `ShareStore` 这个类**。本复刻改用 `token_hash TEXT PRIMARY KEY` + `sha256`（`collab/shares.py:32`）——这是我们的设计选择，不是 EvoFlow 行为。
+- **关键节点**：EvoFlow 的读路径是 `routers/share.py:124` 的 `get_share(token)` → `share_repo.get_public_share(token)`，按 token 明文等值查；撤销是 `routers/share.py:143` `revoke_share()` → `share_repo.revoke_share(token)`，先把 `revoked_at` 置位再返回 `{"ok": true, "revoked": true}`。本复刻的 `resolve()` 多一步「先 hash 再查行」，所以多一层不可逆性。
+- **出口**：`revoke_share()` 只改状态不删行（这一条 EvoFlow 与我们的实现一致）；区别是 EvoFlow 直接把 token 串返回给调用方（`:157`），我们只返回 ok。
 - **最容易断的地方**：撤销直接删行，导致审计断链；以及 token 用 `uuid1` 泄露时间与机器信息。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
@@ -5283,7 +5288,7 @@ uv run pytest tests/chapters/test_ch03_04_budget.py -q
 ### 第 1 章　会话短期记忆与长期记忆
 
 
-> **EvoFlow 对照状态 / Alignment status：** 🔍 结构已核对（路径、行数、符号均取自源码实测），**行为**（调用顺序、边界条件）尚未逐行核对。
+> **EvoFlow 对照状态 / Alignment status：** ✅ **结构 + 存储行为已核对**：两套存储路径（`agents/memory/agent_memory.py:17-21`）、读取 fail-soft 的默认结构（`:63`/`:70`）、四个命名空间（`memory/namespaces.py:6/10/17/27`）、facade 导出（`memory/facade.py:22/89/94`）、recall 快照三函数（`memory/recall_snapshot.py:27/71/80`）。**未核对**：调用顺序与跨轮边界条件。
 
 #### 本章目标
 分清「上下文内的记忆」和「库里的记忆」，并设计一条从对话到长期记忆的写入链。
@@ -5342,7 +5347,7 @@ sequenceDiagram
 - **按线程的回放快照**：`memory/recall_snapshot.py`（90 行）提供 `record_thread_recall` / `get_thread_recall` / `clear_thread_recall`，说明「本轮召回了什么」是被记录、可回放的。
 
 #### 核心概念
-- **命名空间**：`user / workspace / session / agent` 四类作用域，决定「谁能看到」。
+- **命名空间**：`user / agent / workspace / person` 四类（`memory/namespaces.py` 实际导出 `user_ns`、`agent_ns`、`workspace_ns`、`person_ns`）——**没有 `session` 这一类**，本仓库早期草稿写错，已按源码改正。
 - **recall snapshot**：每轮开始时冻结一份召回结果，保证同一轮内 prompt 稳定。
 - **两阶段写入**：候选提取（对话中）→ 巩固（会话结束/定时）→ 落库。
 
@@ -10815,8 +10820,8 @@ sequenceDiagram
     R-->>O: delta 分片 + [DONE]
 ```
 
-- **入口**：`completions()` 是唯一兼容入口，参数按 OpenAI schema 校验后再转换，不直接透传。
-- **关键节点**：`_last_user()` 负责把多轮 messages 归一成内部单轮输入 + 历史；工具调用要映射成 `tool_calls` 事件。
+- **入口**：兼容入口不是一个叫 `completions()` 的函数，而是两个路由：`app/gateway/routers/openai_compat_apps.py:274` `chat_completions()`（App 维度）与 `openai_compat_models.py:49` `chat_completions()`（模型维度）；两边都用 Pydantic 的 `ChatCompletionsRequest` 校验。
+- **关键节点**：**没有 `_last_user()` 这个函数**（全库只有 `agents/memory/conversation_filter.py:54` 的 `extract_last_user_assistant_texts`，那是记忆模块用的，不在兼容层）；兼容层是把请求交给 App 运行（`_run_published_app:204`）再转成事件流，遍历函数是 `openai_stream_encode.py`。
 - **出口**：流式返回 `data: {...}\n\n`，最后必须发 `[DONE]`，否则客户端一直挂着。
 - **最容易断的地方**：usage 字段缺失（客户端统计不到 token）；非流式与流式走两套逻辑导致行为不一致。
 
@@ -11032,9 +11037,9 @@ sequenceDiagram
     C->>F: outbound(分片回发)
 ```
 
-- **入口**：`Bus.inbound()` 收原始 payload，交给对应 `Channel` 归一化，渠道差异只在这里出现。
+- **入口**：真实方法是 `app/channels/message_bus.py:151` `publish_inbound(msg: InboundMessage)`，队列由 `:175` 的 `inbound_queue` property 暴露；**没有 `Bus.inbound()` / `Bus.outbound()` 这两个方法名**（原文写的是想象出的 API）。
 - **关键节点**：`Event` 至少带 `channel/user/thread/text/msg_id`；`msg_id` 用于幂等，重复回调不重复执行。
-- **出口**：`Bus.outbound()` 按渠道能力分片（有的限字数、有的限频率）。
+- **出口**：`message_bus.py:341` `publish_outbound(msg: OutboundMessage)`；分片/限流由渠道实现自己处理，总线只投递。
 - **最容易断的地方**：渠道回调重试导致重复回复；长回答一次性发被渠道截断。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
@@ -11277,13 +11282,13 @@ sequenceDiagram
     participant A as can
     participant W as Workspace
     U->>P: 解析身份（token → principal）
-    U->>A: can(principal, Resource(ws, kind))
+    U->>A: can_access_ref(principal, owner_scope_id, ref, need)
     A-->>U: True / False + 理由
     U->>W: 通过才读写资源
 ```
 
-- **入口**：`can(principal, resource)` 是唯一判定入口，路由层不许自己写 `if role == "admin"`。
-- **关键节点**：`Resource` 带 workspace + 资源类型，判定按「主体 → 资源 → 动作」三元组，缺一不可。
+- **入口**：真实入口是 `authz/acl_store.py:213` 的 `can_access_ref(principal, *, owner_scope_id, ref, need="read", org_id=...)`——**EvoFlow 里没有叫 `can()` 的函数**（原文这里写的是想象中的 API）。路由层不直接判角色，而是调 `authz/http_guard.py` 的一组 `require_*_visible()`（`require_thread_visible:39`、`require_item_visible:132`、`require_agent_visible:210` 等）。
+- **关键节点**：判定参数是「主体 + owner scope + 资源引用 + 权限（read/write）」，不是「资源对象」；`can_access_ref` 的 docstring 写明「Owner always can; otherwise need a grant to a scope the principal is entitled to」，即先判 owner，再看 scope 成员资格（`membership.py` 的 `can_read_scope` / `can_write_scope`），最后逐个 grant 判 grantee scope。
 - **出口**：拒绝时返回「缺哪个权限」，而不是笼统 403。
 - **最容易断的地方**：只在入口校验、资源内部再取数据时不复查；workspace 隔离靠前端传参。
 
@@ -12775,7 +12780,7 @@ sequenceDiagram
     A->>S: 下次请求取新配置
 ```
 
-- **入口**：`read_settings()` / `write_settings()` 成对出现，写操作带版本号，避免并发覆盖。
+- **入口**：**没有 `read_settings()` / `write_settings()`**。EvoFlow 的设置读写是 `persistence/config_repositories.py:1113` `get_app_setting(key)` 与 `:1132` `set_app_setting(key, value)`，存储落在 `evoflow_app_settings` 键值表；另有 `persistence/runtime_settings.py:71` `overlay_runtime_settings_from_db()` 在启动时把库里的值覆盖到 YAML 配置上。**没有版本号字段**，并发覆盖靠 SQLite 事务而不是乐观锁。
 - **关键节点**：密钥类字段写入时脱敏、读出时只回 `masked`；变更要记审计（谁改了什么）。
 - **出口**：下一次 run 立即生效，不要求重启进程。
 - **最容易断的地方**：配置缓存在模块级变量里不失效；把明文密钥回显到前端。

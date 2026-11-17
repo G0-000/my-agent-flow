@@ -29,7 +29,7 @@ POSTGRES_CONN_REQUIRED = "postgres 后端必须提供连接串（MYAF_CHECKPOINT
 
 
 def _checkpointer_config():
-    """配置来源对齐 EvoFlow：读 AppConfig.checkpointer（type / connection_string）。
+    """配置来源：AppConfig.checkpointer（type / connection_string）。
 
     环境变量只在测试里当覆盖用（`MYAF_CHECKPOINTER` / `MYAF_CHECKPOINT_SQLITE_PATH`），
     生产路径一律走 config.yaml。

@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 class Policy(str, Enum):
-    disabled = "disabled"   # 原样使用，绝对路径也放行（EvoFlow 默认）
+    disabled = "disabled"   # 原样使用，绝对路径也放行（默认策略）
     confine = "confine"     # 必须落在 workspace 之下
 
 

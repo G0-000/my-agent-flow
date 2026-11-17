@@ -30,7 +30,7 @@ class RunRegistry:
         self._lock = threading.RLock()
 
     def start(self, thread_id: str) -> RunRecord:
-        """开一个 run。同线程已有活跃 run 时直接拒绝——这是 EvoFlow 的取舍。"""
+        """开一个 run。同线程已有活跃 run 时直接拒绝：两条 run 会抢写同一个 checkpoint。"""
         with self._lock:
             active = self.active_for_thread(thread_id)
             if active is not None:

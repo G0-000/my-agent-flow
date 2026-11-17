@@ -1,17 +1,17 @@
-"""应用 SQLite 存储的配置节。
+"""应用 SQLite 存储配置：只回答「应用库放哪」。
 
-对照 EvoFlow `config/storage_config.py`：同名类、同名字段 `backend` / `sqlite_path`。
-EvoFlow 的默认值来自 `config/data_paths.py` 的 `DEFAULT_APP_DB_REL`；本复刻还没有
-data_paths 模块，所以先把同一个相对路径写成常量，等做数据目录那章再抽过去。
+LangGraph 检查点不在这里——那是 checkpointer 的事，两者故意分开：
+换检查点后端时不该动应用数据，反之亦然。
 """
+
+
 from __future__ import annotations
 
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
-# EvoFlow `config/data_paths.py:DEFAULT_APP_DB_REL` 的值（data/app/evoflow.db），
-# 这里换成我们自己的库文件名。
+# 应用库默认路径：相对数据目录；换成统一的数据目录模块后由它提供。
 DEFAULT_APP_DB_REL = "data/app/myagentflow.db"
 
 

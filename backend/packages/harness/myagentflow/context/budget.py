@@ -10,7 +10,7 @@ from __future__ import annotations
 DEFAULT_CONTEXT = 256_000
 # 用到窗口 90% 就触发压缩：留 10% 给「压缩本身也要占上下文」
 AUTO_COMPACT_RATIO = 0.9
-# 绝对上限 150K：实测超过这个量 TTFT 会从 2s 级飙到 10s 级（EvoFlow 同名常量）
+# 绝对上限 150K：实测超过这个量 TTFT 会从 2s 级飙到 10s 级
 ABSOLUTE_CAP = 150_000          # 对应 EVOFLOW_COMPACT_ABSOLUTE_TOKENS
 # 压缩后把上下文回填到目标值的 122%（多留一点，减少连续压缩次数）
 POST_COMPRESS_REFILL = 1.22     # 压缩后回填到目标的 122%

@@ -1,19 +1,20 @@
-"""单个模型的配置节。
+"""单个模型的配置：连接信息 + 采样参数。
 
-对照 EvoFlow `config/model_config.py`：文件名、类名、字段名一致，
-只保留第 1 章用得到的字段（EvoFlow 原文件 183 行、30 列，其余列见文件末尾注释）。
+两个最容易混的字段：
+    name  —— 配置条目名（唯一），primary_model 引用它，也用来在列表里回查
+    model —— 真正发给厂商的模型 ID（如 gpt-4o-mini）
 
-注意 EvoFlow 的两个名字不是一回事：
-    name  —— 这条配置的**条目名**（唯一键，primary_model 里引用的就是它）
-    model —— 真正发请求时用的**模型 ID**（如 gpt-4o-mini）
+本文件只保留第 1 章用得到的 13 列；其余列名列在文末注释里，读到对应章节再加。
 """
+
+
 from __future__ import annotations
 
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-# 单轮输出预算默认值（EvoFlow 同名常量，`model_config.py:6`）
+# 单轮输出预算默认值：多数 OpenAI 兼容网关按这个上限截断一次输出
 DEFAULT_MODEL_MAX_OUTPUT_TOKENS = 65536
 # 历史默认值：早期面板统一写 8192。现在读到这个值要当成「没配」升级到 65536，
 # 否则老配置文件会把输出硬卡在 8K。
@@ -23,7 +24,7 @@ _LEGACY_DEFAULT_MAX_OUTPUT_TOKENS = 8192
 def resolve_model_max_output_tokens(raw: int | None) -> int:
     """把 DB/API 里的 max_tokens 归一：未设或历史 8192 → 64k。
 
-    直接照抄 EvoFlow `model_config.py:10` 的语义（含 8192 这个历史值特判）。
+    含 8192 这个历史值特判：老配置把它当默认写死，读到就该升级，而不是照用。
     """
     if raw is None or raw <= 0:
         return DEFAULT_MODEL_MAX_OUTPUT_TOKENS
@@ -33,14 +34,14 @@ def resolve_model_max_output_tokens(raw: int | None) -> int:
 
 
 class ModelConfig(BaseModel):
-    """Config section for a model（与 EvoFlow `model_config.py:78` 同名同义）。"""
+    """一条模型的配置。"""
 
     @model_validator(mode="before")
     @classmethod
     def _drop_reserved_model_config_key(cls, data: Any) -> Any:
         """Pydantic 的类级配置叫 model_config，数据里混进来同名键要剔掉。
 
-        EvoFlow 也写了这个校验器，原因相同，照抄。
+        不剔掉就会和 Pydantic 的类级配置撞名，建类直接失败。
         """
         if isinstance(data, dict) and "model_config" in data:
             data = dict(data)
@@ -67,7 +68,7 @@ class ModelConfig(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    # 余下未抄的列（读到相应章节再补，列名照 EvoFlow）：
+    # 余下未加的列（读到相应章节再补，命名保持同一套）：
     # supports_thinking / supports_reasoning_effort / when_thinking_enabled /
     # supports_vision / enable_web_search / web_search_options / credentials /
     # credential_strategy / fallback_models / availability_status /

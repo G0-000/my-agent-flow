@@ -1,15 +1,14 @@
-"""YAML 里 `models` 的两种写法：嵌套 `providers`（一组连接下挂多个模型）与老的扁平列表。
+"""YAML 里 `models` 的两种写法：嵌套 `providers` 与扁平列表。
 
-对照 EvoFlow `config/models_yaml.py`：同文件名、同函数名。
-本复刻只抄「YAML → 扁平条目」这个方向（`flatten_providers_dict` /
-`coerce_models_field_for_appconfig`）；EvoFlow 里还有 `unflatten_models_to_providers_dict`
-（把库里的模型还原成 providers 结构回写 yaml），我们没有模型库，用不上，故未抄。
+为什么需要摊平：`AppConfig.models` 是 `list[ModelConfig]`，一条一个模型；
+而 yaml 为了少写重复的 base_url/api_key，习惯按「一个网关」分组写成
+`providers: {网关: {base_url, api_key, models: [...]}}`。两种输入都要能进 Pydantic。
 
-为什么需要摊平：`AppConfig.models` 的类型是 `list[ModelConfig]`，一条一个模型；
-而 yaml 里为了少写重复的 base_url/api_key，习惯按「一个厂商/网关」分组写成
-`providers: {厂商名: {base_url, api_key, models: [...]}}`。两种输入必须在进
-Pydantic 之前统一成后者能解析的扁平列表。
+只做「yaml → 扁平条目」这一个方向；把库里的模型还原成 providers 写回 yaml
+需要模型库，本复刻没有，故不实现。
 """
+
+
 from __future__ import annotations
 
 import logging
@@ -21,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def infer_vendor_from_connection(base_url: str | None, model_name: str) -> str:
-    """老配置没写 `vendor` 时，从 host 或模型名猜一个（EvoFlow 同函数名）。
+    """老配置没写 `vendor` 时，从 host 或模型名猜一个。
 
     猜错只影响展示与分组，不影响请求本身（请求只看 base_url + model）。
     """
@@ -93,7 +92,7 @@ def _ensure_vendor_field(m: dict[str, Any]) -> dict[str, Any]:
 
 
 def flatten_providers_dict(providers: dict[str, Any]) -> list[dict[str, Any]]:
-    """把 `models.providers` 摊平成「一条模型一个 dict」（对齐 EvoFlow `models_yaml.py:116`）。
+    """把 `models.providers` 摊平成「一条模型一个 dict」。
 
     合并规则：provider 层的连接字段（base_url/api_key/use...）作为共享值，
     每条模型自己的字段覆盖共享值；`display_name`/`vendor_label` 是分组标签，

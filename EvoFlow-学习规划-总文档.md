@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 21:54　源提交：`ee1459c`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 22:05　源提交：`a526334`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -543,6 +543,8 @@ CheckpointerType = Literal["memory", "sqlite", "postgres"]
 - 合格：「WAL 是因为多进程同时读写时回滚日志会锁库」。
 - 不合格：「给 conn 赋值」「循环遍历列表」——这类从代码本身就能看出来。
 - 凡是「踩过坑才知道」的点（浅拷贝共享、mtime 重读、逆序执行、明文 token），必须留注释，否则下一章复制这段代码会重犯。
+- **注释里不写「这是 EvoFlow 的同名字段/同函数」**。这类出处是给读者做对照用的，统一放进文档的「与 EvoFlow 对照」表；代码里只讲「这个值干什么、为什么这么设」。反例：`# 全局单例：None 表示没配（EvoFlow 同名字段 _checkpointer_config）`。正例：`# 全局单例：None 表示没配。provider 从这里取配置，不自己 new 对象`。
+- 文件头 docstring 允许一句话说明「本文件负责什么、为什么单独成文件」，但不复述「与 EvoFlow 第几行同名」——那是台账的事。
 
 ##### 3.4 代码必须能跑
 

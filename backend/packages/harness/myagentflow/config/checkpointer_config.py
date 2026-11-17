@@ -1,16 +1,17 @@
-"""LangGraph 检查点的配置节。
+"""LangGraph 检查点的配置节：存哪种后端、连到哪。
 
-对照 EvoFlow `config/checkpointer_config.py`：同名类、同名字段
-（`type` / `connection_string`），同时保留它的模块级单例与 get/set ——
-EvoFlow 的 provider 就是通过 `get_checkpointer_config()` 取值的。
+为什么带模块级单例：provider 每次建图都要取「当前生效的配置」，
+让它自己 new 对象会重复开连接；运行中切换后端也由 set_checkpointer_config() 统一改。
 """
+
+
 from __future__ import annotations
 
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
-# 检查点的存放方式（对齐 EvoFlow 同名类型）：
+# 检查点的存放方式：
 #   memory   —— 进程内字典，重启即丢，只适合测试
 #   sqlite   —— 单文件库，本地开发默认；需要 langgraph-checkpoint-sqlite
 #   postgres —— 多实例共享，需要 langgraph-checkpoint-postgres（本复刻未实现）
@@ -33,7 +34,7 @@ class CheckpointerConfig(BaseModel):
     )
 
 
-# 全局单例：None 表示没配（EvoFlow 同名字段 `_checkpointer_config`）
+# 全局单例：None 表示没配。provider 从这里取配置，不自己 new 对象
 _checkpointer_config: CheckpointerConfig | None = None
 
 

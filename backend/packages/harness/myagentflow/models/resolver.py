@@ -1,12 +1,13 @@
-"""模型选择：把「这一轮该用哪个模型」算出来。
+"""模型选择：算出「这一轮该用哪个模型」。
 
-对照 EvoFlow `models/resolver.py`：同名异常 `NoChatModelConfiguredError`（`:38`）、
-同名函数 `resolve_run_model`（`:63`）、`get_app_config_safe`（`:190`）、
-`_global_default_model`（`:200`）。
+两层次序：运行时覆盖（cfg["model"] / cfg["model_name"]）→ 全局默认
+（AppConfig.primary_model，没有就取 models[0].name）。都没有时抛
+NoChatModelConfiguredError，而不是返回 None 让调用方猜。
 
-本复刻只保留两层来源：运行时覆盖（cfg["model"] / cfg["model_name"]）→ 全局默认
-（primary_model → models[0]）。agent 维度、DB 模型库等 EvoFlow 还有的分层等后续章节补。
+agent 维度、按任务类型选模型等更细的分层，等做到相应章节再补。
 """
+
+
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -14,7 +15,7 @@ from typing import Any
 
 
 class NoChatModelConfiguredError(RuntimeError):
-    """没有任何可用模型时抛出（对齐 EvoFlow `models/resolver.py:38`）。"""
+    """没有任何可用模型时抛出。"""
 
 
 def get_app_config_safe() -> Any:
@@ -44,7 +45,7 @@ def _global_default_model() -> str:
 
 
 def _runtime_override(cfg: Mapping[str, Any] | None) -> str:
-    """运行时覆盖层：cfg 里显式传了 model/model_name 就用它（EvoFlow 同函数名）。"""
+    """运行时覆盖层：cfg 里显式传了 model/model_name 就用它。"""
     if not cfg:
         return ""
     for key in ("model", "model_name"):

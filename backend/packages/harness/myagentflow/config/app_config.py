@@ -1,19 +1,20 @@
-"""应用配置：EvoFlow `config/app_config.py` 的最小复刻。
+"""应用根配置：把各配置节拼起来，并负责加载与缓存。
 
-EvoFlow 把配置拆成多个文件，我们也按同样布局拆（不是挤在一个文件里）：
+配置文件不是一个：`app_config.py` 只是根对象，子配置各在自己的文件里：
 
-    config/app_config.py           ← 本文件：AppConfig 根对象 + 加载/缓存
-    config/model_config.py         ← ModelConfig（一条模型）
-    config/checkpointer_config.py  ← CheckpointerConfig + 单例 get/set
-    config/storage_config.py       ← StorageConfig（应用库）
+    config/app_config.py           ← 本文件：AppConfig + 加载/缓存
+    config/model_config.py         ← 一条模型的类型
+    config/checkpointer_config.py  ← 检查点后端 + 单例
+    config/storage_config.py       ← 应用库位置
+    config/models_yaml.py          ← models 的 providers 写法摊平
 
-`AppConfig` 字段分区从 EvoFlow 的 14 个裁到 5 个（log_level / models / primary_model /
-checkpointer / storage），其余（sandbox / web / skills / extensions / tool_search /
-observability / data_retention / token_usage / tool_groups）等读到对应章节再补，字段名照抄。
+字段分区只保留 5 个：log_level / models / primary_model / checkpointer / storage；
+沙箱、web、技能、可观测等分区等读到对应章节再加，字段名保持同一套。
 
-为什么带 mtime 缓存：EvoFlow 的 `get_app_config()` 也是按文件 mtime 决定要不要重读
-（`config/app_config.py:486` `_get_config_mtime`、`:494` `_load_and_cache_app_config`）。
+缓存按文件 mtime 判断：配置改完不用重启，下一次 get_app_config() 自动重读。
 """
+
+
 from __future__ import annotations
 
 import json
@@ -29,12 +30,12 @@ from myagentflow.config.model_config import ModelConfig
 from myagentflow.config.models_yaml import coerce_models_field_for_appconfig
 from myagentflow.config.storage_config import StorageConfig
 
-# 配置路径环境变量：EvoFlow 叫 EVOFLOW_CONFIG_PATH，这里只换前缀
+# 覆盖配置路径的环境变量：有值时优先于 ./config.yaml
 CONFIG_PATH_ENV = "MYAGENTFLOW_CONFIG_PATH"
 
 
 class AppConfig(BaseModel):
-    """Config for the application（字段顺序与 EvoFlow `app_config.py:94` 一致）。"""
+    """应用根配置。"""
 
     log_level: str = Field(default="info", description="debug/info/warning/error")
     models: list[ModelConfig] = Field(default_factory=list, description="可用模型列表")
@@ -49,7 +50,7 @@ class AppConfig(BaseModel):
     def _coerce_models(cls, raw: Any) -> Any:
         """models 允许两种写法：扁平列表，或 `{providers: {网关: {..., models: [...]}}}`。
 
-        对齐 EvoFlow：摊平逻辑放在 `config/models_yaml.py`，根对象只负责调用。
+        摊平逻辑在 `config/models_yaml.py`，根对象只负责调用。
         """
         return coerce_models_field_for_appconfig(raw)
 
@@ -113,7 +114,7 @@ def _models_from_env() -> list[ModelConfig]:
 
 
 def _load_and_cache_app_config(config_path: str | None = None) -> AppConfig:
-    """解析一次并缓存（对齐 EvoFlow `app_config.py:494` 同名函数）。"""
+    """解析一次并缓存；文件改了由 get_app_config() 触发重读。"""
     global _config, _config_path, _config_mtime
 
     path = AppConfig.resolve_config_path(config_path)

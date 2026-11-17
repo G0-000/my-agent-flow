@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 02:45　源提交：`79a971f`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 11:36　源提交：`12a0ddb`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -467,15 +467,17 @@ EvoFlow 使用 PolyForm Noncommercial License 1.0.0：可读、可学习、非�
 
 #### 1. 每章的固定七节
 
-| 节 | 回答什么问题 | 硬要求 |
-|---|---|---|
-| **1. 这一步要做什么** | 用户能看到的最终行为 | 一句话能被别人的测试验证 |
-| **2. 前置** | 依赖、目录、上一章产物 | 未完成前置就往下走 = 一定卡 |
-| **3. 分步实现** | 一步一步动手 | 每步 = 一个文件 + 一段代码 + 一条验证命令 |
-| **4. 关键实现细节** | 为什么这样写 | 每条都要能指到 EvoFlow 的 `路径:行号` |
-| **5. 知识点** | 通用原理从哪补 | 只用 agent-book / Harbor404 的链接 |
-| **6. 跑不通怎么查** | 症状 → 原因 → 动作 | 必须写症状，不许只写「注意正确性」 |
-| **7. 验收** | 怎么算这一章过了 | 命令 + 期望输出 |
+| 节 | 回答什么问题 | 硬要求 | 本书里由哪个小节承担 |
+|---|---|---|---|---|
+| **1. 这一步要做什么** | 用户能看到的最终行为 | 一句话能被别人的测试验证 | 章首「读完这章你能…」 |
+| **2. 前置** | 依赖、目录、上一章产物 | 未完成前置就往下走 = 一定卡 | Step 1 的「文件」行 + 上一章产物；复杂章单独写 `### 前置` |
+| **3. 分步实现** | 一步一步动手 | 每步 = 一个文件 + 一段代码 + 一条验证命令 | `### Step N` |
+| **4. 关键实现细节** | 为什么这样写 | 每条都要能指到 EvoFlow 的 `路径:行号` | 「### 与 EvoFlow 对照」表（差异章再加 `::: warning` 框） |
+| **5. 知识点** | 通用原理从哪补 | 只用 agent-book / Harbor404 的链接 | `### 知识点` |
+| **6. 跑不通怎么查** | 症状 → 原因 → 动作 | 必须写症状，不许只写「注意正确性」 | 章前 `## 常见坑`（部分章写在手把手节内 `### 跑不通怎么查`） |
+| **7. 验收** | 怎么算这一章过了 | 命令 + 期望输出 | `### 验收` |
+
+> **为什么表里有两列**：需求侧的七节是「内容必须回答的问题」；落地侧的标题允许等价替代。41 章用「与 EvoFlow 对照」表承担第 4 节、用章前「常见坑」承担第 6 节；`02/01` 更细，写成独立小节 `### 关键实现细节` / `### 跑不通怎么查`。两种都合规，不要为了统一标题去删内容。
 
 #### 2. 分步实现的写法（最重要的约束）
 
@@ -1659,6 +1661,14 @@ class Agent:
 - [ ] run / task / thread 三个概念在 EvoFlow 里的边界
 - [ ] 错误事件的字段与分类
 
+#### 常见坑
+
+| 症状 | 原因 | 动作 |
+|---|---|---|
+| `ModuleNotFoundError: langgraph` | 依赖没装或不在 workspace 里 | `cd backend && uv sync`；确认 `pyproject.toml` 有 `langgraph` |
+| 第二次 `invoke` 只有 2 条消息（没有累积） | 没传 `configurable.thread_id`，或压根没挂 checkpointer | 传 `{"configurable": {"thread_id": "t1"}}`，并 `build_graph(model, InMemorySaver())` |
+| `InvalidUpdateError: Expected dict, got AIMessage` | 图的状态里 `messages` 少了 `add_messages` reducer | 用 `Annotated[list, add_messages]` 声明 messages 通道 |
+
 #### 从零实现（手把手）
 > 读完这章你能编译出第一张 LangGraph 图：输入一条消息，返回一条回复——没有工具、没有循环，只有一条边。
 > 路径均相对 `backend/`，代码注释写「为什么」。
@@ -2703,6 +2713,14 @@ python3 demo.py                            # 打印一次完整 SSE 流和一次
 - 没有取消、检查点、鉴权 —— 分别属于第 2、11 部分。
 - 第 1 章已与公开的 `config.example.yaml` 核对；第 2–5 章是自研参考实现，**尚未与 EvoFlow 源码核对**（真实运行时是 LangGraph + middleware，结构不同）。
 
+#### 常见坑
+
+| 症状 | 原因 | 动作 |
+|---|---|---|
+| `ModuleNotFoundError: myagentflow` | 不在 `backend/` 根目录跑，或没 `uv sync` | `cd backend && uv run pytest tests/chapters -q` |
+| 单章全绿、一起跑就挂 | 模块级单例/环境变量在测试间串味 | 每个用例用 `tmp_path`；改环境变量后 `reset_checkpointer()` |
+| 临时库残留导致第二次失败 | SQLite 文件写到了仓库目录 | 路径一律 `tmp_path / "x.sqlite"`，不要写死 `data/` |
+
 #### 从零实现（手把手）
 > 读完这章你有一条完整链路：配置 → 图 → 消息表 → 工具 → 事件流，并且有一个集成测试兜底。
 > 路径均相对 `backend/`，代码注释写「为什么」。
@@ -2761,9 +2779,7 @@ uv run pytest tests/chapters/test_ch01_06_e2e.py -v
 
 **代码**
 
-```python
-# 无代码，执行下面的命令即可
-```
+这一步不写新代码，也没有新文件可建——它考的是「五个模块放一起会不会互相踩」，所以只跑命令，见下面「验证」。
 
 **验证**
 
@@ -3387,7 +3403,7 @@ ctx: SqliteSaver  →  ctx closed ok
 
 Step 3 / 4 / 5 / 6 的代码按文档原样落地后，以上输出全部吻合。意味着这份指引里的代码是**跑过的**，不是排版的示意。
 
-##### 这一章算过了的标准
+##### 验收（这一章算过了的标准）
 
 ```bash
 uv run pytest tests/chapters/test_ch02_01_checkpointer.py -v        # 2 passed
@@ -4090,8 +4106,8 @@ uv run pytest tests/chapters/test_ch02_04_shares.py -v
 
 ##### 知识点
 
-- Harbor404 · 幂等与安全相关笔记
-- agent-book：权限与会话隔离
+- [幂等性设计：分享链接重复创建为什么不能产生两份](https://harbor404.fushenlin.com/notes/idempotency-design/)
+- [系统课入口：会话隔离与权限](https://g0-000.github.io/agent-book/)
 
 ##### 验收
 
@@ -4836,8 +4852,8 @@ print(run_chain([AuditMiddleware()], 'echo', {'text':'hi'}, lambda n,a: a['text'
 
 ##### 知识点
 
-- agent-book · LangGraph 课程：middleware 与 wrap 语义
-- Harbor404：日志脱敏
+- [LangGraph 课程：图、节点与执行顺序（正序进/逆序出的前提）](https://g0-000.github.io/agent-book/langgraph/)
+- [日志分析平台的演变：审计日志该记什么、怎么留](https://harbor404.fushenlin.com/notes/note-b7134f72/)
 
 ##### 验收
 
@@ -6086,8 +6102,8 @@ uv run pytest tests/chapters/test_ch05_01_chunker.py -v
 
 ##### 知识点
 
-- agent-book：RAG 切块策略
-- Harbor404：检索质量与切块粒度的关系
+- [RAG 离线流水线：解析 → 切块 → 入库全流程](https://harbor404.fushenlin.com/notes/rag-offline-pipeline/)
+- [系统课入口：检索前置处理](https://g0-000.github.io/agent-book/)
 
 ##### 验收
 
@@ -6268,8 +6284,8 @@ uv run pytest tests/chapters/test_ch05_02_vector.py -v
 
 ##### 知识点
 
-- agent-book：Embedding 与相似度
-- Harbor404：检索召回率
+- [RAG 在线检索流水线：召回、排序、组装上下文](https://harbor404.fushenlin.com/notes/rag-online-pipeline/)
+- [系统课入口：向量与检索](https://g0-000.github.io/agent-book/)
 
 ##### 验收
 
@@ -6429,8 +6445,8 @@ uv run pytest tests/chapters/test_ch05_03_map.py -v
 
 ##### 知识点
 
-- agent-book：Owned Knowledge 的组织方式
-- Harbor404：什么该进知识库
+- [RAG / GraphRAG / LightRAG 选型：知识为何要建图](https://harbor404.fushenlin.com/notes/rag-graphrag-lightrag-architecture/)
+- [系统课入口：知识组织](https://g0-000.github.io/agent-book/)
 
 ##### 验收
 
@@ -6646,8 +6662,8 @@ uv run pytest tests/chapters/test_ch05_04_code_index.py -v
 
 ##### 知识点
 
-- agent-book：代码索引与符号检索
-- Harbor404：大仓索引的增量策略
+- [RAG 离线流水线：切块与增量更新（与代码索引同构的部分）](https://harbor404.fushenlin.com/notes/rag-offline-pipeline/)
+- [系统课入口：检索](https://g0-000.github.io/agent-book/)
 
 ##### 验收
 
@@ -7511,8 +7527,8 @@ uv run pytest tests/chapters/test_ch07_01_plan.py -v
 
 ##### 知识点
 
-- agent-book：任务分解与 DAG
-- Harbor404：计划执行的失败复盘
+- [DeepAgent：复杂任务如何拆成可执行步骤](https://harbor404.fushenlin.com/notes/deepagent-complex-task-framework/)
+- [LangGraph 课程：DAG 与状态传递](https://g0-000.github.io/agent-book/langgraph/)
 
 ##### 验收
 
@@ -8104,8 +8120,8 @@ uv run pytest tests/chapters/test_ch07_04_budget.py -v
 
 ##### 知识点
 
-- Harbor404：成本控制与超时
-- agent-book：探索策略
+- [推理链路延迟优化：预算、超时与降级怎么定](https://harbor404.fushenlin.com/notes/llm-agent-latency-optimization/)
+- [系统课入口：Agent 循环控制](https://g0-000.github.io/agent-book/)
 
 ##### 验收
 
@@ -9322,8 +9338,8 @@ uv run python -c "from myagentflow.mcp.client import McpClient; print('import ok
 
 ##### 知识点
 
-- agent-book：MCP 协议入门
-- Harbor404：外部服务鉴权失败排查
+- [MCP 中台 Tool 数量治理：连接、发现、授权](https://harbor404.fushenlin.com/notes/mcp-tool-governance-architecture/)
+- [系统课入口：工具协议](https://g0-000.github.io/agent-book/)
 
 ##### 验收
 
@@ -9504,8 +9520,8 @@ print(load_all([PluginSpec('bad','no_such_mod:fn'), PluginSpec('ok','json:dumps'
 
 ##### 知识点
 
-- agent-book：插件机制
-- Harbor404：灰度与降级
+- [MCP Server 多实例与负载均衡：桥接层的坑](https://harbor404.fushenlin.com/notes/mcp-server-multi-instance-load-balancing/)
+- [系统课入口：扩展机制](https://g0-000.github.io/agent-book/)
 
 ##### 验收
 
@@ -9691,8 +9707,7 @@ r = SkillRegistry(); print(r.install(d), r.list())
 
 ##### 知识点
 
-- agent-book：技能包与市场
-- Harbor404：依赖与版本治理
+- [MCP 中台 Tool 治理：清单、版本与权限](https://harbor404.fushenlin.com/notes/mcp-tool-governance-architecture/)
 
 ##### 验收
 
@@ -9852,8 +9867,8 @@ print(to_summary(a, {'result':'晴'}))
 
 ##### 知识点
 
-- agent-book：A2A 与多 Agent
-- Harbor404：外部依赖超时
+- [Multi-Agent 五种架构：谁调谁、怎么汇总](https://harbor404.fushenlin.com/notes/multi-agent-five-architectures/)
+- [系统课入口：多 Agent](https://g0-000.github.io/agent-book/)
 
 ##### 验收
 
@@ -10318,8 +10333,7 @@ curl -s localhost:8070/api/v1/chat/completions \
 
 ##### 知识点
 
-- agent-book：协议兼容
-- Harbor404：代理与转发
+- [大模型网关详解：兼容层、路由与限流](https://harbor404.fushenlin.com/notes/llm-gateway-comprehensive-guide/)
 
 ##### 验收
 
@@ -10511,8 +10525,7 @@ e = b.inbound('echo','u1','hi'); b.outbound(e, 'hello')
 
 ##### 知识点
 
-- agent-book：多渠道接入
-- Harbor404：Webhook 重试
+- [大模型网关详解：转发、重试与降级](https://harbor404.fushenlin.com/notes/llm-gateway-comprehensive-guide/)
 
 ##### 验收
 
@@ -10753,8 +10766,8 @@ uv run pytest tests/chapters/test_ch11_01_acl.py -v
 
 ##### 知识点
 
-- agent-book：权限模型
-- Harbor404：越权排查
+- [MCP 中台 Tool 治理：授权边界怎么划](https://harbor404.fushenlin.com/notes/mcp-tool-governance-architecture/)
+- [系统课入口：权限与会话](https://g0-000.github.io/agent-book/)
 
 ##### 验收
 
@@ -11003,8 +11016,7 @@ uv run pytest tests/chapters/test_ch11_02_jwt.py -v
 
 ##### 知识点
 
-- agent-book：认证与 OIDC
-- Harbor404：token 泄露与轮换
+- [提示词注入四层防御：为什么 token 之外还要守内容](https://harbor404.fushenlin.com/notes/agent-prompt-injection-defense/)
 
 ##### 验收
 
@@ -11176,8 +11188,7 @@ print(has_feature(lic,'k','sso'), has_feature(lic,'k','tauri'))
 
 ##### 知识点
 
-- Harbor404：许可与分发
-- agent-book：功能开关
+- [大模型网关：配额、分发与开关](https://harbor404.fushenlin.com/notes/llm-gateway-comprehensive-guide/)
 
 ##### 验收
 
@@ -11370,8 +11381,8 @@ t.add_tokens(120); print(t.dump())
 
 ##### 知识点
 
-- Harbor404：可观测性与成本
-- agent-book：日志设计
+- [日志分析平台的演变：可观测性分层](https://harbor404.fushenlin.com/notes/note-b7134f72/)
+- [推理链路延迟优化：把耗时拆到节点](https://harbor404.fushenlin.com/notes/llm-agent-latency-optimization/)
 
 ##### 验收
 
@@ -11571,8 +11582,8 @@ uv run pytest tests/chapters/test_ch11_05_eval.py -v
 
 ##### 知识点
 
-- agent-book：Eval 设计
-- Harbor404：回归测试
+- [Agent 评测体系：指标、集与回归](https://harbor404.fushenlin.com/notes/agent-evaluation-system/)
+- [RAG 评测体系：检索类指标怎么定](https://harbor404.fushenlin.com/notes/rag-evaluation-system/)
 
 ##### 验收
 
@@ -11707,8 +11718,8 @@ print(compose(fs, 200))
 
 ##### 知识点
 
-- agent-book：系统提示词设计
-- Harbor404：提示词与预算
+- [提示词注入防御：系统提示词也要防覆盖](https://harbor404.fushenlin.com/notes/agent-prompt-injection-defense/)
+- [Claude Code 记忆机制：人格与记忆的边界](https://harbor404.fushenlin.com/notes/10-claude-code/)
 
 ##### 验收
 
@@ -12077,8 +12088,8 @@ curl -s -X PUT localhost:8070/api/settings -H 'content-type: application/json' \
 
 ##### 知识点
 
-- Harbor404：配置热更新的坑
-- agent-book：设置页设计
+- [系统课入口：产品面与配置](https://g0-000.github.io/agent-book/)
+- [大模型网关：配置项与配额的关系](https://harbor404.fushenlin.com/notes/llm-gateway-comprehensive-guide/)
 
 ##### 验收
 
@@ -12099,7 +12110,7 @@ curl -s localhost:8070/api/settings
 让前端不直连后端细节，而通过一层稳定的 RPC / Provider 抽象。
 
 #### 最小闭环
-前端调用 `api.xxx` → 经 RPC 通道（HTTP / Tauri command / stdio）→ 后端路由 → 返回结构化结果。
+前端调用 `api.chat.send` / `api.session.list` → 经 RPC 通道（HTTP / Tauri command / stdio）→ 后端路由 → 返回结构化结果。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -12221,8 +12232,8 @@ print(r.call({'id':1,'method':'ping'}), r.call({'id':2,'method':'nope'}))
 
 ##### 知识点
 
-- agent-book：JSON-RPC
-- Harbor404：桌面端通信
+- [大模型网关：统一入口与协议适配](https://harbor404.fushenlin.com/notes/llm-gateway-comprehensive-guide/)
+- [系统课入口：接口层](https://g0-000.github.io/agent-book/)
 
 ##### 验收
 
@@ -12569,6 +12580,14 @@ uv run pytest tests/chapters/test_ch13_01_e2e.py -q
 - [ ] 各域真实文件数与行数量级（用于评估复刻成本）
 - [ ] 与本仓库 `backend/` 的差异（两者是否同源需确认）
 
+#### 常见坑
+
+| 症状 | 原因 | 动作 |
+|---|---|---|
+| 全表都是「空壳」 | 第一个参数传了 `EvoFlow` 仓库根，而不是 `.../evoflow` 包根 | 传 `/Users/main/EvoFlow/backend/packages/harness/evoflow` |
+| 我们自己的新模块没出现在表里 | 只扫了 EvoFlow 一侧的目录名 | 代码已按 `set(ref)` 与 `set(ours)` 的并集处理，确认传的是 `packages/harness/myagentflow` |
+| 「已实现」比例虚高 | 用文件数当功能数（一个 2000 行文件抵十个空壳） | 比例只作导航；结论要回到 `PROGRESS.md` 的逐章状态 |
+
 #### 从零实现（手把手）
 > 读完这章你能自动生成一份「模块对照表」：哪些有、哪些缺、哪些只解释。
 > 路径均相对 `backend/`，代码注释写「为什么」。
@@ -12647,8 +12666,8 @@ uv run python tools/diff_ledger.py \
 
 ##### 知识点
 
-- agent-book：验收标准
-- Harbor404：复刻项目的差异管理
+- [Agent 评测体系：验收指标从哪来](https://harbor404.fushenlin.com/notes/agent-evaluation-system/)
+- [系统课入口：整体架构](https://g0-000.github.io/agent-book/)
 
 ##### 验收
 

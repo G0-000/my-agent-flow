@@ -28,10 +28,10 @@ def _last_user(messages: list[dict]) -> str:
 def completions(body: CompatIn) -> dict:
     from langchain_core.messages import HumanMessage
     from myagentflow.agents.lead_agent.graph import build_graph
-    from myagentflow.config.settings import load_config
+    from myagentflow.config.app_config import get_app_config
     from myagentflow.models.factory import build_chat_model
 
-    graph = build_graph(build_chat_model(load_config().model))
+    graph = build_graph(build_chat_model(get_app_config().get_model()))
     out = graph.invoke(
         {"messages": [HumanMessage(content=_last_user(body.messages))]},
         {"configurable": {"thread_id": "compat"}},

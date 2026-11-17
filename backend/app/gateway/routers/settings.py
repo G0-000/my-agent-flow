@@ -17,13 +17,18 @@ class SettingsIn(BaseModel):
 
 @router.get("/settings")
 def read_settings() -> dict:
-    from myagentflow.config.settings import load_config
+    from myagentflow.config.app_config import get_app_config
 
-    cfg = load_config()
+    cfg = get_app_config()
+    primary = cfg.get_model()
     return {
-        "model": {"provider": cfg.model.provider, "name": cfg.model.name,
-                  "base_url": cfg.model.base_url, "api_key": "***" if cfg.model.api_key else None},
-        "checkpointer": cfg.checkpointer,
+        "model": {
+            "vendor": primary.vendor,
+            "name": primary.name,
+            "base_url": primary.base_url,
+            "api_key": "***" if primary.api_key else None,
+        },
+        "checkpointer": cfg.checkpointer.model_dump(),
     }
 
 

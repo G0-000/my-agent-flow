@@ -26,14 +26,32 @@ POSTGRES_INSTALL = (
 POSTGRES_CONN_REQUIRED = "postgres 后端必须提供连接串（MYAF_CHECKPOINT_PG_DSN）"
 
 
+def _checkpointer_config():
+    """配置来源对齐 EvoFlow：读 AppConfig.checkpointer（type / connection_string）。
+
+    环境变量只在测试里当覆盖用（`MYAF_CHECKPOINTER` / `MYAF_CHECKPOINT_SQLITE_PATH`），
+    生产路径一律走 config.yaml。
+    """
+    from myagentflow.config.app_config import CheckpointerConfig, get_app_config
+
+    cfg = get_app_config().checkpointer
+    backend = (os.getenv("MYAF_CHECKPOINTER") or "").strip().lower()
+    if backend:
+        return CheckpointerConfig(
+            type=backend,
+            connection_string=os.getenv("MYAF_CHECKPOINT_SQLITE_PATH") or cfg.connection_string,
+        )
+    return cfg
+
+
 def _backend() -> str:
     """读后端类型；默认 memory —— 保证「什么配置都没有」也能跑起来。"""
-    return (os.getenv("MYAF_CHECKPOINTER") or "memory").strip().lower()
+    return _checkpointer_config().type
 
 
 def _sqlite_path() -> str:
     """检查点库文件路径。放 .myaf/ 下，跟仓库源码分开。"""
-    return os.getenv("MYAF_CHECKPOINT_SQLITE_PATH", ".myaf/checkpoints.sqlite")
+    return _checkpointer_config().connection_string or ".myaf/checkpoints.sqlite"
 
 
 def _pg_dsn() -> str:

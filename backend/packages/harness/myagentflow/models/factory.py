@@ -6,11 +6,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from myagentflow.config.settings import ModelConfig
+from myagentflow.config.app_config import ModelConfig
 
 
 def build_chat_model(cfg: ModelConfig) -> Any:
-    if cfg.provider == "openai":
+    if cfg.vendor == "openai":
         try:
             from langchain_openai import ChatOpenAI
         except ImportError as exc:
@@ -21,7 +21,7 @@ def build_chat_model(cfg: ModelConfig) -> Any:
             model=cfg.name,
             base_url=cfg.base_url,
             api_key=cfg.api_key,
-            temperature=0,
+            temperature=cfg.temperature,
         )
 
-    raise RuntimeError(f"暂不支持的 provider：{cfg.provider}（已实现 openai）")
+    raise RuntimeError(f"暂不支持的 vendor：{cfg.vendor}（已实现 openai）")

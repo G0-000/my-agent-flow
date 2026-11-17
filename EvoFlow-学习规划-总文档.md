@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 14:10　源提交：`3c77da2`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 15:12　源提交：`f21b025`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -199,7 +199,7 @@
   - 第 2 章　EvoFlow 对照台账与差异说明
 
 #### 代码 / Code
-- `code/`（原实现目录，本仓库未附带）：`evoflow_min`（纯标准库 Python 3.12）、`tests/`、`demo.py`
+- `code/`（原始资料的实现目录，本仓库未收录）：资料里叫 `evoflow_min`（纯标准库 Python 3.12）；**本复刻不用这个名字**，实现全部在 `backend/packages/harness/myagentflow/`
 - 运行：`cd code && python3 -m unittest discover -s tests -v && python3 demo.py`
 
 #### 如何分批喂材料 / How to send batches
@@ -722,7 +722,9 @@ pricing = {"glm-*": (0.6, 2.2), "glm-4-flash*": (0, 0)}
 `resolve_variable("package.module:attr.sub")` 把字符串变成对象，沙箱 provider、工具、护栏 provider 都靠它。**安全提醒：** 它会 `import` 任意模块，等于执行配置里指定的代码，所以 **配置文件必须被当作可信输入**；不要把来自用户的字符串直接喂给它。
 
 #### 示例代码 / Sample code
-##### `evoflow_min/config.py`
+##### 我方实现：`config/settings.py`（示例代码）
+
+> **EvoFlow 对应**：`config/app_config.py`（应用级配置装配）、`config/model_config.py`（`ModelConfig` 与默认值，`:78`）、`config/data_paths.py`（数据目录解析）。下面这段是**我方实现**，结构对齐上述文件，不是 EvoFlow 源码。
 ```python
 """Configuration (Chapter 1): YAML file + $ENV substitution + typed sections.
 
@@ -1150,112 +1152,45 @@ class RedactingFilter(logging.Filter):
         record.msg = self.redactor(record.getMessage()); record.args = (); return True
 ```
 
-##### `evoflow_min/model_store.py`
-```python
-"""Models live in SQLite, not in config.yaml (Chapter 1).
+##### 不复刻：模型存 SQLite（EvoFlow `persistence/schema.py:1031`）
 
-Verified upstream facts: tables are named evoflow_models and evoflow_app_settings; the primary model and e.g. the
-'web.search' preference are rows in evoflow_app_settings; the UI/Gateway API (GET/POST/PUT/DELETE /api/models) manages them.
-Column layout below is OUR design (the real schema was not read)."""
-from __future__ import annotations
-import json, sqlite3, threading, time
-from dataclasses import dataclass
-from .config import ConfigError
+EvoFlow 把模型**存在 SQLite**，不是 yaml。下面是真实建表语句（摘前 12 列，完整 30 列见源码）：
 
-KINDS = {"fake", "openai_compatible"}
-PRIMARY_KEY = "primary_model"
-
-@dataclass(frozen=True, repr=False)
-class ModelRecord:
-    name: str
-    kind: str
-    model: str
-    base_url: str = ""
-    api_key: str = ""
-    enabled: bool = True
-    def __repr__(self):
-        return f"ModelRecord(name={self.name!r}, kind={self.kind!r}, model={self.model!r}, api_key='***')"
-
-def mask(key: str) -> str:
-    return "" if not key else ("***" + key[-4:] if len(key) > 8 else "***")
-
-class ModelStore:
-    def __init__(self, path=":memory:"):
-        self._db = sqlite3.connect(str(path), check_same_thread=False)
-        self._db.row_factory = sqlite3.Row
-        self._lock = threading.Lock()
-        with self._lock:
-            self._db.executescript("""
-            CREATE TABLE IF NOT EXISTS evoflow_models(name TEXT PRIMARY KEY, kind TEXT NOT NULL, model TEXT NOT NULL,
-              base_url TEXT NOT NULL DEFAULT '', api_key TEXT NOT NULL DEFAULT '', enabled INTEGER NOT NULL DEFAULT 1, created_at REAL);
-            CREATE TABLE IF NOT EXISTS evoflow_app_settings(key TEXT PRIMARY KEY, value TEXT NOT NULL);""")
-    def _x(self, sql, args=()):
-        with self._lock:
-            cur = self._db.execute(sql, args); self._db.commit(); return cur
-    @staticmethod
-    def _validate(name, kind, base_url):
-        if not name or not isinstance(name, str): raise ConfigError("model name is required")
-        if kind not in KINDS: raise ConfigError(f"model {name}: unsupported kind {kind!r}")
-        if kind == "openai_compatible" and not base_url: raise ConfigError(f"model {name}: base_url is required")
-    @staticmethod
-    def _rec(r) -> ModelRecord:
-        return ModelRecord(r["name"], r["kind"], r["model"], r["base_url"], r["api_key"], bool(r["enabled"]))
-    # --- POST /api/models
-    def add(self, name, kind, model=None, base_url="", api_key="") -> ModelRecord:
-        self._validate(name, kind, base_url)
-        if self.get(name): raise ConfigError(f"model {name} already exists")
-        self._x("INSERT INTO evoflow_models VALUES (?,?,?,?,?,1,?)", (name, kind, model or name, base_url, api_key, time.time()))
-        return self.get(name)
-    # --- GET /api/models(/name)
-    def get(self, name) -> ModelRecord | None:
-        r = self._x("SELECT * FROM evoflow_models WHERE name=?", (name,)).fetchone()
-        return self._rec(r) if r else None
-    def list(self) -> list[dict]:
-        """API view: keys are masked and never returned in full."""
-        primary = self.get_setting(PRIMARY_KEY)
-        rows = self._x("SELECT * FROM evoflow_models ORDER BY created_at, name").fetchall()
-        return [{"name": r["name"], "kind": r["kind"], "model": r["model"], "base_url": r["base_url"], "api_key": mask(r["api_key"]),
-                 "has_api_key": bool(r["api_key"]), "enabled": bool(r["enabled"]), "primary": r["name"] == primary} for r in rows]
-    # --- PUT /api/models/name   (only the fields you pass change; api_key omitted = keep)
-    def update(self, name, **fields) -> ModelRecord:
-        cur = self.get(name)
-        if cur is None: raise ConfigError(f"unknown model {name!r}")
-        allowed = {"kind", "model", "base_url", "api_key", "enabled"}
-        bad = set(fields) - allowed
-        if bad: raise ConfigError(f"cannot update fields: {sorted(bad)}")
-        new = {**cur.__dict__, **fields}
-        self._validate(name, new["kind"], new["base_url"])
-        self._x("UPDATE evoflow_models SET kind=?, model=?, base_url=?, api_key=?, enabled=? WHERE name=?",
-                (new["kind"], new["model"], new["base_url"], new["api_key"], int(bool(new["enabled"])), name))
-        if not new["enabled"] and self.get_setting(PRIMARY_KEY) == name: self.clear_setting(PRIMARY_KEY)
-        return self.get(name)
-    # --- DELETE /api/models/name
-    def delete(self, name) -> None:
-        if self.get(name) is None: raise ConfigError(f"unknown model {name!r}")
-        self._x("DELETE FROM evoflow_models WHERE name=?", (name,))
-        if self.get_setting(PRIMARY_KEY) == name: self.clear_setting(PRIMARY_KEY)
-    def set_primary(self, name) -> None:
-        rec = self.get(name)
-        if rec is None: raise ConfigError(f"unknown model {name!r}")
-        if not rec.enabled: raise ConfigError(f"model {name} is disabled")
-        self.set_setting(PRIMARY_KEY, name)
-    def primary(self) -> ModelRecord | None:
-        n = self.get_setting(PRIMARY_KEY)
-        rec = self.get(n) if n else None
-        return rec if rec and rec.enabled else None
-    def secrets(self) -> list[str]:
-        return [r["api_key"] for r in self._x("SELECT api_key FROM evoflow_models").fetchall() if r["api_key"]]
-    # --- app settings (key -> JSON value), e.g. 'web.search'
-    def get_setting(self, key, default=None):
-        r = self._x("SELECT value FROM evoflow_app_settings WHERE key=?", (key,)).fetchone()
-        return json.loads(r["value"]) if r else default
-    def set_setting(self, key, value) -> None:
-        self._x("INSERT INTO evoflow_app_settings VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (key, json.dumps(value)))
-    def clear_setting(self, key) -> None:
-        self._x("DELETE FROM evoflow_app_settings WHERE key=?", (key,))
+```sql
+CREATE TABLE IF NOT EXISTS "evoflow_models" (
+    name TEXT PRIMARY KEY,
+    vendor TEXT,
+    display_name TEXT,
+    description TEXT,
+    use TEXT NOT NULL,
+    model TEXT NOT NULL,
+    base_url TEXT,
+    api_key TEXT,
+    request_timeout REAL,
+    max_retries INTEGER,
+    max_tokens INTEGER,
+    temperature REAL,
+    -- 其余列：use_responses_api / output_version / supports_thinking /
+    -- supports_reasoning_effort / supports_vision / *_json / context_length /
+    -- availability_status / unavailable_* / plan_type / plan_config / updated_at
+);
 ```
 
-##### `evoflow_min/models.py`（工厂部分）
+配套链路（每条都能指到源码）：
+
+| EvoFlow 位置 | 做什么 |
+|---|---|
+| `config/models_yaml.py:116` | `flatten_providers_dict()`：把 providers 结构摊平成模型条目 |
+| `config/model_config.py:78` | `ModelConfig` 定义 + `resolve_model_max_output_tokens()` 等默认值推导 |
+| `models/resolver.py:63` | `resolve_run_model()`：按 run/agent 选择用哪个模型 |
+| `models/factory.py` | 真正构造 provider 客户端（含 thinking / reasoning 适配） |
+| `persistence/schema.py:222` | `evoflow_app_settings`（key/value），主模型等偏好是这里的行 |
+
+**本复刻不做这件事**：模型写在 `config.yaml` + `config/settings.py`，由 `models/factory.py:build_chat_model()` 构造（第 1 章即已实现）。理由：学习目标是链路与状态管理，不是 30 列模型库的 CRUD；差异已列在文末「与 EvoFlow 对照」表里。
+
+##### 我方实现：`models/factory.py`
+
+> **EvoFlow 对应**：`models/factory.py`（构造 provider）+ `models/resolver.py:63`（决定用哪个模型）。下面为我方实现，只保留单模型路径。
 ```python
 def model_factory(store: ModelStore, name: str | None = None, fake_script: list | None = None) -> ChatModel:
     """Primary model unless a name is given. No model configured is a user-facing error, not a crash."""
@@ -1271,7 +1206,7 @@ def model_factory(store: ModelStore, name: str | None = None, fake_script: list 
 
 ##### `config.example.yaml`（我们自己的示例，结构参照上游）
 ```yaml
-# evoflow_min example configuration (our own file, modeled on the sections EvoFlow's public example shows)
+# 我方示例配置 (our own file, modeled on the sections EvoFlow's public example shows)
 # Copy to config.yaml. Any value can be "$ENV_VAR". Chat models are NOT configured here (see model_store.py).
 config_version: 1
 log_level: info
@@ -1284,9 +1219,9 @@ token_usage:
 
 tools:
   - name: calculator
-    use: evoflow_min.tools:calculator_tool
+    use: myagentflow.tools:calculator_tool
   - name: web_fetch
-    use: evoflow_min.tools:calculator_tool      # placeholder target; real tools arrive in later parts
+    use: myagentflow.tools:calculator_tool      # placeholder target; real tools arrive in later parts
     timeout: 10
 
 tool_search:
@@ -1584,7 +1519,9 @@ sequenceDiagram
 **错误处理 / Error handling：** 任何异常都被转成 `error` 事件，并把 run 状态置为 `failed`；错误消息会先经过 `Redactor`。
 
 #### 示例代码 / Sample code
-##### `evoflow_min/agent.py`
+##### 我方实现：`agents/lead_agent/graph.py`
+
+> **EvoFlow 对应**：`agents/lead_agent/agent.py`（LangGraph 装配 + middleware 链）。下面为我方实现，单节点两边的简化图。
 ```python
 """Agent: role prompt + model + tools + store. One run = loop until the model stops. (Chapters 1.2 and 1.4)"""
 from __future__ import annotations
@@ -1860,7 +1797,9 @@ sessions 1 ──< runs 1 ──< events   # 一次执行的过程日志，用�
 3. SQLite 用一把进程内锁串行化写入（`check_same_thread=False` 的代价）。
 
 #### 示例代码 / Sample code
-##### `evoflow_min/store.py`
+##### 我方实现：`persistence/messages.py`
+
+> **EvoFlow 对应**：`persistence/chat_message_repositories.py`（消息表读写）、`persistence/session_repositories.py`（会话）。下面为我方实现。
 ```python
 """SQLite persistence: sessions, messages, runs, event log. (Chapters 1.3 and 1.5)"""
 from __future__ import annotations
@@ -2147,7 +2086,9 @@ for _ in range(self.max_steps):
 - 模型一次可以发出多个 tool_call，这里按顺序执行；并行执行留作扩展。
 
 #### 示例代码 / Sample code
-##### `evoflow_min/tools.py`
+##### 我方实现：`tools/registry.py`
+
+> **EvoFlow 对应**：`tools/`（工具注册、schema 生成与执行，参考 `tools/minimal_schema.py`）。下面为我方实现。
 ```python
 """Tool registry, result envelope, truncation, safe calculator. (Chapter 1.4)"""
 from __future__ import annotations
@@ -2497,7 +2438,9 @@ sequenceDiagram
 - 这里的 id 同时是 **幂等键**：同一个 id 重复到达可以直接丢弃。
 
 #### 示例代码 / Sample code
-##### `evoflow_min/server.py`
+##### 我方实现：`runtime/streaming.py`
+
+> **EvoFlow 对应**：`app_server/chat_bridge.py`（AG-UI 事件流 / SSE 推送）。下面为我方实现。
 ```python
 """WSGI app: create sessions, start runs, stream events over SSE with Last-Event-ID replay. (Chapter 1.5)"""
 from __future__ import annotations

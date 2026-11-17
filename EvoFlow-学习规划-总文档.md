@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 15:20　源提交：`6b453a8`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 15:25　源提交：`9eff89c`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -4185,7 +4185,7 @@ uv run pytest tests/chapters/test_ch02_04_shares.py -q
 |---|---|---|
 | 1（01-文件终端与宿主边界.md） | 文件/终端与宿主边界 | `tools/tools.py`、`tools/host_direct/`、`tools/builtins/` |
 | 2（02-后台命令浏览器桥与Computer-Use.md） | 后台命令、浏览器桥、Computer Use | `plugins/`、`routers/browser_bridge.py`、`routers/cua_bridge.py` |
-| 3（03-Middleware调用链与工具审计.md） ✅ | Middleware 调用链与工具审计 | `agents/middlewares/`（71 个）、`agents/tool_approval_*.py` |
+| 3（03-Middleware调用链与工具审计.md） ✅ | Middleware 调用链与工具审计 | `agents/middlewares/`（70 个 `.py`）、`agents/tool_approval_*.py` |
 | 4（04-上下文预算压缩与自动后续.md） | 上下文预算、压缩、自动后续动作 | `context/`、`agents/context_compaction_core.py`、`tools/tool_output_truncation.py` |
 
 #### 关键认知
@@ -4688,7 +4688,7 @@ uv run python -c "from myagentflow.tools.host_direct.bridge_auth import verify_b
 ### 第 3 章　Middleware 调用链与工具审计
 
 
-> **对照状态** ✅ **已核对源码**：`agents/middlewares/`（71 个条目）、`agents/lead_agent/agent.py`（2002 行，装配逻辑在 705–760 行附近）。顺序注释、反向执行规则均来自源码原文。
+> **对照状态** ✅ **已核对源码**：`agents/middlewares/`（70 个 `.py` 条目）、`agents/lead_agent/agent.py`（2002 行，装配函数 `_build_middlewares` 在 `:685`–`:941`）。**顺序注释来自 EvoFlow 源码；「after_model 逆序执行」不是 EvoFlow 写的，是 LangChain `create_agent` 编译图时连边连出来的**——见下方第 9 条。
 
 #### 本章目标
 看懂 EvoFlow 的「Agent 循环」其实是一条**约 60 个中间件组成的流水线**，并理解注册顺序与执行顺序**方向相反**这一关键事实。
@@ -4720,7 +4720,7 @@ sequenceDiagram
 
 #### 1. 先纠正一个数字
 
-`agents/middlewares/` 下有 **71 个条目**，但不是 71 个中间件：
+`agents/middlewares/` 下有 **70 个 `.py`**，但不是 70 个中间件（有些是模块级工具函数，不是 `AgentMiddleware` 子类）：
 
 | 类别 | 举例 | 说明 |
 |---|---|---|
@@ -4743,7 +4743,8 @@ sequenceDiagram
 | 5 | 状态瘦身中间件放在最前，是为了让最终检查点丢掉 transcript | 同注释：「final checkpoint (esp. durability=exit) drops transcript blobs」 |
 | 6 | 转写落库（Transcript）放得「早」，是为了它的 after_model 最后跑 | 注释：「Placed early so its after_model runs last ... capturing the final state」 |
 | 7 | TokenUsage 在子代理链最后 append，所以它最先执行 | 注释：「after_model runs in reverse list order, so TokenUsageMiddleware (appended last) runs first」 |
-| 8 | 澄清（Clarification）必须最后拦截 | 注释：「ClarificationMiddleware should be last to intercept clarification requests after model calls」 |
+| 8 | 澄清（Clarification）必须最后拦截 | `agent.py:939` 最后一句 `middlewares.append(ClarificationMiddleware())`，上一条注释「ClarificationMiddleware should always be last」 |
+| 9 | **逆序不是 EvoFlow 实现的**，是 LangChain 编译图时接的边 | `langchain/agents/factory.py:1551`：`graph.add_edge("model", f"{middleware_w_after_model[-1].name}.after_model")`，随后 `for idx in range(len(...)-1, 0, -1)` 逐条倒着连 |
 | 9 | Todo 必须排在澄清之前，否则待办管理被拦掉 | 注释：「TodoListMiddleware should be before ClarificationMiddleware」 |
 | 10 | 图片细节注入必须早于澄清 | `ViewImageMiddleware` 注释 |
 | 11 | 工具异常必须早于澄清转成 ToolMessage | `ToolErrorHandlingMiddleware` 注释 |
@@ -5010,7 +5011,7 @@ sequenceDiagram
 ```
 
 - **入口**：每轮请求模型前先 `estimate_tokens()`，估算放在调用前而不是超限后。
-- **关键节点**：阈值有两个来源——比例（`ratio=0.9`）和绝对上限（cap），**cap 胜**（测试 `test_cap_beats_ratio` 钉死这条）；压缩后目标不是 0 而是 `refill_target()`，留出下一轮空间。
+- **关键节点**：阈值有两个来源——比例（`ratio=0.9`）和绝对上限（cap），**cap 胜**（本复刻测试 `tests/chapters/test_ch03_04_budget.py::test_cap_beats_ratio` 钉死这条）；压缩后**不是立刻又能压**：真实实现是「压缩后 token 得再涨回去才允许再压」——`agents/compaction_trigger.py:20` `POST_COMPRESS_REFILL_RATIO = 1.22`（跨轮），`:24` `SAME_TURN_REFILL_RATIO = 1.5`（同一轮/tool 跳，防止 compress→main→compress 抖动），门槛 = `after_gate_tokens × 比例`（`:148`–`:149`）。**注意：没有名为 `refill_target()` 的函数**，原文这里写错了。
 - **出口**：`should_compact` 返回布尔，压缩动作由外层执行，`budget.py` 本身不调模型。
 - **最容易断的地方**：把估算做成精确 tokenizer（慢十倍且和模型不完全一致）；压缩后再塞回全部历史，等于没压。
 

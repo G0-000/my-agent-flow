@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 15:12　源提交：`f21b025`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 15:20　源提交：`6b453a8`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -2870,7 +2870,7 @@ Part 1 的 run/stream
 | 9 | 该行为默认开启，可用 `EVOFLOW_CHECKPOINT_OMIT_TRANSCRIPT=0` 关闭 | `omit_transcript_on_checkpoint_put_enabled()` |
 | 10 | 例外：存在**未完成的 tool_call**（HITL / 工具中途）时必须保留 messages | `has_unresolved_tool_calls()` |
 | 11 | 读 thread 状态**不编译图**：直接读 SQLite，毫秒级 | `thread_state_reader.py` 模块 docstring |
-| 12 | 最终检查点还会由链头中间件再瘦身一次 | `CheckpointTranscriptSlimMiddleware`（`lead_agent/agent.py:705` 注释） |
+| 12 | 最终检查点还会由链头中间件再瘦身一次 | `CheckpointTranscriptSlimMiddleware`（`agents/lead_agent/agent.py:705` 注释） |
 
 #### 2. 调用逻辑
 
@@ -3740,13 +3740,13 @@ HTTP  → Gateway（Part 10）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/cli/main.py` | 105 | `_peek_command`、`build_parser`、`main` | — |
-| `packages/harness/evoflow/cli/common.py` | 44 | `add_json_input_flags`、`load_json_payload`、`add_output_flags` | — |
-| `packages/harness/evoflow/app_server/stdio_rpc.py` | 719 | `StdioAppServer`；`_force_utf8_stdio`、`serve_stdio`、`serve_stdio_async` | PROTOCOL_VERSION |
-| `packages/harness/evoflow/app_server/embed.py` | 96 | `resolve_app_server_listen_port`、`resolve_gateway_base_url_for_embed`、`start_embedded_app_server` | — |
-| `packages/harness/evoflow/app_server/chat_bridge.py` | 396 | `_client_lock`、`_get_shared_gateway_client`、`reset_shared_gateway_client_for_tests` | — |
-| `packages/harness/evoflow/desktop_stdio.py` | 363 | `_UnclosableStdio`；`apply_windows_stdio_env`、`_stream_is_usable`、`_is_colorama_wrapped` | — |
-| `packages/harness/evoflow/app_server/stdio_rpc.py` | 719 | `StdioAppServer`；`_force_utf8_stdio`、`serve_stdio`、`serve_stdio_async` | PROTOCOL_VERSION |
+| `packages/harness/evoflow/cli/main.py:52` | 105 | `_peek_command`、`build_parser`、`main` | — |
+| `packages/harness/evoflow/cli/common.py:13` | 44 | `add_json_input_flags`、`load_json_payload`、`add_output_flags` | — |
+| `packages/harness/evoflow/app_server/stdio_rpc.py:26` | 719 | `StdioAppServer`；`_force_utf8_stdio`、`serve_stdio`、`serve_stdio_async` | PROTOCOL_VERSION |
+| `packages/harness/evoflow/app_server/embed.py:17` | 96 | `resolve_app_server_listen_port`、`resolve_gateway_base_url_for_embed`、`start_embedded_app_server` | — |
+| `packages/harness/evoflow/app_server/chat_bridge.py:21` | 396 | `_client_lock`、`_get_shared_gateway_client`、`reset_shared_gateway_client_for_tests` | — |
+| `packages/harness/evoflow/desktop_stdio.py:270` | 363 | `_UnclosableStdio`；`apply_windows_stdio_env`、`_stream_is_usable`、`_is_colorama_wrapped` | — |
+| `packages/harness/evoflow/app_server/stdio_rpc.py:26` | 719 | `StdioAppServer`；`_force_utf8_stdio`、`serve_stdio`、`serve_stdio_async` | PROTOCOL_VERSION |
 
 #### 核心概念
 - **stdio 协议要点**：stdout 只能放协议消息，日志必须走 stderr，否则宿主解析失败。
@@ -3979,9 +3979,9 @@ sequenceDiagram
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
 | `app/gateway/routers/share.py` | 154 | `CreateShareBody`、`CreateShareResponse`、`PublicShareResponse`；`create_share`、`latest_share_for_session`、`get_share` | — |
-| `packages/harness/evoflow/persistence/chat_share_repositories.py` | 311 | `_utc_now_iso`、`_parse_iso`、`_extract_text_from_content` | — |
+| `packages/harness/evoflow/persistence/chat_share_repositories.py:18` | 311 | `_utc_now_iso`、`_parse_iso`、`_extract_text_from_content` | — |
 | `app/gateway/auth.py` | 164 | `CallerCtx`；`verify_bearer_token`、`verify_capability_bearer_token`、`verify_app_bearer_token` | — |
-| `packages/harness/evoflow/authz/http_guard.py` | 549 | `resolve_authz_from_request`、`require_thread_visible`、`_has_auth_signals` | — |
+| `packages/harness/evoflow/authz/http_guard.py:10` | 549 | `resolve_authz_from_request`、`require_thread_visible`、`_has_auth_signals` | — |
 
 #### 核心概念
 - **分享是投影不是副本**：读的是被授权的快照/只读视图，避免数据漂移。
@@ -4246,14 +4246,14 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/tools/tools.py` | 649 | `_LazyToolSequence`；`_tool_name`、`_drop_removed_tools`、`_read_tool_aliases` | REMOVED_LEGACY_TOOL_NAMES、BUILTIN_TOOLS、SUBAGENT_TOOLS |
-| `packages/harness/evoflow/tools/tool_catalog.py` | 358 | `_core_tool_names`、`_plan_scenario_extra_tools`、`_workspace_scenario_extra_tools` | TOOL_TIER_ORDER、TOOL_TIER_LABELS_ZH、ROLE_EDITOR_CONFIGURABLE_TOOL_TIERS |
-| `packages/harness/evoflow/tools/tool_aliases.py` | 136 | `augment_process_tools`、`augment_worker_tool_allowlist`、`canonical_tool_name` | PROCESS_TOOL_SUITE |
-| `packages/harness/evoflow/tools/arg_coerce.py` | 228 | `parse_search_path_prefix`、`split_pipe_terms`、`coerce_str_list` | — |
+| `packages/harness/evoflow/tools/tools.py:240` | 649 | `_LazyToolSequence`；`_tool_name`、`_drop_removed_tools`、`_read_tool_aliases` | REMOVED_LEGACY_TOOL_NAMES、BUILTIN_TOOLS、SUBAGENT_TOOLS |
+| `packages/harness/evoflow/tools/tool_catalog.py:126` | 358 | `_core_tool_names`、`_plan_scenario_extra_tools`、`_workspace_scenario_extra_tools` | TOOL_TIER_ORDER、TOOL_TIER_LABELS_ZH、ROLE_EDITOR_CONFIGURABLE_TOOL_TIERS |
+| `packages/harness/evoflow/tools/tool_aliases.py:59` | 136 | `augment_process_tools`、`augment_worker_tool_allowlist`、`canonical_tool_name` | PROCESS_TOOL_SUITE |
+| `packages/harness/evoflow/tools/arg_coerce.py:12` | 228 | `parse_search_path_prefix`、`split_pipe_terms`、`coerce_str_list` | — |
 | `packages/harness/evoflow/tools/minimal_schema.py` | 53 |  | READ_TOOL_DESCRIPTION、WRITE_TOOL_DESCRIPTION、REPLACE_TOOL_DESCRIPTION |
-| `packages/harness/evoflow/tools/builtins/plan_tool.py` | 585 | `PlanStepInput`、`PlanInput`；`_json_loads_if_string`、`_coerce_string_list_field`、`_coerce_to_str` | — |
-| `packages/harness/evoflow/tools/tool_result_shaper.py` | 230 | `_split_preserved_read_blocks`、`_split_post_search_reads`、`_attach_preserved_read_blocks` | — |
-| `packages/harness/evoflow/tools/tool_activity_ui.py` | 154 | `_normalize_key`、`_parse_tool_call_args`、`_label` | — |
+| `packages/harness/evoflow/tools/builtins/plan_tool.py:143` | 585 | `PlanStepInput`、`PlanInput`；`_json_loads_if_string`、`_coerce_string_list_field`、`_coerce_to_str` | — |
+| `packages/harness/evoflow/tools/tool_result_shaper.py:40` | 230 | `_split_preserved_read_blocks`、`_split_post_search_reads`、`_attach_preserved_read_blocks` | — |
+| `packages/harness/evoflow/tools/tool_activity_ui.py:70` | 154 | `_normalize_key`、`_parse_tool_call_args`、`_label` | — |
 
 #### 核心概念
 - **宿主（host）≠ 沙箱（sandbox）**：宿主工具直接操作真实文件系统，风险最高。
@@ -4417,7 +4417,7 @@ uv run pytest tests/chapters/test_ch03_01_guard.py -v
 
 | 我们的做法 | EvoFlow | 为什么 |
 |---|---|---|
-| `realpath` 先解析再判断 | `tools/host_direct/workspace_path_guard.py:286` 行的解析段 | 软链与 `..` 不解析就判前缀等于没判 |
+| `realpath` 先解析再判断 | `tools/host_direct/workspace_path_guard.py:125` 行的解析段 | 软链与 `..` 不解析就判前缀等于没判 |
 | 默认不限制 | 该文件 docstring：`path confinement is disabled` | 复刻要如实，不能写成「有防护」 |
 
 ##### 知识点
@@ -4476,16 +4476,16 @@ sequenceDiagram
 |---|---|---|---|
 | `app/gateway/routers/background_bash.py` | 50 | `list_background_bash`、`background_bash_output`、`background_bash_stop` | — |
 | `app/gateway/routers/browser_bridge.py` | 145 | `BrowserExecuteRequest`、`BrowserLogEntry`、`BrowserLogBatch`；`_org_admin_guard`、`_bridge_token_guard`、`append_browser_log` | — |
-| `packages/harness/evoflow/tools/builtins/browser_stream.py` | 137 | `browser_session_name`、`browser_live_ws_path`、`_engine_screencast_active` | — |
+| `packages/harness/evoflow/tools/builtins/browser_stream.py:23` | 137 | `browser_session_name`、`browser_live_ws_path`、`_engine_screencast_active` | — |
 | `app/gateway/routers/browser_snapshots.py` | 38 | `get_browser_screenshot` | — |
 | `app/gateway/routers/browser_embed.py` | 63 | `BrowserEmbedCdpBody`；`put_browser_embed_cdp`、`delete_browser_embed_cdp`、`get_browser_embed_cdp` | — |
 | `app/gateway/routers/cua_bridge.py` | 327 | `CuaExecuteRequest`、`AppIconLocator`、`AppIconRequestBody`；`_org_admin_guard`、`_bridge_token_guard`、`_resolve_ps1` | — |
-| `packages/harness/evoflow/plugins/cua_helper.py` | 162 | `_helper_entry`、`_helper_addon`、`is_helper_runtime` | HELPER_RUNTIME_DIRNAME、HELPER_ENTRY_REL、HELPER_ADDON_REL |
-| `packages/harness/evoflow/plugins/bridge_auth.py` | 94 | `_token_file_path`、`reset_bridge_token_cache`、`get_bridge_token` | — |
-| `packages/harness/evoflow/plugins/runtime.py` | 342 | `_ulog`、`_iter_enabled_plugins`、`enabled_plugin_roots` | — |
-| `packages/harness/evoflow/plugins/node_repl.py` | 1111 | `_ulog`、`_sanitize_model_browser_js`、`_meta_envelope` | — |
-| `packages/harness/evoflow/plugins/node_repl_tool.py` | 564 | `NodeReplJsInput`；`_maybe_compact_browser_docs_dump`、`_get_thread_id`、`_decode_image` | — |
-| `packages/harness/evoflow/plugins/cua_helper.py` | 162 | `_helper_entry`、`_helper_addon`、`is_helper_runtime` | HELPER_RUNTIME_DIRNAME、HELPER_ENTRY_REL、HELPER_ADDON_REL |
+| `packages/harness/evoflow/plugins/cua_helper.py:40` | 162 | `_helper_entry`、`_helper_addon`、`is_helper_runtime` | HELPER_RUNTIME_DIRNAME、HELPER_ENTRY_REL、HELPER_ADDON_REL |
+| `packages/harness/evoflow/plugins/bridge_auth.py:33` | 94 | `_token_file_path`、`reset_bridge_token_cache`、`get_bridge_token` | — |
+| `packages/harness/evoflow/plugins/runtime.py:41` | 342 | `_ulog`、`_iter_enabled_plugins`、`enabled_plugin_roots` | — |
+| `packages/harness/evoflow/plugins/node_repl.py:30` | 1111 | `_ulog`、`_sanitize_model_browser_js`、`_meta_envelope` | — |
+| `packages/harness/evoflow/plugins/node_repl_tool.py:111` | 564 | `NodeReplJsInput`；`_maybe_compact_browser_docs_dump`、`_get_thread_id`、`_decode_image` | — |
+| `packages/harness/evoflow/plugins/cua_helper.py:40` | 162 | `_helper_entry`、`_helper_addon`、`is_helper_runtime` | HELPER_RUNTIME_DIRNAME、HELPER_ENTRY_REL、HELPER_ADDON_REL |
 
 #### 已核对的行为事实（REST 层）
 
@@ -4736,7 +4736,7 @@ sequenceDiagram
 
 | # | 事实 | 证据 |
 |---|---|---|
-| 1 | 运行时公共链由一个函数产出 | `build_lead_runtime_middlewares(lazy_init=True)`（在 `tool_error_handling_middleware.py:1087`） |
+| 1 | 运行时公共链由一个函数产出 | `build_lead_runtime_middlewares(lazy_init=True)`（在 `agents/middlewares/tool_error_handling_middleware.py:1087`） |
 | 2 | 子代理用另一套：不带 uploads、不带 dangling patch | `build_subagent_runtime_middlewares()` |
 | 3 | `after_model` 按列表**逆序**执行 | 源码注释：「after_model runs in reverse list order」 |
 | 4 | 因此「要最后跑的 after_model」必须放在链**最前面** | `CheckpointTranscriptSlimMiddleware` 用 `insert(0, ...)`，注释写明「First in chain ⇒ after_agent runs last」 |
@@ -5018,24 +5018,24 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/context/model_request_token_estimate.py` | 191 | `ModelCallOverheadEstimate`；`set_gate_overhead_meta`、`reset_gate_overhead_meta`、`current_gate_overhead_meta` | — |
-| `packages/harness/evoflow/context/capability_token_estimate.py` | 167 | `_skill_catalog_xml_item`、`estimate_named_skills_tokens`、`estimate_named_tools_tokens` | — |
-| `packages/harness/evoflow/context/tool_tokens.py` | 27 | `count_tool_tokens` | — |
-| `packages/harness/evoflow/context/working_memory.py` | 356 | `ReadEntry`、`WriteEntry`、`_ThreadMemory`；`_normalize_path_key`、`_entry_key`、`_line_hint` | — |
-| `packages/harness/evoflow/context/tool_history_ager_queue.py` | 138 | `ToolHistorySummaryQueue`；`get_tool_history_summary_queue` | — |
-| `packages/harness/evoflow/context/tool_history_merge.py` | 299 | `ToolRoundEntry`、`_ColdScan`；`_evict_last_merge_locked`、`merge_cooldown_elapsed`、`mark_merge_cooldown` | — |
-| `packages/harness/evoflow/context/tool_timeline.py` | 116 | `_extract_persisted_path`、`search_tool_timeline`、`format_tool_timeline_for_agent` | — |
-| `packages/harness/evoflow/context/tool_result_summarizer.py` | 281 | `is_frozen_tool_history`、`is_already_shaped`、`format_structured_summary` | TOOL_HISTORY_PREFIX |
-| `packages/harness/evoflow/context/tool_summary_prompts.py` | 132 | `_tool_family`、`build_single_tool_summary_prompt`、`build_tool_history_batch_prompt` | — |
-| `packages/harness/evoflow/agents/context_compaction_core.py` | 2963 | `CompactionPlan`、`ContextCompactionEngine`；`_compaction_tool_truncate_tokens`、`_compaction_moderate_truncate_tokens`、`_multimodal_extras_tokens` | MAIN_SUMMARY_PREFIX、LEGACY_SUMMARY_MARKERS、TURNS |
-| `packages/harness/evoflow/agents/context_compaction_events.py` | 316 | `_emit`、`_inject_compaction_stream_event`、`_try_stream_writer` | — |
-| `packages/harness/evoflow/agents/manual_context_compaction.py` | 175 | `ManualCompactionError`、`_ManualCompactionRuntime`；`_resolve_session_model_name`、`run_manual_context_compaction` | — |
-| `packages/harness/evoflow/tools/large_result_store.py` | 188 | `_get_store_dir`、`_prune_old_files`、`build_head_summary` | — |
-| `packages/harness/evoflow/tools/tool_output_truncation.py` | 62 | `truncate_text_to_token_budget`、`formatted_truncate_tool_output` | — |
-| `packages/harness/evoflow/context/context_ref_lru.py` | 55 | `register_ref`、`_evict_locked`、`list_refs` | — |
-| `packages/harness/evoflow/context/file_read_cache.py` | 83 | `_cache_key`、`get_cached_text`、`store_cached_text` | — |
-| `packages/harness/evoflow/agents/context_compaction_core.py` | 2963 | `CompactionPlan`、`ContextCompactionEngine`；`_compaction_tool_truncate_tokens`、`_compaction_moderate_truncate_tokens`、`_multimodal_extras_tokens` | MAIN_SUMMARY_PREFIX、LEGACY_SUMMARY_MARKERS、TURNS |
-| `packages/harness/evoflow/tools/large_result_store.py` | 188 | `_get_store_dir`、`_prune_old_files`、`build_head_summary` | — |
+| `packages/harness/evoflow/context/model_request_token_estimate.py:37` | 191 | `ModelCallOverheadEstimate`；`set_gate_overhead_meta`、`reset_gate_overhead_meta`、`current_gate_overhead_meta` | — |
+| `packages/harness/evoflow/context/capability_token_estimate.py:23` | 167 | `_skill_catalog_xml_item`、`estimate_named_skills_tokens`、`estimate_named_tools_tokens` | — |
+| `packages/harness/evoflow/context/tool_tokens.py:20` | 27 | `count_tool_tokens` | — |
+| `packages/harness/evoflow/context/working_memory.py:22` | 356 | `ReadEntry`、`WriteEntry`、`_ThreadMemory`；`_normalize_path_key`、`_entry_key`、`_line_hint` | — |
+| `packages/harness/evoflow/context/tool_history_ager_queue.py:31` | 138 | `ToolHistorySummaryQueue`；`get_tool_history_summary_queue` | — |
+| `packages/harness/evoflow/context/tool_history_merge.py:58` | 299 | `ToolRoundEntry`、`_ColdScan`；`_evict_last_merge_locked`、`merge_cooldown_elapsed`、`mark_merge_cooldown` | — |
+| `packages/harness/evoflow/context/tool_timeline.py:14` | 116 | `_extract_persisted_path`、`search_tool_timeline`、`format_tool_timeline_for_agent` | — |
+| `packages/harness/evoflow/context/tool_result_summarizer.py:42` | 281 | `is_frozen_tool_history`、`is_already_shaped`、`format_structured_summary` | TOOL_HISTORY_PREFIX |
+| `packages/harness/evoflow/context/tool_summary_prompts.py:20` | 132 | `_tool_family`、`build_single_tool_summary_prompt`、`build_tool_history_batch_prompt` | — |
+| `packages/harness/evoflow/agents/context_compaction_core.py:1201` | 2963 | `CompactionPlan`、`ContextCompactionEngine`；`_compaction_tool_truncate_tokens`、`_compaction_moderate_truncate_tokens`、`_multimodal_extras_tokens` | MAIN_SUMMARY_PREFIX、LEGACY_SUMMARY_MARKERS、TURNS |
+| `packages/harness/evoflow/agents/context_compaction_events.py:15` | 316 | `_emit`、`_inject_compaction_stream_event`、`_try_stream_writer` | — |
+| `packages/harness/evoflow/agents/manual_context_compaction.py:26` | 175 | `ManualCompactionError`、`_ManualCompactionRuntime`；`_resolve_session_model_name`、`run_manual_context_compaction` | — |
+| `packages/harness/evoflow/tools/large_result_store.py:18` | 188 | `_get_store_dir`、`_prune_old_files`、`build_head_summary` | — |
+| `packages/harness/evoflow/tools/tool_output_truncation.py:11` | 62 | `truncate_text_to_token_budget`、`formatted_truncate_tool_output` | — |
+| `packages/harness/evoflow/context/context_ref_lru.py:14` | 55 | `register_ref`、`_evict_locked`、`list_refs` | — |
+| `packages/harness/evoflow/context/file_read_cache.py:17` | 83 | `_cache_key`、`get_cached_text`、`store_cached_text` | — |
+| `packages/harness/evoflow/agents/context_compaction_core.py:1201` | 2963 | `CompactionPlan`、`ContextCompactionEngine`；`_compaction_tool_truncate_tokens`、`_compaction_moderate_truncate_tokens`、`_multimodal_extras_tokens` | MAIN_SUMMARY_PREFIX、LEGACY_SUMMARY_MARKERS、TURNS |
+| `packages/harness/evoflow/tools/large_result_store.py:18` | 188 | `_get_store_dir`、`_prune_old_files`、`build_head_summary` | — |
 
 #### 核心概念（以下均为源码核对结论）
 - **只按 token 判定，不按消息数**：`message_count_triggers_compaction()` 恒返回 `False`，`round_trigger_rearmed()` 也恒为 `False`。配置项 `compaction_trigger_message_count` 保留但被显式忽略（源码注释：消息数「must not allow or force a compress LLM call」）。
@@ -5314,21 +5314,21 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/memory/facade.py` | 375 | `_get_archive_floor`、`remember`、`_maybe_enqueue_threshold` | — |
-| `packages/harness/evoflow/memory/store.py` | 747 | `_keyword_search_terms`、`_dumps`、`_loads_obj` | — |
-| `packages/harness/evoflow/memory/storage.py` | 135 | `MemoryStorage`、`OwnedMemoryStorage`；`create_empty_memory`、`get_memory_storage`、`reset_memory_storage_for_tests` | — |
-| `packages/harness/evoflow/memory/recall_snapshot.py` | 90 | `_trim`、`record_thread_recall`、`get_thread_recall` | — |
-| `packages/harness/evoflow/memory/namespaces.py` | 39 | `user_ns`、`agent_ns`、`workspace_ns` | — |
-| `packages/harness/evoflow/memory/namespaces_api.py` | 324 | `_atom_count`、`_ns_rows`、`_visibility_ctx` | — |
-| `packages/harness/evoflow/memory/episodes.py` | 116 | `_clip`、`record_task_episode`、`record_goal_episode` | — |
-| `packages/harness/evoflow/agents/memory/agent_memory.py` | 214 | `AgentMemoryManager`；`get_agent_memory_manager` | — |
-| `packages/harness/evoflow/admin/workspace_memory.py` | 77 | `_normalize_path`、`get_workspace_memory`、`clear_workspace_memory_admin` | — |
-| `packages/harness/evoflow/agents/memory/updater.py` | 464 | `MemoryUpdater`；`_create_empty_memory`、`_save_memory_to_file`、`get_memory_data` | — |
-| `packages/harness/evoflow/agents/memory/queue.py` | 387 | `ConversationContext`、`MemoryUpdateQueue`；`get_memory_queue`、`reset_memory_queue` | — |
-| `packages/harness/evoflow/agents/memory/runtime_overrides.py` | 248 | `_ctx_dict`、`_coerce_bool`、`role_memory_enabled_from_config` | ASSETS_TOOL_NAME |
-| `packages/harness/evoflow/agents/memory/prompt.py` | 427 | `_count_tokens`、`_coerce_confidence`、`_truncate_summary` | MEMORY_UPDATE_PROMPT、IMPORTANT、FACT_EXTRACTION_PROMPT |
-| `packages/harness/evoflow/agents/memory/workspace_prompt.py` | 772 | `is_ephemeral_workspace_path`、`normalize_workspace_relative_path`、`scrub_ephemeral_workspace_text` | WORKSPACE_BOOTSTRAP_PROMPT、IMPORTANT、IMPORTANT |
-| `packages/harness/evoflow/memory/recall_snapshot.py` | 90 | `_trim`、`record_thread_recall`、`get_thread_recall` | — |
+| `packages/harness/evoflow/memory/facade.py:13` | 375 | `_get_archive_floor`、`remember`、`_maybe_enqueue_threshold` | — |
+| `packages/harness/evoflow/memory/store.py:33` | 747 | `_keyword_search_terms`、`_dumps`、`_loads_obj` | — |
+| `packages/harness/evoflow/memory/storage.py:34` | 135 | `MemoryStorage`、`OwnedMemoryStorage`；`create_empty_memory`、`get_memory_storage`、`reset_memory_storage_for_tests` | — |
+| `packages/harness/evoflow/memory/recall_snapshot.py:15` | 90 | `_trim`、`record_thread_recall`、`get_thread_recall` | — |
+| `packages/harness/evoflow/memory/namespaces.py:6` | 39 | `user_ns`、`agent_ns`、`workspace_ns` | — |
+| `packages/harness/evoflow/memory/namespaces_api.py:15` | 324 | `_atom_count`、`_ns_rows`、`_visibility_ctx` | — |
+| `packages/harness/evoflow/memory/episodes.py:15` | 116 | `_clip`、`record_task_episode`、`record_goal_episode` | — |
+| `packages/harness/evoflow/agents/memory/agent_memory.py:13` | 214 | `AgentMemoryManager`；`get_agent_memory_manager` | — |
+| `packages/harness/evoflow/admin/workspace_memory.py:20` | 77 | `_normalize_path`、`get_workspace_memory`、`clear_workspace_memory_admin` | — |
+| `packages/harness/evoflow/agents/memory/updater.py:260` | 464 | `MemoryUpdater`；`_create_empty_memory`、`_save_memory_to_file`、`get_memory_data` | — |
+| `packages/harness/evoflow/agents/memory/queue.py:16` | 387 | `ConversationContext`、`MemoryUpdateQueue`；`get_memory_queue`、`reset_memory_queue` | — |
+| `packages/harness/evoflow/agents/memory/runtime_overrides.py:63` | 248 | `_ctx_dict`、`_coerce_bool`、`role_memory_enabled_from_config` | ASSETS_TOOL_NAME |
+| `packages/harness/evoflow/agents/memory/prompt.py:172` | 427 | `_count_tokens`、`_coerce_confidence`、`_truncate_summary` | MEMORY_UPDATE_PROMPT、IMPORTANT、FACT_EXTRACTION_PROMPT |
+| `packages/harness/evoflow/agents/memory/workspace_prompt.py:148` | 772 | `is_ephemeral_workspace_path`、`normalize_workspace_relative_path`、`scrub_ephemeral_workspace_text` | WORKSPACE_BOOTSTRAP_PROMPT、IMPORTANT、IMPORTANT |
+| `packages/harness/evoflow/memory/recall_snapshot.py:15` | 90 | `_trim`、`record_thread_recall`、`get_thread_recall` | — |
 
 #### 已核对的行为事实（源码）
 
@@ -5593,13 +5593,13 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/memory/consolidate.py` | 318 | `_cfg`、`_parse_ts`、`_days_since` | — |
-| `packages/harness/evoflow/memory/document_codec.py` | 243 | `namespace_for_agent_key`、`document_to_atoms`、`atoms_to_document` | — |
-| `packages/harness/evoflow/guardrails/builtin.py` | 23 | `AllowlistProvider` | — |
-| `packages/harness/evoflow/guardrails/middleware.py` | 102 | `GuardrailMiddleware` | — |
-| `packages/harness/evoflow/guardrails/provider.py` | 56 | `GuardrailRequest`、`GuardrailReason`、`GuardrailDecision` | — |
-| `packages/harness/evoflow/agents/content_scanner.py` | 89 | `scan_content`、`scan_memory_entries` | — |
-| `packages/harness/evoflow/memory/consolidate.py` | 318 | `_cfg`、`_parse_ts`、`_days_since` | — |
+| `packages/harness/evoflow/memory/consolidate.py:25` | 318 | `_cfg`、`_parse_ts`、`_days_since` | — |
+| `packages/harness/evoflow/memory/document_codec.py:27` | 243 | `namespace_for_agent_key`、`document_to_atoms`、`atoms_to_document` | — |
+| `packages/harness/evoflow/guardrails/builtin.py:6` | 23 | `AllowlistProvider` | — |
+| `packages/harness/evoflow/guardrails/middleware.py:24` | 102 | `GuardrailMiddleware` | — |
+| `packages/harness/evoflow/guardrails/provider.py:10` | 56 | `GuardrailRequest`、`GuardrailReason`、`GuardrailDecision` | — |
+| `packages/harness/evoflow/agents/content_scanner.py:45` | 89 | `scan_content`、`scan_memory_entries` | — |
+| `packages/harness/evoflow/memory/consolidate.py:25` | 318 | `_cfg`、`_parse_ts`、`_days_since` | — |
 
 #### 已核对的行为事实：注入扫描器（`agents/content_scanner.py`，89 行全文）
 
@@ -5860,11 +5860,11 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/persistence/artifact_repositories.py` | 263 | `_dumps`、`upsert_artifacts`、`list_session_artifacts` | — |
+| `packages/harness/evoflow/persistence/artifact_repositories.py:16` | 263 | `_dumps`、`upsert_artifacts`、`list_session_artifacts` | — |
 | `app/gateway/routers/artifacts.py` | 200 | `_build_content_disposition`、`_build_attachment_headers`、`is_text_file_by_content` | ACTIVE_CONTENT_MIME_TYPES |
 | `app/gateway/routers/items.py` | 179 | `CreateItemRequest`、`UpdateItemRequest`、`DispatchItemRequest`；`_raise_admin`、`list_items`、`create_item` | — |
-| `packages/harness/evoflow/person_wrap_up_reflect.py` | 720 | `build_person_wrap_up_user_prompt`、`_extract_json_object`、`parse_wrap_up_llm_result` | PERSON_WRAP_UP_SYSTEM |
-| `packages/harness/evoflow/persistence/asset_memory_run_repositories.py` | 266 | `_safe_str`、`_paths_json`、`_detail_json` | — |
+| `packages/harness/evoflow/person_wrap_up_reflect.py:67` | 720 | `build_person_wrap_up_user_prompt`、`_extract_json_object`、`parse_wrap_up_llm_result` | PERSON_WRAP_UP_SYSTEM |
+| `packages/harness/evoflow/persistence/asset_memory_run_repositories.py:29` | 266 | `_safe_str`、`_paths_json`、`_detail_json` | — |
 | `app/gateway/routers/media_assets.py` | 72 | `MediaAssetItem`、`MediaAssetsListResponse`；`list_media_assets_api` | — |
 
 #### 核心概念
@@ -6132,16 +6132,16 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/knowledge/parser.py` | 234 | `parse_file`、`_format_context`、`_convert_with_markitdown` | — |
-| `packages/harness/evoflow/knowledge/processor.py` | 391 | `public_file_status`、`process_file`、`_make_file_id` | — |
-| `packages/harness/evoflow/knowledge/chunker.py` | 211 | `_count_tokens`、`chunk_text`、`_split_paragraphs` | — |
-| `packages/harness/evoflow/knowledge/wiki_chunker.py` | 193 | `auto_chunk_document`、`_split_markdown_sections`、`_split_plain_sections` | — |
+| `packages/harness/evoflow/knowledge/parser.py:55` | 234 | `parse_file`、`_format_context`、`_convert_with_markitdown` | — |
+| `packages/harness/evoflow/knowledge/processor.py:33` | 391 | `public_file_status`、`process_file`、`_make_file_id` | — |
+| `packages/harness/evoflow/knowledge/chunker.py:30` | 211 | `_count_tokens`、`chunk_text`、`_split_paragraphs` | — |
+| `packages/harness/evoflow/knowledge/wiki_chunker.py:16` | 193 | `auto_chunk_document`、`_split_markdown_sections`、`_split_plain_sections` | — |
 | `app/gateway/routers/knowledge.py` | 418 | `CreateDatasetRequest`、`UpdateDatasetRequest`、`SyncLocalRequest`；`_org_admin_dep`、`list_knowledge_bases`、`create_knowledge_base` | — |
-| `packages/harness/evoflow/persistence/media_assets.py` | 394 | `_json_dumps`、`_json_loads`、`_file_size_for_local_path` | — |
-| `packages/harness/evoflow/knowledge/index_builder.py` | 77 | `build_document_summary`、`enrich_chunk_indexes`、`embedding_text_for_chunk` | — |
-| `packages/harness/evoflow/knowledge/llm_indexer.py` | 294 | `kb_llm_enabled`、`_resolve_model_name`、`_extract_json_object` | — |
-| `packages/harness/evoflow/knowledge/local_source.py` | 171 | `_get_settings`、`normalize_local_root`、`iter_local_files` | — |
-| `packages/harness/evoflow/knowledge/chunker.py` | 211 | `_count_tokens`、`chunk_text`、`_split_paragraphs` | — |
+| `packages/harness/evoflow/persistence/media_assets.py:29` | 394 | `_json_dumps`、`_json_loads`、`_file_size_for_local_path` | — |
+| `packages/harness/evoflow/knowledge/index_builder.py:9` | 77 | `build_document_summary`、`enrich_chunk_indexes`、`embedding_text_for_chunk` | — |
+| `packages/harness/evoflow/knowledge/llm_indexer.py:33` | 294 | `kb_llm_enabled`、`_resolve_model_name`、`_extract_json_object` | — |
+| `packages/harness/evoflow/knowledge/local_source.py:31` | 171 | `_get_settings`、`normalize_local_root`、`iter_local_files` | — |
+| `packages/harness/evoflow/knowledge/chunker.py:30` | 211 | `_count_tokens`、`chunk_text`、`_split_paragraphs` | — |
 
 #### 核心概念
 - **解析质量决定上限**：表格、双栏 PDF、扫描件需要不同策略（OCR 兜底）。
@@ -6367,8 +6367,8 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/knowledge/service.py` | 687 | `_enrich_dataset`、`dataset_llm_index_enabled`、`list_datasets` | — |
-| `packages/harness/evoflow/knowledge/index_builder.py` | 77 | `build_document_summary`、`enrich_chunk_indexes`、`embedding_text_for_chunk` | — |
+| `packages/harness/evoflow/knowledge/service.py:39` | 687 | `_enrich_dataset`、`dataset_llm_index_enabled`、`list_datasets` | — |
+| `packages/harness/evoflow/knowledge/index_builder.py:9` | 77 | `build_document_summary`、`enrich_chunk_indexes`、`embedding_text_for_chunk` | — |
 | `app/gateway/routers/knowledge.py` | 418 | `CreateDatasetRequest`、`UpdateDatasetRequest`、`SyncLocalRequest`；`_org_admin_dep`、`list_knowledge_bases`、`create_knowledge_base` | — |
 
 #### 核心概念
@@ -6569,8 +6569,8 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/knowledge/folders.py` | 176 | `root_folder_id`、`ensure_root_folder`、`list_folders` | ROOT_NAME |
-| `packages/harness/evoflow/knowledge/service.py` | 687 | `_enrich_dataset`、`dataset_llm_index_enabled`、`list_datasets` | — |
+| `packages/harness/evoflow/knowledge/folders.py:14` | 176 | `root_folder_id`、`ensure_root_folder`、`list_folders` | ROOT_NAME |
+| `packages/harness/evoflow/knowledge/service.py:39` | 687 | `_enrich_dataset`、`dataset_llm_index_enabled`、`list_datasets` | — |
 | `app/gateway/routers/knowledge_owned.py` | 840 | `ReindexBaseBody`；`list_bases`、`create_base`、`get_base` | — |
 
 #### 核心概念
@@ -6749,18 +6749,18 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/code_index/store.py` | 1927 | `resolve_index_root`、`_workspace_hash`、`index_db_path` | CODE_INDEX_REL_DIR、CODE_INDEX_DB_NAME |
-| `packages/harness/evoflow/code_index/symbols.py` | 208 | `_append`、`_line_at`、`_regex_python_symbols` | — |
-| `packages/harness/evoflow/code_index/internal_refs.py` | 173 | `_append_ref`、`extract_python_internal_refs`、`extract_js_ts_internal_refs` | — |
-| `packages/harness/evoflow/code_index/import_bindings.py` | 144 | `python_import_aliases`、`_parse_js_named_bindings`、`js_ts_import_aliases` | — |
-| `packages/harness/evoflow/code_index/type_relations.py` | 552 | `_line_at`、`_strip_generics`、`_split_type_parts` | — |
-| `packages/harness/evoflow/code_index/tree_sitter_core.py` | 214 | `language_for_path`、`tree_sitter_available`、`parse_tree` | — |
-| `packages/harness/evoflow/code_index/tokenize.py` | 145 | `index_tokenizer_version`、`split_identifier`、`_segment_cjk` | — |
-| `packages/harness/evoflow/code_index/lsp_client.py` | 217 | `LspClient`；`_kind_name`、`flatten_document_symbols`、`_language_id` | — |
-| `packages/harness/evoflow/code_index/lsp_pool.py` | 91 | `_session_key`、`get_lsp_client`、`try_lsp_symbols` | — |
-| `packages/harness/evoflow/code_index/watcher.py` | 177 | `CodeIndexWatcherRegistry`；`_watch_key`、`start_index_watch`、`stop_index_watch` | — |
-| `packages/harness/evoflow/code_index/format_results.py` | 134 | `format_search_index_body` | — |
-| `packages/harness/evoflow/code_index/deps.py` | 395 | `_is_internal_spec`、`_discover_package_roots`、`_resolve_py_module` | — |
+| `packages/harness/evoflow/code_index/store.py:104` | 1927 | `resolve_index_root`、`_workspace_hash`、`index_db_path` | CODE_INDEX_REL_DIR、CODE_INDEX_DB_NAME |
+| `packages/harness/evoflow/code_index/symbols.py:38` | 208 | `_append`、`_line_at`、`_regex_python_symbols` | — |
+| `packages/harness/evoflow/code_index/internal_refs.py:19` | 173 | `_append_ref`、`extract_python_internal_refs`、`extract_js_ts_internal_refs` | — |
+| `packages/harness/evoflow/code_index/import_bindings.py:43` | 144 | `python_import_aliases`、`_parse_js_named_bindings`、`js_ts_import_aliases` | — |
+| `packages/harness/evoflow/code_index/type_relations.py:34` | 552 | `_line_at`、`_strip_generics`、`_split_type_parts` | — |
+| `packages/harness/evoflow/code_index/tree_sitter_core.py:79` | 214 | `language_for_path`、`tree_sitter_available`、`parse_tree` | — |
+| `packages/harness/evoflow/code_index/tokenize.py:22` | 145 | `index_tokenizer_version`、`split_identifier`、`_segment_cjk` | — |
+| `packages/harness/evoflow/code_index/lsp_client.py:81` | 217 | `LspClient`；`_kind_name`、`flatten_document_symbols`、`_language_id` | — |
+| `packages/harness/evoflow/code_index/lsp_pool.py:19` | 91 | `_session_key`、`get_lsp_client`、`try_lsp_symbols` | — |
+| `packages/harness/evoflow/code_index/watcher.py:93` | 177 | `CodeIndexWatcherRegistry`；`_watch_key`、`start_index_watch`、`stop_index_watch` | — |
+| `packages/harness/evoflow/code_index/format_results.py:8` | 134 | `format_search_index_body` | — |
+| `packages/harness/evoflow/code_index/deps.py:29` | 395 | `_is_internal_spec`、`_discover_package_roots`、`_resolve_py_module` | — |
 
 #### 核心概念
 - **FTS5 + 符号表**：文本检索给「大概位置」，符号表给「精确跳转」。
@@ -7021,13 +7021,13 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/subagents/registry.py` | 223 | `_timeout_for_subagent`、`_resolve_subagent_system_prompt`、`_agent_config_to_subagent_config` | — |
-| `packages/harness/evoflow/subagents/config.py` | 57 | `SubagentConfig`；`resolve_subagent_recursion_limit` | DEFAULT_RECURSION_STEPS_PER_TURN、MIN_SUBAGENT_RECURSION_LIMIT |
-| `packages/harness/evoflow/subagents/executor.py` | 1127 | `SubagentStatus`、`SubagentResult`、`SubagentExecutor`；`_subagent_prompt_logs_repo_root`、`_log_subagent_prompt`、`_subagent_should_stop` | MAX_CONCURRENT_SUBAGENTS |
-| `packages/harness/evoflow/subagents/detached_poll_scheduler.py` | 99 | `_loop_thread_main`、`_ensure_loop`、`_task_done` | — |
-| `packages/harness/evoflow/subagents/runtime_guard.py` | 64 | `lease_metrics_snapshot`、`collab_subtask_lease_seconds`、`is_subtask_background_executor_active` | — |
+| `packages/harness/evoflow/subagents/registry.py:17` | 223 | `_timeout_for_subagent`、`_resolve_subagent_system_prompt`、`_agent_config_to_subagent_config` | — |
+| `packages/harness/evoflow/subagents/config.py:32` | 57 | `SubagentConfig`；`resolve_subagent_recursion_limit` | DEFAULT_RECURSION_STEPS_PER_TURN、MIN_SUBAGENT_RECURSION_LIMIT |
+| `packages/harness/evoflow/subagents/executor.py:74` | 1127 | `SubagentStatus`、`SubagentResult`、`SubagentExecutor`；`_subagent_prompt_logs_repo_root`、`_log_subagent_prompt`、`_subagent_should_stop` | MAX_CONCURRENT_SUBAGENTS |
+| `packages/harness/evoflow/subagents/detached_poll_scheduler.py:25` | 99 | `_loop_thread_main`、`_ensure_loop`、`_task_done` | — |
+| `packages/harness/evoflow/subagents/runtime_guard.py:16` | 64 | `lease_metrics_snapshot`、`collab_subtask_lease_seconds`、`is_subtask_background_executor_active` | — |
 | `app/gateway/routers/agents.py` | 1555 | `AgentResponse`、`AgentsListResponse`、`AgentCreateRequest`；`_normalize_agent_tools_for_api`、`_matches_agent_list_filters`、`_agent_runtime_available_for_ui` | AGENT_NAME_PATTERN |
-| `packages/harness/evoflow/subagents/config.py` | 57 | `SubagentConfig`；`resolve_subagent_recursion_limit` | DEFAULT_RECURSION_STEPS_PER_TURN、MIN_SUBAGENT_RECURSION_LIMIT |
+| `packages/harness/evoflow/subagents/config.py:32` | 57 | `SubagentConfig`；`resolve_subagent_recursion_limit` | DEFAULT_RECURSION_STEPS_PER_TURN、MIN_SUBAGENT_RECURSION_LIMIT |
 
 #### 核心概念
 - **能力卡片**：`name / 描述 / 可用工具 / 模型 / 上限（步数、token、时长）`，选择靠描述匹配而非猜。
@@ -7240,18 +7240,18 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/sandbox/sandbox.py` | 86 | `Sandbox` | — |
-| `packages/harness/evoflow/sandbox/sandbox_provider.py` | 114 | `SandboxProvider`；`_resolve_provider_class`、`get_sandbox_provider`、`reset_sandbox_provider` | — |
-| `packages/harness/evoflow/sandbox/noop.py` | 59 | `NoopSandbox`、`NoopSandboxProvider` | — |
-| `packages/harness/evoflow/webui/middleware.py` | 190 | `_is_public_share_get`、`_is_public_path`、`_extract_token` | — |
-| `packages/harness/evoflow/mcp/tools.py` | 443 | `_get_mcp_config_path`、`load_mcp_config`、`_merge_trusted_project_servers` | — |
-| `packages/harness/evoflow/sandbox/security.py` | 58 | `uses_host_passthrough_provider`、`uses_local_sandbox_provider`、`is_host_bash_allowed` | HOST_BASH_DISABLED_MESSAGE、BASH_SUBAGENT_DISABLED_MESSAGE、LOCAL_HOST_BASH_DISABLED_MESSAGE |
-| `packages/harness/evoflow/sandbox/exceptions.py` | 71 | `SandboxError`、`SandboxNotFoundError`、`SandboxRuntimeError` | — |
-| `packages/harness/evoflow/execution_security/config.py` | 134 | `ExecutionSecurityConfig`；`get_execution_security_config`、`set_execution_security_config`、`load_execution_security_config_from_dict` | — |
-| `packages/harness/evoflow/execution_security/permission_preset.py` | 134 | `PermissionPresetSpec`；`normalize_preset_id`、`preset_spec`、`preset_from_legacy_tool_policy` | PRESET_READ_ONLY、PRESET_DEFAULT、PRESET_FULL_ACCESS |
-| `packages/harness/evoflow/execution_security/profiles.py` | 120 | `normalize_profile_id`、`wire_profile_id`、`codex_profile_id` | PROFILE_READ_ONLY、PROFILE_WORKSPACE、PROFILE_DANGER_FULL_ACCESS |
-| `packages/harness/evoflow/proactive/runner.py` | 3516 | `ProactiveRunner`；`_default_proactive_tick_seconds`、`_engine_pref_enabled_for_log`、`_role_ui_badge_zh` | DEFAULT_TICK_INTERVAL |
-| `packages/harness/evoflow/eval/scenarios/_persist.py` | 486 | `_db`、`db_one`、`db_all` | — |
+| `packages/harness/evoflow/sandbox/sandbox.py:4` | 86 | `Sandbox` | — |
+| `packages/harness/evoflow/sandbox/sandbox_provider.py:8` | 114 | `SandboxProvider`；`_resolve_provider_class`、`get_sandbox_provider`、`reset_sandbox_provider` | — |
+| `packages/harness/evoflow/sandbox/noop.py:17` | 59 | `NoopSandbox`、`NoopSandboxProvider` | — |
+| `packages/harness/evoflow/webui/middleware.py:64` | 190 | `_is_public_share_get`、`_is_public_path`、`_extract_token` | — |
+| `packages/harness/evoflow/mcp/tools.py:23` | 443 | `_get_mcp_config_path`、`load_mcp_config`、`_merge_trusted_project_servers` | — |
+| `packages/harness/evoflow/sandbox/security.py:24` | 58 | `uses_host_passthrough_provider`、`uses_local_sandbox_provider`、`is_host_bash_allowed` | HOST_BASH_DISABLED_MESSAGE、BASH_SUBAGENT_DISABLED_MESSAGE、LOCAL_HOST_BASH_DISABLED_MESSAGE |
+| `packages/harness/evoflow/sandbox/exceptions.py:4` | 71 | `SandboxError`、`SandboxNotFoundError`、`SandboxRuntimeError` | — |
+| `packages/harness/evoflow/execution_security/config.py:19` | 134 | `ExecutionSecurityConfig`；`get_execution_security_config`、`set_execution_security_config`、`load_execution_security_config_from_dict` | — |
+| `packages/harness/evoflow/execution_security/permission_preset.py:50` | 134 | `PermissionPresetSpec`；`normalize_preset_id`、`preset_spec`、`preset_from_legacy_tool_policy` | PRESET_READ_ONLY、PRESET_DEFAULT、PRESET_FULL_ACCESS |
+| `packages/harness/evoflow/execution_security/profiles.py:39` | 120 | `normalize_profile_id`、`wire_profile_id`、`codex_profile_id` | PROFILE_READ_ONLY、PROFILE_WORKSPACE、PROFILE_DANGER_FULL_ACCESS |
+| `packages/harness/evoflow/proactive/runner.py:489` | 3516 | `ProactiveRunner`；`_default_proactive_tick_seconds`、`_engine_pref_enabled_for_log`、`_role_ui_badge_zh` | DEFAULT_TICK_INTERVAL |
+| `packages/harness/evoflow/eval/scenarios/_persist.py:22` | 486 | `_db`、`db_one`、`db_all` | — |
 
 #### 核心概念
 - **三种执行面**：宿主直连（最快最危险）/ 本地沙箱（隔离进程与文件）/ 远程沙箱（隔离机器）。
@@ -7458,15 +7458,15 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/agents/tool_approval_service.py` | 800 | `ToolApprovalApplyResult`、`ToolApprovalApplyBundle`；`_get_approval_lock`、`_maybe_expire_stale_pending`、`thread_has_pending_approvals` | REPLAY_MARKER |
-| `packages/harness/evoflow/execution_security/approval.py` | 144 | `AskForApproval`、`ApprovalDecision`；`normalize_ask`、`map_evoflow_policy_to_ask`、`decide_shell_approval` | — |
-| `packages/harness/evoflow/eval/scenarios/_persist.py` | 486 | `_db`、`db_one`、`db_all` | — |
-| `packages/harness/evoflow/mcp/status.py` | 213 | `_infer_mcp_transport`、`mcp_config_stale`、`build_mcp_status_snapshot` | — |
-| `packages/harness/evoflow/agents/tool_approval_pause_registry.py` | 44 | `mark_tool_approval_pause`、`clear_tool_approval_pause`、`thread_in_tool_approval_pause` | — |
-| `packages/harness/evoflow/agents/tool_approval_resume.py` | 502 | `build_tool_approval_resume_payload`、`get_latest_checkpoint_id_for_thread`、`build_lead_run_config` | DEFAULT_ASSISTANT_ID、DEFAULT_LANGGRAPH_URL |
-| `packages/harness/evoflow/agents/tool_approval_config.py` | 584 | `command_allow_prefix_bypass_ok`、`_worker_risk_level`、`_knowledge_write_risk` | RISK_AUTO、RISK_SESSION、RISK_CONFIRM |
-| `packages/harness/evoflow/agents/tool_approval_denylist.py` | 205 | `_extract_match_text`、`_check_worker_tasks`、`_check_system_tools` | — |
-| `packages/harness/evoflow/agents/tool_approval_trace_log.py` | 156 | `trace_now_str`、`clip_trace_text`、`_file_logging_disabled` | — |
+| `packages/harness/evoflow/agents/tool_approval_service.py:88` | 800 | `ToolApprovalApplyResult`、`ToolApprovalApplyBundle`；`_get_approval_lock`、`_maybe_expire_stale_pending`、`thread_has_pending_approvals` | REPLAY_MARKER |
+| `packages/harness/evoflow/execution_security/approval.py:16` | 144 | `AskForApproval`、`ApprovalDecision`；`normalize_ask`、`map_evoflow_policy_to_ask`、`decide_shell_approval` | — |
+| `packages/harness/evoflow/eval/scenarios/_persist.py:22` | 486 | `_db`、`db_one`、`db_all` | — |
+| `packages/harness/evoflow/mcp/status.py:18` | 213 | `_infer_mcp_transport`、`mcp_config_stale`、`build_mcp_status_snapshot` | — |
+| `packages/harness/evoflow/agents/tool_approval_pause_registry.py:14` | 44 | `mark_tool_approval_pause`、`clear_tool_approval_pause`、`thread_in_tool_approval_pause` | — |
+| `packages/harness/evoflow/agents/tool_approval_resume.py:19` | 502 | `build_tool_approval_resume_payload`、`get_latest_checkpoint_id_for_thread`、`build_lead_run_config` | DEFAULT_ASSISTANT_ID、DEFAULT_LANGGRAPH_URL |
+| `packages/harness/evoflow/agents/tool_approval_config.py:27` | 584 | `command_allow_prefix_bypass_ok`、`_worker_risk_level`、`_knowledge_write_risk` | RISK_AUTO、RISK_SESSION、RISK_CONFIRM |
+| `packages/harness/evoflow/agents/tool_approval_denylist.py:102` | 205 | `_extract_match_text`、`_check_worker_tasks`、`_check_system_tools` | — |
+| `packages/harness/evoflow/agents/tool_approval_trace_log.py:26` | 156 | `trace_now_str`、`clip_trace_text`、`_file_logging_disabled` | — |
 
 #### 核心概念
 - **绑定是白名单**：会话开始时确定工具集，中途不动态扩权。
@@ -7719,11 +7719,11 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/tools/builtins/plan_tool.py` | 585 | `PlanStepInput`、`PlanInput`；`_json_loads_if_string`、`_coerce_string_list_field`、`_coerce_to_str` | — |
+| `packages/harness/evoflow/tools/builtins/plan_tool.py:143` | 585 | `PlanStepInput`、`PlanInput`；`_json_loads_if_string`、`_coerce_string_list_field`、`_coerce_to_str` | — |
 | `app/gateway/routers/goal.py` | 473 | `StartGoalRequest`、`AfterChatTurnRequest`、`SubmitFeedbackRequest`；`get_goal_service`、`_require_goal_session_visible`、`start_goal` | — |
 | `app/gateway/v4/goal_engine.py` | 989 | `V4GoalEngine`、`GoalRejectedError`；`escape_goal_prompt_text`、`build_goal_verification_prompt`、`build_goal_continuation_prompt` | MAX_CONTINUATIONS、MAX_SAME_NEXT_ACTION_STREAK、VERIFIER_HISTORY_LIMIT |
 | `app/gateway/routers/plans.py` | 137 | `CreateBindingBody`、`PatchBindingBody`、`VerifyBindingBody`；`_http_error`、`get_catalog`、`get_bindings` | — |
-| `packages/harness/evoflow/tools/builtins/plan_tool.py` | 585 | `PlanStepInput`、`PlanInput`；`_json_loads_if_string`、`_coerce_string_list_field`、`_coerce_to_str` | — |
+| `packages/harness/evoflow/tools/builtins/plan_tool.py:143` | 585 | `PlanStepInput`、`PlanInput`；`_json_loads_if_string`、`_coerce_string_list_field`、`_coerce_to_str` | — |
 
 #### 核心概念
 - **计划结构**：`{steps:[{id, goal, inputs, outputs, done_when, depends_on}]}`。
@@ -7939,14 +7939,14 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/collab/agent_assignment.py` | 191 | `normalize_agent_code_key`、`canonical_agent_code`、`is_dispatchable_workflow_worker` | BUILTIN_AGENT_UI_NAMES、DEFAULT_ASSIGNEE_CODE、LEGACY_AGENT_CODE_ALIASES |
-| `packages/harness/evoflow/collab/conversation_scope.py` | 81 | `tool_call_hits_subtask`、`conversation_msg_belongs_to_subtask`、`is_subtask_mirror_chat_row` | — |
-| `packages/harness/evoflow/collab/authorize_execution.py` | 280 | `is_task_execution_authorized`、`authorize_main_task_execution`、`_human_message_text` | — |
-| `packages/harness/evoflow/collab/conversation_persist.py` | 898 | `_normalize_text_content`、`_display_payload`、`_display_row_content` | — |
+| `packages/harness/evoflow/collab/agent_assignment.py:57` | 191 | `normalize_agent_code_key`、`canonical_agent_code`、`is_dispatchable_workflow_worker` | BUILTIN_AGENT_UI_NAMES、DEFAULT_ASSIGNEE_CODE、LEGACY_AGENT_CODE_ALIASES |
+| `packages/harness/evoflow/collab/conversation_scope.py:9` | 81 | `tool_call_hits_subtask`、`conversation_msg_belongs_to_subtask`、`is_subtask_mirror_chat_row` | — |
+| `packages/harness/evoflow/collab/authorize_execution.py:20` | 280 | `is_task_execution_authorized`、`authorize_main_task_execution`、`_human_message_text` | — |
+| `packages/harness/evoflow/collab/conversation_persist.py:20` | 898 | `_normalize_text_content`、`_display_payload`、`_display_row_content` | — |
 | `app/gateway/routers/collab.py` | 905 | `ThreadCollabStatePatch`、`ThreadCollabStateResponse`、`SubtaskHistoryResponse`；`_resume_tool_approval_blocking`、`_delayed_client_replay_fallback`、`_resume_tool_approval_background` | — |
 | `app/gateway/routers/meetings.py` | 263 | `CreateMeetingRequest`、`DiscussRequest`、`MentionRequest`；`_require_meeting_visible`、`create_meeting_endpoint`、`get_meeting_endpoint` | — |
-| `packages/harness/evoflow/a2a/meeting_tool_speak.py` | 194 | `_clip`、`build_meeting_verify_tools`、`_tool_by_name` | — |
-| `packages/harness/evoflow/a2a/meeting_conclude.py` | 331 | `list_meeting_speak_turns`、`_parse_conclude_json`、`_normalize_conclusion` | — |
+| `packages/harness/evoflow/a2a/meeting_tool_speak.py:18` | 194 | `_clip`、`build_meeting_verify_tools`、`_tool_by_name` | — |
+| `packages/harness/evoflow/a2a/meeting_conclude.py:34` | 331 | `list_meeting_speak_turns`、`_parse_conclude_json`、`_normalize_conclusion` | — |
 
 #### 核心概念
 - **账本（ledger）**：append-only 的事件流（指派/开始/进度/阻塞/完成），状态由事件推导。
@@ -8174,15 +8174,15 @@ W->>S: 从断点继续
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/scheduler/tool_executor.py` | 140 | `_preview`、`execute_op`、`log_scheduler_invocation` | — |
-| `packages/harness/evoflow/collab/app_engine.py` | 191 | `_render_text`、`_render_value`、`_render_steps` | PARAM_RE |
-| `packages/harness/evoflow/collab/app_generator.py` | 162 | `_merge_declared_parameters`、`generate_app_from_plan` | — |
-| `packages/harness/evoflow/collab/app_runner.py` | 1848 | `_dispatch_result_ok`、`is_workflow_bound_task`、`dispatch_workflow_task_now` | — |
-| `packages/harness/evoflow/collab/app_schema.py` | 608 | `_as_str`、`_as_str_list`、`normalize_parameter` | — |
-| `packages/harness/evoflow/collab/app_canvas.py` | 79 | `_default_position`、`canvas_from_steps` | START_NODE_ID、ANSWER_NODE_ID |
+| `packages/harness/evoflow/scheduler/tool_executor.py:17` | 140 | `_preview`、`execute_op`、`log_scheduler_invocation` | — |
+| `packages/harness/evoflow/collab/app_engine.py:26` | 191 | `_render_text`、`_render_value`、`_render_steps` | PARAM_RE |
+| `packages/harness/evoflow/collab/app_generator.py:23` | 162 | `_merge_declared_parameters`、`generate_app_from_plan` | — |
+| `packages/harness/evoflow/collab/app_runner.py:34` | 1848 | `_dispatch_result_ok`、`is_workflow_bound_task`、`dispatch_workflow_task_now` | — |
+| `packages/harness/evoflow/collab/app_schema.py:59` | 608 | `_as_str`、`_as_str_list`、`normalize_parameter` | — |
+| `packages/harness/evoflow/collab/app_canvas.py:14` | 79 | `_default_position`、`canvas_from_steps` | START_NODE_ID、ANSWER_NODE_ID |
 | `app/gateway/routers/apps.py` | 864 | `GenerateAppRequest`、`DryRunAppRequest`、`CreateAppKeyRequest`；`_audit_actor`、`_audit`、`_normalize_plan_for_storage` | — |
 | `app/gateway/routers/apps_debug.py` | 134 | `DebugRunStepRequest`、`DebugRunFromRequest`；`debug_run_step_endpoint`、`debug_run_from_endpoint`、`get_step_trace_endpoint` | — |
-| `packages/harness/evoflow/collab/app_engine.py` | 191 | `_render_text`、`_render_value`、`_render_steps` | PARAM_RE |
+| `packages/harness/evoflow/collab/app_engine.py:26` | 191 | `_render_text`、`_render_value`、`_render_steps` | PARAM_RE |
 
 #### 核心概念
 - **Workflow = 有 schema 的计划**：输入/输出可校验，才能被重复调用。
@@ -8398,12 +8398,12 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/exploration/exploration_budget.py` | 267 | `_Attempt`；`_thread_key`、`_normalize_root`、`_find_sig` | — |
-| `packages/harness/evoflow/exploration/action_bias.py` | 199 | `looks_like_edit_task`、`resolve_task_type`、`_read_count` | — |
-| `packages/harness/evoflow/exploration/search_tool_matrix.py` | 208 | `_format_table`、`format_search_tool_matrix_en`、`format_search_tool_matrix_zh` | SEARCH_MATRIX_MARKER_EN、SEARCH_MATRIX_MARKER_ZH、SEARCH_TOOL_ROWS_EN |
-| `packages/harness/evoflow/exploration/task_router.py` | 111 | `looks_like_filename_query`、`suggest_find_file_message`、`classify_task_type_heuristic` | TASK_LOCATE_FILE、TASK_UNDERSTAND_CODE、TASK_DATA_BUG |
-| `packages/harness/evoflow/exploration/exploration_budget.py` | 267 | `_Attempt`；`_thread_key`、`_normalize_root`、`_find_sig` | — |
-| `packages/harness/evoflow/exploration/task_router.py` | 111 | `looks_like_filename_query`、`suggest_find_file_message`、`classify_task_type_heuristic` | TASK_LOCATE_FILE、TASK_UNDERSTAND_CODE、TASK_DATA_BUG |
+| `packages/harness/evoflow/exploration/exploration_budget.py:34` | 267 | `_Attempt`；`_thread_key`、`_normalize_root`、`_find_sig` | — |
+| `packages/harness/evoflow/exploration/action_bias.py:31` | 199 | `looks_like_edit_task`、`resolve_task_type`、`_read_count` | — |
+| `packages/harness/evoflow/exploration/search_tool_matrix.py:111` | 208 | `_format_table`、`format_search_tool_matrix_en`、`format_search_tool_matrix_zh` | SEARCH_MATRIX_MARKER_EN、SEARCH_MATRIX_MARKER_ZH、SEARCH_TOOL_ROWS_EN |
+| `packages/harness/evoflow/exploration/task_router.py:48` | 111 | `looks_like_filename_query`、`suggest_find_file_message`、`classify_task_type_heuristic` | TASK_LOCATE_FILE、TASK_UNDERSTAND_CODE、TASK_DATA_BUG |
+| `packages/harness/evoflow/exploration/exploration_budget.py:34` | 267 | `_Attempt`；`_thread_key`、`_normalize_root`、`_find_sig` | — |
+| `packages/harness/evoflow/exploration/task_router.py:48` | 111 | `looks_like_filename_query`、`suggest_find_file_message`、`classify_task_type_heuristic` | TASK_LOCATE_FILE、TASK_UNDERSTAND_CODE、TASK_DATA_BUG |
 
 #### 核心概念
 - **任务路由**：先判定问题类型（事实查询 / 深度研究 / 创意生成 / 代码任务），再选策略。
@@ -8596,9 +8596,9 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/collab/continue_subtask_session.py` | 250 | `_acp_agent_names`、`continue_subtask_session` | — |
-| `packages/harness/evoflow/collab/conversation_persist.py` | 898 | `_normalize_text_content`、`_display_payload`、`_display_row_content` | — |
-| `packages/harness/evoflow/collab/continue_subtask_session.py` | 250 | `_acp_agent_names`、`continue_subtask_session` | — |
+| `packages/harness/evoflow/collab/continue_subtask_session.py:17` | 250 | `_acp_agent_names`、`continue_subtask_session` | — |
+| `packages/harness/evoflow/collab/conversation_persist.py:20` | 898 | `_normalize_text_content`、`_display_payload`、`_display_row_content` | — |
+| `packages/harness/evoflow/collab/continue_subtask_session.py:17` | 250 | `_acp_agent_names`、`continue_subtask_session` | — |
 
 #### 核心概念
 - **幂等键**：`(run_id, step_id, action_type)`；重复调用先查是否已有成功记录。
@@ -8834,12 +8834,12 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/automation/output_paths.py` | 147 | `_slug_segment`、`resolve_automation_outputs_root`、`_normalize_ext` | — |
+| `packages/harness/evoflow/automation/output_paths.py:15` | 147 | `_slug_segment`、`resolve_automation_outputs_root`、`_normalize_ext` | — |
 | `app/gateway/routers/automation_scheduler.py` | 665 | `_coerce_app_parameters`、`_apply_workflow_binding`、`_stamp_app_name` | — |
 | `app/gateway/automation_runner.py` | 2212 | `_scheduler_owner_id`、`_langgraph_run_semaphore`、`_task_wants_langgraph_run` | DEFAULT_INTERVAL_SECONDS、AUTOMATIONS_DIR |
 | `app/gateway/automation_chat_session.py` | 217 | `automation_session_key`、`_automation_session_title`、`_automation_session_context` | — |
-| `packages/harness/evoflow/persistence/automation_repositories.py` | 540 | `_row_dict`、`list_automations`、`load_automation` | SLOT_CLAIM_STALE_MS_DEFAULT |
-| `packages/harness/evoflow/persistence/channel_push_repositories.py` | 1473 | `new_push_id`、`_clip`、`_payload_to_json` | — |
+| `packages/harness/evoflow/persistence/automation_repositories.py:22` | 540 | `_row_dict`、`list_automations`、`load_automation` | SLOT_CLAIM_STALE_MS_DEFAULT |
+| `packages/harness/evoflow/persistence/channel_push_repositories.py:23` | 1473 | `new_push_id`、`_clip`、`_payload_to_json` | — |
 | `app/gateway/routers/sessions.py` | 159 | `SessionSearchRequest`、`SessionSearchResult`、`SessionSearchResponse`；`_filter_search_hits`、`search_sessions`、`search_sessions_get` | — |
 
 #### 核心概念
@@ -9055,12 +9055,12 @@ sequenceDiagram
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
 | `app/gateway/routers/automation_scheduler.py` | 665 | `_coerce_app_parameters`、`_apply_workflow_binding`、`_stamp_app_name` | — |
-| `packages/harness/evoflow/proactive/schedule.py` | 383 | `is_schedule_off`、`_parse_rrule_parts`、`looks_like_legacy_rrule` | DEFAULT_HEARTBEAT_CRON、SCHEDULE_OFF |
-| `packages/harness/evoflow/scheduler/tool_executor.py` | 140 | `_preview`、`execute_op`、`log_scheduler_invocation` | — |
+| `packages/harness/evoflow/proactive/schedule.py:35` | 383 | `is_schedule_off`、`_parse_rrule_parts`、`looks_like_legacy_rrule` | DEFAULT_HEARTBEAT_CRON、SCHEDULE_OFF |
+| `packages/harness/evoflow/scheduler/tool_executor.py:17` | 140 | `_preview`、`execute_op`、`log_scheduler_invocation` | — |
 | `app/gateway/startup_gate.py` | 165 | `StartupGateMiddleware`；`_path`、`_is_exempt`、`_needs_core_routers` | — |
 | `app/gateway/background_startup.py` | 1341 | `init_startup_state`、`is_startup_ready`、`resolve_local_embedding_warmup_target` | — |
 | `app/gateway/routers/automation_scheduler.py` | 665 | `_coerce_app_parameters`、`_apply_workflow_binding`、`_stamp_app_name` | — |
-| `packages/harness/evoflow/proactive/schedule.py` | 383 | `is_schedule_off`、`_parse_rrule_parts`、`looks_like_legacy_rrule` | DEFAULT_HEARTBEAT_CRON、SCHEDULE_OFF |
+| `packages/harness/evoflow/proactive/schedule.py:35` | 383 | `is_schedule_off`、`_parse_rrule_parts`、`looks_like_legacy_rrule` | DEFAULT_HEARTBEAT_CRON、SCHEDULE_OFF |
 
 #### 核心概念
 - **调度表（不是内存定时器）**：`next_fire_at` 落库，重启后按表重算。
@@ -9286,15 +9286,15 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/proactive/engine.py` | 1471 | `ProactiveEngine`；`_role_name_for_agent`、`_cancel_running_langgraph_runs`、`_is_execution_failure` | — |
-| `packages/harness/evoflow/proactive/decision_gate.py` | 1172 | `DecisionGate`；`_parse_iso_datetime` | — |
-| `packages/harness/evoflow/proactive/duty_runs.py` | 439 | `_new_run_id`、`_row_to_dict`、`start_duty_run` | — |
-| `packages/harness/evoflow/proactive/employee_automation.py` | 322 | `employee_via_automation_enabled`、`employee_automation_task_id`、`agent_code_from_employee_task` | EMPLOYEE_AUTOMATION_KIND |
+| `packages/harness/evoflow/proactive/engine.py:140` | 1471 | `ProactiveEngine`；`_role_name_for_agent`、`_cancel_running_langgraph_runs`、`_is_execution_failure` | — |
+| `packages/harness/evoflow/proactive/decision_gate.py:55` | 1172 | `DecisionGate`；`_parse_iso_datetime` | — |
+| `packages/harness/evoflow/proactive/duty_runs.py:26` | 439 | `_new_run_id`、`_row_to_dict`、`start_duty_run` | — |
+| `packages/harness/evoflow/proactive/employee_automation.py:36` | 322 | `employee_via_automation_enabled`、`employee_automation_task_id`、`agent_code_from_employee_task` | EMPLOYEE_AUTOMATION_KIND |
 | `packages/harness/evoflow/proactive/employee_prompt.py` | 52 |  | — |
 | `employee_prompting.py` | — | — | ✗ 源码树中未找到该文件 |
-| `packages/harness/evoflow/proactive/departments.py` | 608 | `DepartmentRepository`；`_sanitize_name`、`_new_id`、`_row_dict` | — |
-| `packages/harness/evoflow/proactive/cycle_limits.py` | 196 | `effective_max_initiatives`、`round_token`、`round_refs` | DEFAULT_MAX_INITIATIVES |
-| `packages/harness/evoflow/proactive/decision_gate.py` | 1172 | `DecisionGate`；`_parse_iso_datetime` | — |
+| `packages/harness/evoflow/proactive/departments.py:183` | 608 | `DepartmentRepository`；`_sanitize_name`、`_new_id`、`_row_dict` | — |
+| `packages/harness/evoflow/proactive/cycle_limits.py:39` | 196 | `effective_max_initiatives`、`round_token`、`round_refs` | DEFAULT_MAX_INITIATIVES |
+| `packages/harness/evoflow/proactive/decision_gate.py:55` | 1172 | `DecisionGate`；`_parse_iso_datetime` | — |
 
 #### 核心概念
 - **心跳不是轮询一切**：只跑「有 duty 的」检查项，避免空转。
@@ -9494,12 +9494,12 @@ sequenceDiagram
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
 | `app/gateway/channel_result_push.py` | 682 | `_channel_label`、`_parse_context_json`、`_short_id` | PUSH_CHANNELS |
-| `packages/harness/evoflow/proactive/feishu_notify.py` | 717 | `_approval_channels`、`_feishu_channel_not_opted_out`、`_outbound_feishu_target` | — |
-| `packages/harness/evoflow/proactive/feishu_binding.py` | 409 | `feishu_binding_public`、`_channels_section`、`_persist_feishu_accounts` | — |
+| `packages/harness/evoflow/proactive/feishu_notify.py:34` | 717 | `_approval_channels`、`_feishu_channel_not_opted_out`、`_outbound_feishu_target` | — |
+| `packages/harness/evoflow/proactive/feishu_binding.py:21` | 409 | `feishu_binding_public`、`_channels_section`、`_persist_feishu_accounts` | — |
 | `app/channels/message_bus.py` | 474 | `InboundMessageType`、`InboundMessage`、`ResolvedAttachment` | — |
-| `packages/harness/evoflow/plans/service.py` | 191 | `_reload_chat_models`、`list_catalog`、`list_bindings` | — |
-| `packages/harness/evoflow/uploads/manager.py` | 203 | `PathTraversalError`；`validate_thread_id`、`get_uploads_dir`、`ensure_uploads_dir` | — |
-| `packages/harness/evoflow/persistence/channel_push_repositories.py` | 1473 | `new_push_id`、`_clip`、`_payload_to_json` | — |
+| `packages/harness/evoflow/plans/service.py:22` | 191 | `_reload_chat_models`、`list_catalog`、`list_bindings` | — |
+| `packages/harness/evoflow/uploads/manager.py:17` | 203 | `PathTraversalError`；`validate_thread_id`、`get_uploads_dir`、`ensure_uploads_dir` | — |
+| `packages/harness/evoflow/persistence/channel_push_repositories.py:23` | 1473 | `new_push_id`、`_clip`、`_payload_to_json` | — |
 | `app/gateway/channel_result_push.py` | 682 | `_channel_label`、`_parse_context_json`、`_short_id` | PUSH_CHANNELS |
 
 #### 核心概念
@@ -9737,22 +9737,22 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/mcp/client.py` | 79 | `build_server_params`、`build_servers_config` | — |
-| `packages/harness/evoflow/mcp/pool.py` | 450 | `_ServerEntry`、`McpConnectionPool`；`call_timeout_sec`、`server_timeout_sec_from_config`、`_walk_exception_tree` | — |
-| `packages/harness/evoflow/mcp/tools.py` | 443 | `_get_mcp_config_path`、`load_mcp_config`、`_merge_trusted_project_servers` | — |
-| `packages/harness/evoflow/mcp/binding.py` | 157 | `warn_if_legacy_mcp_skill_binding_env`、`mcp_server_tool_id`、`allowed_mcp_server_ids` | MCP_TOOL_PREFIX、MCP_TOOL_DELIMITER、HOST_PLUGIN_KERNEL_SERVERS |
-| `packages/harness/evoflow/mcp/annotations.py` | 80 | `_qualified_key`、`record_tool_annotations`、`record_tools_annotations` | — |
-| `packages/harness/evoflow/mcp/config_io.py` | 122 | `_looks_like_server_entry`、`unwrap_mcp_servers_dict`、`is_bogus_mcp_server_map` | — |
-| `packages/harness/evoflow/mcp/workspace_scope.py` | 187 | `resolve_project_root`、`project_mcp_paths`、`load_project_mcp_servers` | TRUST_STATUS_TRUSTED、TRUST_STATUS_CHANGED、TRUST_STATUS_UNTRUSTED |
-| `packages/harness/evoflow/mcp/status.py` | 213 | `_infer_mcp_transport`、`mcp_config_stale`、`build_mcp_status_snapshot` | — |
-| `packages/harness/evoflow/mcp/oauth.py` | 217 | `_OAuthToken`、`OAuthTokenManager`；`build_oauth_tool_interceptor`、`get_initial_oauth_headers` | — |
-| `packages/harness/evoflow/mcp/result_budget.py` | 251 | `text_budget_chars`、`image_inline_bytes`、`_images_dir` | — |
-| `packages/harness/evoflow/mcp/prompt_section.py` | 56 | `resolve_mcp_server_names`、`mcp_prompt_fingerprint`、`build_mcp_skill_prompt_section` | — |
-| `packages/harness/evoflow/mcp/native_prompt.py` | 38 | `build_mcp_native_prompt_section`、`build_mcp_native_prompt_section_safe`、`mcp_native_prompt_fingerprint` | — |
+| `packages/harness/evoflow/mcp/client.py:11` | 79 | `build_server_params`、`build_servers_config` | — |
+| `packages/harness/evoflow/mcp/pool.py:119` | 450 | `_ServerEntry`、`McpConnectionPool`；`call_timeout_sec`、`server_timeout_sec_from_config`、`_walk_exception_tree` | — |
+| `packages/harness/evoflow/mcp/tools.py:23` | 443 | `_get_mcp_config_path`、`load_mcp_config`、`_merge_trusted_project_servers` | — |
+| `packages/harness/evoflow/mcp/binding.py:27` | 157 | `warn_if_legacy_mcp_skill_binding_env`、`mcp_server_tool_id`、`allowed_mcp_server_ids` | MCP_TOOL_PREFIX、MCP_TOOL_DELIMITER、HOST_PLUGIN_KERNEL_SERVERS |
+| `packages/harness/evoflow/mcp/annotations.py:25` | 80 | `_qualified_key`、`record_tool_annotations`、`record_tools_annotations` | — |
+| `packages/harness/evoflow/mcp/config_io.py:16` | 122 | `_looks_like_server_entry`、`unwrap_mcp_servers_dict`、`is_bogus_mcp_server_map` | — |
+| `packages/harness/evoflow/mcp/workspace_scope.py:38` | 187 | `resolve_project_root`、`project_mcp_paths`、`load_project_mcp_servers` | TRUST_STATUS_TRUSTED、TRUST_STATUS_CHANGED、TRUST_STATUS_UNTRUSTED |
+| `packages/harness/evoflow/mcp/status.py:18` | 213 | `_infer_mcp_transport`、`mcp_config_stale`、`build_mcp_status_snapshot` | — |
+| `packages/harness/evoflow/mcp/oauth.py:17` | 217 | `_OAuthToken`、`OAuthTokenManager`；`build_oauth_tool_interceptor`、`get_initial_oauth_headers` | — |
+| `packages/harness/evoflow/mcp/result_budget.py:44` | 251 | `text_budget_chars`、`image_inline_bytes`、`_images_dir` | — |
+| `packages/harness/evoflow/mcp/prompt_section.py:13` | 56 | `resolve_mcp_server_names`、`mcp_prompt_fingerprint`、`build_mcp_skill_prompt_section` | — |
+| `packages/harness/evoflow/mcp/native_prompt.py:10` | 38 | `build_mcp_native_prompt_section`、`build_mcp_native_prompt_section_safe`、`mcp_native_prompt_fingerprint` | — |
 | `app/gateway/routers/mcp.py` | 393 | `McpOAuthConfigResponse`、`McpServerConfigResponse`、`McpServerRuntimeStatus`；`get_mcp_configuration`、`update_mcp_configuration`、`get_mcp_project_scope` | — |
 | `app/gateway/routers/mcp_server.py` | 250 | `_verify_bearer_token`、`_build_caller_ctx`、`_wants_sse` | — |
-| `packages/harness/evoflow/mcp/pool.py` | 450 | `_ServerEntry`、`McpConnectionPool`；`call_timeout_sec`、`server_timeout_sec_from_config`、`_walk_exception_tree` | — |
-| `packages/harness/evoflow/mcp/result_budget.py` | 251 | `text_budget_chars`、`image_inline_bytes`、`_images_dir` | — |
+| `packages/harness/evoflow/mcp/pool.py:119` | 450 | `_ServerEntry`、`McpConnectionPool`；`call_timeout_sec`、`server_timeout_sec_from_config`、`_walk_exception_tree` | — |
+| `packages/harness/evoflow/mcp/result_budget.py:44` | 251 | `text_budget_chars`、`image_inline_bytes`、`_images_dir` | — |
 
 #### 核心概念
 - **发现是动态的**：`tools/list` 结果随 server 变化，必须缓存 + 失效重取。
@@ -9943,22 +9943,22 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/plugins/service.py` | 862 | `PluginManagementService`；`_now`、`_ulog`、`_diagnostic_to_json` | — |
-| `packages/harness/evoflow/plugins/runtime.py` | 342 | `_ulog`、`_iter_enabled_plugins`、`enabled_plugin_roots` | — |
-| `packages/harness/evoflow/plugins/sources.py` | 396 | `PluginSourceError`；`parse_marketplace_source_input`、`fetch_marketplace_json`、`_run_git` | GIT_COMMAND_TIMEOUT_SEC、MARKETPLACE_JSON_TIMEOUT_SEC |
-| `packages/harness/evoflow/memory/storage.py` | 135 | `MemoryStorage`、`OwnedMemoryStorage`；`create_empty_memory`、`get_memory_storage`、`reset_memory_storage_for_tests` | — |
-| `packages/harness/evoflow/plugins/manifest.py` | 382 | `PluginManifestError`；`is_record`、`validate_plugin_name`、`find_plugin_manifest_path` | MARKETPLACE_FILE、CLAUDE_MARKETPLACE_FILE、EVOFLOW_MANIFEST_PATH |
-| `packages/harness/evoflow/plugins/components.py` | 208 | `enumerate_plugin_components`、`_collect_markdown_components`、`_collect_skill_components` | COMPONENT_KINDS |
-| `packages/harness/evoflow/plugins/builtin.py` | 597 | `_rebrand_listing_text`、`_rebrand_entry_text`、`builtin_plugin_dir` | BUILTIN_DIR、SEED_MANIFEST_VERSION、EXCLUDED_OFFICIAL_PLUGINS |
-| `packages/harness/evoflow/plugins/bridge_auth.py` | 94 | `_token_file_path`、`reset_bridge_token_cache`、`get_bridge_token` | — |
-| `packages/harness/evoflow/plugins/node_repl.py` | 1111 | `_ulog`、`_sanitize_model_browser_js`、`_meta_envelope` | — |
-| `packages/harness/evoflow/plugins/node_repl_tool.py` | 564 | `NodeReplJsInput`；`_maybe_compact_browser_docs_dump`、`_get_thread_id`、`_decode_image` | — |
-| `packages/harness/evoflow/plugins/cua_helper.py` | 162 | `_helper_entry`、`_helper_addon`、`is_helper_runtime` | HELPER_RUNTIME_DIRNAME、HELPER_ENTRY_REL、HELPER_ADDON_REL |
-| `packages/harness/evoflow/capability/registry.py` | 489 | `Capability`、`CapabilityRegistry`；`default_decision`、`decide`、`_schema_for_params` | — |
-| `packages/harness/evoflow/a2a/models.py` | 161 | `TaskState`、`A2ATask`、`AgentCard` | — |
+| `packages/harness/evoflow/plugins/service.py:101` | 862 | `PluginManagementService`；`_now`、`_ulog`、`_diagnostic_to_json` | — |
+| `packages/harness/evoflow/plugins/runtime.py:41` | 342 | `_ulog`、`_iter_enabled_plugins`、`enabled_plugin_roots` | — |
+| `packages/harness/evoflow/plugins/sources.py:41` | 396 | `PluginSourceError`；`parse_marketplace_source_input`、`fetch_marketplace_json`、`_run_git` | GIT_COMMAND_TIMEOUT_SEC、MARKETPLACE_JSON_TIMEOUT_SEC |
+| `packages/harness/evoflow/memory/storage.py:34` | 135 | `MemoryStorage`、`OwnedMemoryStorage`；`create_empty_memory`、`get_memory_storage`、`reset_memory_storage_for_tests` | — |
+| `packages/harness/evoflow/plugins/manifest.py:51` | 382 | `PluginManifestError`；`is_record`、`validate_plugin_name`、`find_plugin_manifest_path` | MARKETPLACE_FILE、CLAUDE_MARKETPLACE_FILE、EVOFLOW_MANIFEST_PATH |
+| `packages/harness/evoflow/plugins/components.py:19` | 208 | `enumerate_plugin_components`、`_collect_markdown_components`、`_collect_skill_components` | COMPONENT_KINDS |
+| `packages/harness/evoflow/plugins/builtin.py:39` | 597 | `_rebrand_listing_text`、`_rebrand_entry_text`、`builtin_plugin_dir` | BUILTIN_DIR、SEED_MANIFEST_VERSION、EXCLUDED_OFFICIAL_PLUGINS |
+| `packages/harness/evoflow/plugins/bridge_auth.py:33` | 94 | `_token_file_path`、`reset_bridge_token_cache`、`get_bridge_token` | — |
+| `packages/harness/evoflow/plugins/node_repl.py:30` | 1111 | `_ulog`、`_sanitize_model_browser_js`、`_meta_envelope` | — |
+| `packages/harness/evoflow/plugins/node_repl_tool.py:111` | 564 | `NodeReplJsInput`；`_maybe_compact_browser_docs_dump`、`_get_thread_id`、`_decode_image` | — |
+| `packages/harness/evoflow/plugins/cua_helper.py:40` | 162 | `_helper_entry`、`_helper_addon`、`is_helper_runtime` | HELPER_RUNTIME_DIRNAME、HELPER_ENTRY_REL、HELPER_ADDON_REL |
+| `packages/harness/evoflow/capability/registry.py:136` | 489 | `Capability`、`CapabilityRegistry`；`default_decision`、`decide`、`_schema_for_params` | — |
+| `packages/harness/evoflow/a2a/models.py:18` | 161 | `TaskState`、`A2ATask`、`AgentCard` | — |
 | `app/gateway/routers/plugins.py` | 255 | `AddMarketplaceRequest`、`InstallPluginRequest`、`SetEnabledRequest`；`_org_admin_guard`、`_get_service`、`_to_http_error` | — |
-| `packages/harness/evoflow/plugins/manifest.py` | 382 | `PluginManifestError`；`is_record`、`validate_plugin_name`、`find_plugin_manifest_path` | MARKETPLACE_FILE、CLAUDE_MARKETPLACE_FILE、EVOFLOW_MANIFEST_PATH |
-| `packages/harness/evoflow/plugins/bridge_auth.py` | 94 | `_token_file_path`、`reset_bridge_token_cache`、`get_bridge_token` | — |
+| `packages/harness/evoflow/plugins/manifest.py:51` | 382 | `PluginManifestError`；`is_record`、`validate_plugin_name`、`find_plugin_manifest_path` | MARKETPLACE_FILE、CLAUDE_MARKETPLACE_FILE、EVOFLOW_MANIFEST_PATH |
+| `packages/harness/evoflow/plugins/bridge_auth.py:33` | 94 | `_token_file_path`、`reset_bridge_token_cache`、`get_bridge_token` | — |
 
 #### 核心概念
 - **manifest 即契约**：`{id, version, capabilities[], entry, permissions[]}`。
@@ -10145,21 +10145,21 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/skills/loader.py` | 814 | `clear_skills_cache`、`get_cached_skills_prompt_section`、`_build_mtime_map` | — |
-| `packages/harness/evoflow/skills/parser.py` | 66 | `parse_skill_file` | — |
-| `packages/harness/evoflow/skills/frontmatter.py` | 49 | `split_skill_frontmatter` | — |
-| `packages/harness/evoflow/skills/selection.py` | 66 | `extract_skill_mentions`、`select_skills_for_turn` | — |
-| `packages/harness/evoflow/skills/injection.py` | 126 | `skill_injection_execution_hint`、`_stat_signature`、`_read_skill_body` | — |
-| `packages/harness/evoflow/skills/active.py` | 20 | `set_active_skills`、`reset_active_skills`、`get_active_skills` | — |
-| `packages/harness/evoflow/skills/bound.py` | 184 | `is_bound_meta`、`is_bound_registry`、`list_bound_skill_dirs` | INSTALL_MODE_BOUND |
-| `packages/harness/evoflow/skills/installer.py` | 488 | `SkillAlreadyExistsError`；`is_link_or_junction`、`path_occupied`、`remove_link_or_junction` | MAX_ZIP_ENTRIES、MAX_ZIP_FILES |
-| `packages/harness/evoflow/skills/user_install.py` | 415 | `get_user_skills_root`、`_skills_root_from_source_tree`、`resolve_system_skills_source` | — |
-| `packages/harness/evoflow/skills/skillhub_pack.py` | 517 | `SkillInstallResult`、`ExpertPackInstallResult`；`_http_get`、`parse_skillset_slug`、`fetch_skillset` | SKILLHUB_API、AVATAR_CDN、AVATAR_VERSION |
-| `packages/harness/evoflow/skills/security.py` | 95 | `scan_for_security_issues`、`scan_skill_directory` | — |
-| `packages/harness/evoflow/skills/validation.py` | 108 | `_validate_skill_frontmatter` | ALLOWED_FRONTMATTER_PROPERTIES |
-| `packages/harness/evoflow/skills/skill_scope.py` | 23 | `SkillScope` | — |
-| `packages/harness/evoflow/config/paths.py` | 415 | `Paths`；`get_paths`、`reset_paths_cache`、`resolve_path` | VIRTUAL_PATH_PREFIX |
-| `packages/harness/evoflow/skills/skill_uri.py` | 162 | `parse_skill_uri`、`resolve_skill_uri`、`resolve_skill_path_for_command` | SKILL_URI_PREFIX |
+| `packages/harness/evoflow/skills/loader.py:33` | 814 | `clear_skills_cache`、`get_cached_skills_prompt_section`、`_build_mtime_map` | — |
+| `packages/harness/evoflow/skills/parser.py:13` | 66 | `parse_skill_file` | — |
+| `packages/harness/evoflow/skills/frontmatter.py:8` | 49 | `split_skill_frontmatter` | — |
+| `packages/harness/evoflow/skills/selection.py:13` | 66 | `extract_skill_mentions`、`select_skills_for_turn` | — |
+| `packages/harness/evoflow/skills/injection.py:42` | 126 | `skill_injection_execution_hint`、`_stat_signature`、`_read_skill_body` | — |
+| `packages/harness/evoflow/skills/active.py:10` | 20 | `set_active_skills`、`reset_active_skills`、`get_active_skills` | — |
+| `packages/harness/evoflow/skills/bound.py:23` | 184 | `is_bound_meta`、`is_bound_registry`、`list_bound_skill_dirs` | INSTALL_MODE_BOUND |
+| `packages/harness/evoflow/skills/installer.py:30` | 488 | `SkillAlreadyExistsError`；`is_link_or_junction`、`path_occupied`、`remove_link_or_junction` | MAX_ZIP_ENTRIES、MAX_ZIP_FILES |
+| `packages/harness/evoflow/skills/user_install.py:27` | 415 | `get_user_skills_root`、`_skills_root_from_source_tree`、`resolve_system_skills_source` | — |
+| `packages/harness/evoflow/skills/skillhub_pack.py:110` | 517 | `SkillInstallResult`、`ExpertPackInstallResult`；`_http_get`、`parse_skillset_slug`、`fetch_skillset` | SKILLHUB_API、AVATAR_CDN、AVATAR_VERSION |
+| `packages/harness/evoflow/skills/security.py:56` | 95 | `scan_for_security_issues`、`scan_skill_directory` | — |
+| `packages/harness/evoflow/skills/validation.py:37` | 108 | `_validate_skill_frontmatter` | ALLOWED_FRONTMATTER_PROPERTIES |
+| `packages/harness/evoflow/skills/skill_scope.py:8` | 23 | `SkillScope` | — |
+| `packages/harness/evoflow/config/paths.py:15` | 415 | `Paths`；`get_paths`、`reset_paths_cache`、`resolve_path` | VIRTUAL_PATH_PREFIX |
+| `packages/harness/evoflow/skills/skill_uri.py:10` | 162 | `parse_skill_uri`、`resolve_skill_uri`、`resolve_skill_path_for_command` | SKILL_URI_PREFIX |
 | `app/gateway/routers/skills.py` | 544 | `SkillResponse`、`SkillsListResponse`、`SkillUpdateRequest`；`_resolve_skills_base_path`、`_scope_skill_roots_from_request`、`_load_skills_for_request` | — |
 
 #### 核心概念
@@ -10351,17 +10351,17 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/a2a/adapter.py` | 811 | `_meeting_speak_backoff_seconds`、`_meeting_speak_user_error`、`_create_a2a_task_record` | — |
-| `packages/harness/evoflow/a2a/orchestrator.py` | 426 | `MeetingOrchestrator`；`create_meeting`、`get_meeting`、`update_meeting_status` | — |
-| `packages/harness/evoflow/a2a/models.py` | 161 | `TaskState`、`A2ATask`、`AgentCard` | — |
-| `packages/harness/evoflow/a2a/agent_card.py` | 108 | `_lookup_skill_metadata`、`_role_tool_names`、`role_to_agent_card` | — |
-| `packages/harness/evoflow/a2a/meeting_tool_speak.py` | 194 | `_clip`、`build_meeting_verify_tools`、`_tool_by_name` | — |
-| `packages/harness/evoflow/a2a/meeting_conclude.py` | 331 | `list_meeting_speak_turns`、`_parse_conclude_json`、`_normalize_conclusion` | — |
-| `packages/harness/evoflow/external_agents/registry.py` | 167 | `ExternalAgentFactory`；`register_active_agent`、`get_active_agent`、`unregister_active_agent` | — |
-| `packages/harness/evoflow/external_agents/base.py` | 360 | `BaseExternalAgent` | — |
-| `packages/harness/evoflow/external_agents/trae.py` | 403 | `TraeAgent` | — |
+| `packages/harness/evoflow/a2a/adapter.py:35` | 811 | `_meeting_speak_backoff_seconds`、`_meeting_speak_user_error`、`_create_a2a_task_record` | — |
+| `packages/harness/evoflow/a2a/orchestrator.py:148` | 426 | `MeetingOrchestrator`；`create_meeting`、`get_meeting`、`update_meeting_status` | — |
+| `packages/harness/evoflow/a2a/models.py:18` | 161 | `TaskState`、`A2ATask`、`AgentCard` | — |
+| `packages/harness/evoflow/a2a/agent_card.py:14` | 108 | `_lookup_skill_metadata`、`_role_tool_names`、`role_to_agent_card` | — |
+| `packages/harness/evoflow/a2a/meeting_tool_speak.py:18` | 194 | `_clip`、`build_meeting_verify_tools`、`_tool_by_name` | — |
+| `packages/harness/evoflow/a2a/meeting_conclude.py:34` | 331 | `list_meeting_speak_turns`、`_parse_conclude_json`、`_normalize_conclusion` | — |
+| `packages/harness/evoflow/external_agents/registry.py:70` | 167 | `ExternalAgentFactory`；`register_active_agent`、`get_active_agent`、`unregister_active_agent` | — |
+| `packages/harness/evoflow/external_agents/base.py:21` | 360 | `BaseExternalAgent` | — |
+| `packages/harness/evoflow/external_agents/trae.py:34` | 403 | `TraeAgent` | — |
 | `app/gateway/routers/a2a.py` | 297 | `_rpc_result`、`_rpc_error`、`_filter_agent_cards` | — |
-| `packages/harness/evoflow/a2a/agent_card.py` | 108 | `_lookup_skill_metadata`、`_role_tool_names`、`role_to_agent_card` | — |
+| `packages/harness/evoflow/a2a/agent_card.py:14` | 108 | `_lookup_skill_metadata`、`_role_tool_names`、`role_to_agent_card` | — |
 
 #### 核心概念
 - **Agent Card**：能力、端点、鉴权方式的自我描述，是互操作的前提。
@@ -10580,11 +10580,11 @@ sequenceDiagram
 | `app/gateway/cold_start_prewarm.py` | 167 | `mark_core_routers_ready`、`wait_core_routers_ready`、`core_routers_ready` | — |
 | `app/gateway/health_routes.py` | 150 | `register_health_routes` | — |
 | `app/gateway/routers/chat_sessions.py` | 2063 | `ForkSessionBody`、`TruncateSessionBody`；`_transcript_db_busy_http`、`_request_principal_id`、`_require_session_access` | — |
-| `packages/harness/evoflow/admin/sessions.py` | 355 | `_cutoff_iso`、`_get_db`、`_search_messages` | — |
-| `packages/harness/evoflow/assets/memory_runs.py` | 52 | `record_asset_phase_run` | — |
-| `packages/harness/evoflow/webui/middleware.py` | 190 | `_is_public_share_get`、`_is_public_path`、`_extract_token` | — |
-| `packages/harness/evoflow/mcp/oauth.py` | 217 | `_OAuthToken`、`OAuthTokenManager`；`build_oauth_tool_interceptor`、`get_initial_oauth_headers` | — |
-| `packages/harness/evoflow/code_index/deps.py` | 395 | `_is_internal_spec`、`_discover_package_roots`、`_resolve_py_module` | — |
+| `packages/harness/evoflow/admin/sessions.py:15` | 355 | `_cutoff_iso`、`_get_db`、`_search_messages` | — |
+| `packages/harness/evoflow/assets/memory_runs.py:13` | 52 | `record_asset_phase_run` | — |
+| `packages/harness/evoflow/webui/middleware.py:64` | 190 | `_is_public_share_get`、`_is_public_path`、`_extract_token` | — |
+| `packages/harness/evoflow/mcp/oauth.py:17` | 217 | `_OAuthToken`、`OAuthTokenManager`；`build_oauth_tool_interceptor`、`get_initial_oauth_headers` | — |
+| `packages/harness/evoflow/code_index/deps.py:29` | 395 | `_is_internal_spec`、`_discover_package_roots`、`_resolve_py_module` | — |
 | `app/gateway/db_async.py` | 25 | `run_db` | — |
 | `app/gateway/runtime_adapters.py` | 346 | `register_runtime_adapters` | — |
 | `app/gateway/lazy_langgraph.py` | 324 | `ExternalLangGraphProxy`、`LazyLangGraphMount`；`mount_langgraph_in_process`、`ensure_langgraph_mounted`、`_read_request_body` | — |
@@ -10826,10 +10826,10 @@ sequenceDiagram
 | `app/gateway/openai_stream_encode.py` | 76 | `new_completion_id`、`encode_openai_chunk`、`encode_openai_done` | — |
 | `app/gateway/openai_stream_normalize.py` | 209 | `OpenAiStreamNormalizer`；`_tool_index_for_id`、`_arguments_text`、`_tool_args_stream_delta` | — |
 | `app/gateway/routers/openai_compat_models.py` | 74 | `ChatMessage`、`ChatCompletionsRequest`；`list_models`、`chat_completions` | — |
-| `app/gateway/routers/openai_compat_apps.py` | 630 | `ChatMessage`、`ChatCompletionsRequest`；`_pinned_from_token`、`_public_parameters`、`_app_model_evoflow_meta` | — |
+| `app/gateway/routers/openai_compat_apps.py:48` | 630 | `ChatMessage`、`ChatCompletionsRequest`；`_pinned_from_token`、`_public_parameters`、`_app_model_evoflow_meta` | — |
 | `app/gateway/agui_stream_encode.py` | 46 | `encode_agui_event`、`decode_agui_payload`、`decode_evf_payload` | — |
 | `app/gateway/agui_stream_normalizer.py` | 1075 | `AgUiStreamNormalizer`；`_tool_name_from_tc`、`_tool_id_from_tc`、`_partial_path_from_args_text` | RUN_STARTED、RUN_FINISHED、RUN_ERROR |
-| `app/gateway/v4/agui_to_v4_projector.py` | 546 | `_TranslatorState`；`_split_evoflow_cua_display`、`_cua_display_block`、`_now_ms` | — |
+| `app/gateway/v4/agui_to_v4_projector.py:151` | 546 | `_TranslatorState`；`_split_evoflow_cua_display`、`_cua_display_block`、`_now_ms` | — |
 | `app/gateway/v4/hydration.py` | 1075 | `_is_hidden_context_user_tool_name`、`_is_hidden_duty_brief_text`、`_is_hidden_task_notification_text` | — |
 | `app/gateway/v4/command_inbox.py` | 348 | `_AsyncGateRegistry`、`CommandInboxHost`；`queue_item_id_for_command` | COMMANDS_REQUIRING_BASE_REVISION、ROW_TARGETING_COMMANDS、SETTLED_LRU_PER_SESSION |
 | `app/gateway/v4/conversation.py` | 2284 | `_HydratePriorityGate`、`_hydrate_slot`、`V4ConversationHub`；`_hydrate_concurrency_limit`、`_get_hydrate_gate`、`_resolve_profile` | V4_WIRE_PROTOCOL_VERSION、HUB |
@@ -10839,7 +10839,7 @@ sequenceDiagram
 | `app/gateway/routers/langgraph_proxy.py` | 963 | `register_active_stream_proxy`、`unregister_active_stream_proxy`、`list_active_stream_proxies` | LANGGRAPH_BASE_URL、DISABLE_SSE_DEBUG_FILE_LOGS、DEBUG_SSE_REASONING |
 | `app/gateway/lazy_langgraph.py` | 324 | `ExternalLangGraphProxy`、`LazyLangGraphMount`；`mount_langgraph_in_process`、`ensure_langgraph_mounted`、`_read_request_body` | — |
 | `app/gateway/routers/media_settings.py` | 50 | `MediaCredentialsResponse`、`MediaCredentialsPatchBody`；`get_media_credentials_api`、`patch_media_credentials_api` | — |
-| `app/gateway/v4/agui_to_v4_projector.py` | 546 | `_TranslatorState`；`_split_evoflow_cua_display`、`_cua_display_block`、`_now_ms` | — |
+| `app/gateway/v4/agui_to_v4_projector.py:151` | 546 | `_TranslatorState`；`_split_evoflow_cua_display`、`_cua_display_block`、`_now_ms` | — |
 | `app/gateway/v4/hydration.py` | 1075 | `_is_hidden_context_user_tool_name`、`_is_hidden_duty_brief_text`、`_is_hidden_task_notification_text` | — |
 
 #### 核心概念
@@ -11041,8 +11041,8 @@ sequenceDiagram
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
 | `app/channels/base.py` | 240 | `Channel`；`_diag_log_path`、`_diag_write` | — |
-| `packages/harness/evoflow/uploads/manager.py` | 203 | `PathTraversalError`；`validate_thread_id`、`get_uploads_dir`、`ensure_uploads_dir` | — |
-| `packages/harness/evoflow/plans/service.py` | 191 | `_reload_chat_models`、`list_catalog`、`list_bindings` | — |
+| `packages/harness/evoflow/uploads/manager.py:17` | 203 | `PathTraversalError`；`validate_thread_id`、`get_uploads_dir`、`ensure_uploads_dir` | — |
+| `packages/harness/evoflow/plans/service.py:22` | 191 | `_reload_chat_models`、`list_catalog`、`list_bindings` | — |
 | `app/channels/message_bus.py` | 474 | `InboundMessageType`、`InboundMessage`、`ResolvedAttachment` | — |
 | `app/channels/channel_io_log.py` | 75 | `_now_iso`、`_format_text_block`、`log_channel_inbound` | — |
 | `app/channels/feishu.py` | 4130 | `_FeishuInboundDeduper`、`FeishuChannel`；`_import_lark_sdk`、`_feishu_sender_is_bot`、`_feishu_mention_open_ids` | — |
@@ -11290,23 +11290,23 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/authz/principals.py` | 735 | `_row_dict`、`_parse_json_list`、`_parse_json_obj` | LOCAL_ADMIN_PRINCIPAL_ID |
-| `packages/harness/evoflow/authz/runtime_identity.py` | 265 | `set_current_principal_id`、`get_current_principal_id`、`principal_id_from_personal_scope` | — |
-| `packages/harness/evoflow/authz/agent_actor.py` | 341 | `set_current_agent_actor`、`get_current_agent_actor`、`normalize_agent_actor` | — |
-| `packages/harness/evoflow/authz/acl_store.py` | 247 | `encode_resource_ref`、`parse_resource_ref`、`principal_entitled_to_scope` | — |
-| `packages/harness/evoflow/authz/groups.py` | 121 | `create_group`、`get_group`、`list_groups` | — |
-| `packages/harness/evoflow/authz/membership.py` | 193 | `_member_row`、`list_scope_members`、`add_scope_member` | — |
-| `packages/harness/evoflow/authz/resource_visibility.py` | 118 | `owner_scope_visible_to_principal`、`stamp_kwargs_from_request`、`stamp_new_app_from_request` | — |
-| `packages/harness/evoflow/authz/scope.py` | 57 | `scope_id`、`org_scope`、`personal_scope` | — |
-| `packages/harness/evoflow/authz/scope_paths.py` | 188 | `_safe_segment`、`resolve_base_dir`、`scopes_root` | — |
-| `packages/harness/evoflow/authz/session_ownership.py` | 153 | `acl_session_list_filter_sql`、`stamp_session_ownership`、`add_session_participant` | — |
-| `packages/harness/evoflow/authz/skill_roots.py` | 36 | `scope_skill_roots_for_principal` | — |
-| `packages/harness/evoflow/authz/http_guard.py` | 549 | `resolve_authz_from_request`、`require_thread_visible`、`_has_auth_signals` | — |
-| `packages/harness/evoflow/authz/admin_grants.py` | 115 | `is_org_admin`、`list_org_admins`、`promote_org_admin` | — |
-| `packages/harness/evoflow/authz/mode.py` | 43 | `get_acl_mode`、`set_acl_mode`、`should_filter` | — |
+| `packages/harness/evoflow/authz/principals.py:19` | 735 | `_row_dict`、`_parse_json_list`、`_parse_json_obj` | LOCAL_ADMIN_PRINCIPAL_ID |
+| `packages/harness/evoflow/authz/runtime_identity.py:23` | 265 | `set_current_principal_id`、`get_current_principal_id`、`principal_id_from_personal_scope` | — |
+| `packages/harness/evoflow/authz/agent_actor.py:26` | 341 | `set_current_agent_actor`、`get_current_agent_actor`、`normalize_agent_actor` | — |
+| `packages/harness/evoflow/authz/acl_store.py:19` | 247 | `encode_resource_ref`、`parse_resource_ref`、`principal_entitled_to_scope` | — |
+| `packages/harness/evoflow/authz/groups.py:15` | 121 | `create_group`、`get_group`、`list_groups` | — |
+| `packages/harness/evoflow/authz/membership.py:17` | 193 | `_member_row`、`list_scope_members`、`add_scope_member` | — |
+| `packages/harness/evoflow/authz/resource_visibility.py:12` | 118 | `owner_scope_visible_to_principal`、`stamp_kwargs_from_request`、`stamp_new_app_from_request` | — |
+| `packages/harness/evoflow/authz/scope.py:10` | 57 | `scope_id`、`org_scope`、`personal_scope` | — |
+| `packages/harness/evoflow/authz/scope_paths.py:41` | 188 | `_safe_segment`、`resolve_base_dir`、`scopes_root` | — |
+| `packages/harness/evoflow/authz/session_ownership.py:15` | 153 | `acl_session_list_filter_sql`、`stamp_session_ownership`、`add_session_participant` | — |
+| `packages/harness/evoflow/authz/skill_roots.py:18` | 36 | `scope_skill_roots_for_principal` | — |
+| `packages/harness/evoflow/authz/http_guard.py:10` | 549 | `resolve_authz_from_request`、`require_thread_visible`、`_has_auth_signals` | — |
+| `packages/harness/evoflow/authz/admin_grants.py:16` | 115 | `is_org_admin`、`list_org_admins`、`promote_org_admin` | — |
+| `packages/harness/evoflow/authz/mode.py:13` | 43 | `get_acl_mode`、`set_acl_mode`、`should_filter` | — |
 | `app/gateway/routers/identity.py` | 411 | `CreatePrincipalBody`、`UpdatePrincipalBody`、`ResetPasswordBody`；`_require_admin`、`_require_self_or_admin`、`get_me` | — |
-| `packages/harness/evoflow/mcp/oauth.py` | 217 | `_OAuthToken`、`OAuthTokenManager`；`build_oauth_tool_interceptor`、`get_initial_oauth_headers` | — |
-| `packages/harness/evoflow/authz/acl_store.py` | 247 | `encode_resource_ref`、`parse_resource_ref`、`principal_entitled_to_scope` | — |
+| `packages/harness/evoflow/mcp/oauth.py:17` | 217 | `_OAuthToken`、`OAuthTokenManager`；`build_oauth_tool_interceptor`、`get_initial_oauth_headers` | — |
+| `packages/harness/evoflow/authz/acl_store.py:19` | 247 | `encode_resource_ref`、`parse_resource_ref`、`principal_entitled_to_scope` | — |
 
 #### 核心概念
 - **Principal = user | agent | service**，统一抽象后 ACL 只判 `principal → resource`。
@@ -11514,16 +11514,16 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/webui/auth.py` | 731 | `_QrTokenData`、`QrTokenStore`；`hash_password`、`verify_password`、`generate_password` | WEBUI_DEFAULT_HTTP_PORT |
-| `packages/harness/evoflow/webui/middleware.py` | 190 | `_is_public_share_get`、`_is_public_path`、`_extract_token` | — |
-| `packages/harness/evoflow/webui/oidc.py` | 267 | `OidcStateStore`；`_b64url_no_pad`、`pkce_challenge`、`_fetch_discovery` | — |
-| `packages/harness/evoflow/webui/oidc_config.py` | 91 | `_normalize_config`、`get_oidc_config`、`set_oidc_config` | DEFAULT_OIDC_CONFIG |
-| `packages/harness/evoflow/guardrails/builtin.py` | 23 | `AllowlistProvider` | — |
-| `packages/harness/evoflow/guardrails/provider.py` | 56 | `GuardrailRequest`、`GuardrailReason`、`GuardrailDecision` | — |
-| `packages/harness/evoflow/agents/content_scanner.py` | 89 | `scan_content`、`scan_memory_entries` | — |
+| `packages/harness/evoflow/webui/auth.py:183` | 731 | `_QrTokenData`、`QrTokenStore`；`hash_password`、`verify_password`、`generate_password` | WEBUI_DEFAULT_HTTP_PORT |
+| `packages/harness/evoflow/webui/middleware.py:64` | 190 | `_is_public_share_get`、`_is_public_path`、`_extract_token` | — |
+| `packages/harness/evoflow/webui/oidc.py:27` | 267 | `OidcStateStore`；`_b64url_no_pad`、`pkce_challenge`、`_fetch_discovery` | — |
+| `packages/harness/evoflow/webui/oidc_config.py:34` | 91 | `_normalize_config`、`get_oidc_config`、`set_oidc_config` | DEFAULT_OIDC_CONFIG |
+| `packages/harness/evoflow/guardrails/builtin.py:6` | 23 | `AllowlistProvider` | — |
+| `packages/harness/evoflow/guardrails/provider.py:10` | 56 | `GuardrailRequest`、`GuardrailReason`、`GuardrailDecision` | — |
+| `packages/harness/evoflow/agents/content_scanner.py:45` | 89 | `scan_content`、`scan_memory_entries` | — |
 | `app/gateway/routers/security_settings.py` | 235 | `ExecutionSecurityPatchBody`；`_detect_runtime_versions`、`_merge_execution_security`、`get_execution_security_status` | — |
 | `app/gateway/routers/codex_auth.py` | 180 | `LoginStartRequest`、`LoginPollRequest`、`EnsureModelRequest`；`_http_from_auth_error`、`require_local_plan_admin`、`codex_auth_status` | — |
-| `packages/harness/evoflow/guardrails/provider.py` | 56 | `GuardrailRequest`、`GuardrailReason`、`GuardrailDecision` | — |
+| `packages/harness/evoflow/guardrails/provider.py:10` | 56 | `GuardrailRequest`、`GuardrailReason`、`GuardrailDecision` | — |
 
 #### 核心概念
 - **JWT 只做认证**，授权仍走 ACL（别把权限塞进 token）。
@@ -11784,15 +11784,15 @@ sequenceDiagram
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
 | `app/gateway/routers/organizations.py` | 293 | `SourceSpec`、`InstallOptions`、`PreflightRequest`；`_source_dict`、`_options_dict`、`api_preflight` | — |
-| `packages/harness/evoflow/license/gate.py` | 26 | `require_premium` | — |
-| `packages/harness/evoflow/license/entitlements.py` | 175 | `LicenseStatus`；`_parse_expires_at`、`get_license_status`、`is_premium_active` | ENFORCE_LICENSE_VERIFY |
-| `packages/harness/evoflow/license/machine.py` | 64 | `normalize_machine_id`、`_fingerprint_bytes`、`_windows_machine_guid` | — |
-| `packages/harness/evoflow/license/issued_store.py` | 215 | `_row_to_dict`、`_effective_status`、`_enrich` | STATUS_ACTIVE、STATUS_REVOKED、STATUS_EXPIRED |
+| `packages/harness/evoflow/license/gate.py:10` | 26 | `require_premium` | — |
+| `packages/harness/evoflow/license/entitlements.py:20` | 175 | `LicenseStatus`；`_parse_expires_at`、`get_license_status`、`is_premium_active` | ENFORCE_LICENSE_VERIFY |
+| `packages/harness/evoflow/license/machine.py:18` | 64 | `normalize_machine_id`、`_fingerprint_bytes`、`_windows_machine_guid` | — |
+| `packages/harness/evoflow/license/issued_store.py:18` | 215 | `_row_to_dict`、`_effective_status`、`_enrich` | STATUS_ACTIVE、STATUS_REVOKED、STATUS_EXPIRED |
 | `app/gateway/routers/license.py` | 212 | `ActivateBody`、`LicenseStatusResponse`、`IssueCodeBody`；`_parse_expires`、`_require_can_issue`、`license_status` | — |
-| `packages/harness/evoflow/authz/admin_grants.py` | 115 | `is_org_admin`、`list_org_admins`、`promote_org_admin` | — |
+| `packages/harness/evoflow/authz/admin_grants.py:16` | 115 | `is_org_admin`、`list_org_admins`、`promote_org_admin` | — |
 | `app/gateway/routers/audit.py` | 47 | `list_audit_actions_endpoint` | — |
-| `packages/harness/evoflow/persistence/audit_log.py` | 167 | `_ensure_table`、`record_action`、`list_actions` | — |
-| `packages/harness/evoflow/license/codec.py` | 329 | `LicenseCodecError`；`_b64url_decode`、`_normalize_payload_mid`、`_mid_to_bytes` | CODE_PREFIX、LEGACY_PREFIX、PAYLOAD_VERSION |
+| `packages/harness/evoflow/persistence/audit_log.py:46` | 167 | `_ensure_table`、`record_action`、`list_actions` | — |
+| `packages/harness/evoflow/license/codec.py:55` | 329 | `LicenseCodecError`；`_b64url_decode`、`_normalize_payload_mid`、`_mid_to_bytes` | CODE_PREFIX、LEGACY_PREFIX、PAYLOAD_VERSION |
 
 #### 核心概念
 - **entitlement（权益）** 与 **seat（席位）** 分离：功能开关 ≠ 人数限制。
@@ -11975,22 +11975,22 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/observability/queries.py` | 2458 | `ObservabilityDiskFullError`；`disk_full_user_message`、`enrich_model_row_thinking`、`_store` | — |
-| `packages/harness/evoflow/eval/dashboard.py` | 252 | `_clamp`、`_safe_score`、`_ts_str` | — |
-| `packages/harness/evoflow/observability/latency_waterfall.py` | 522 | `_parse_iso_ms`、`_load_trace_events`、`_load_model_invocations_for_timeline` | — |
-| `packages/harness/evoflow/observability/agent_trace_load.py` | 292 | `_store`、`_parse_payload_json`、`trace_events_by_lane` | — |
-| `packages/harness/evoflow/observability/compaction_file_log.py` | 424 | `compaction_trace_now_str`、`_file_logging_disabled`、`_console_mirror_enabled` | — |
-| `packages/harness/evoflow/observability/cache_pricing.py` | 174 | `CachePriceRule`；`_rule`、`detect_platform`、`resolve_cache_price` | ALIYUN_IMPLICIT_CACHE_READ_FRACTION、VOLCENGINE_RULES、ALIYUN_RULES |
-| `packages/harness/evoflow/observability/cache_metrics.py` | 222 | `compute_cache_hit_rate`、`_row_cache_triplet`、`cache_triplet_from_row` | — |
-| `packages/harness/evoflow/observability/model_list_projection.py` | 50 | `compute_model_list_projection`、`parse_stored_response_summary` | — |
-| `packages/harness/evoflow/persistence/usage_ledger.py` | 1886 | `_day_utc`、`_f`、`_s` | CATEGORY_LLM、CATEGORY_MEDIA、CATEGORY_TOOL |
-| `packages/harness/evoflow/persistence/usage_by_module.py` | 642 | `classify_session_module`、`resolve_usage_attribution`、`_load_session_map` | MODULE_CHAT、MODULE_EMPLOYEE、MODULE_WORKFLOW |
-| `packages/harness/evoflow/persistence/session_context_usage.py` | 190 | `build_context_usage_snapshot`、`load_session_context_usage`、`load_last_observed_active_tokens` | — |
+| `packages/harness/evoflow/observability/queries.py:23` | 2458 | `ObservabilityDiskFullError`；`disk_full_user_message`、`enrich_model_row_thinking`、`_store` | — |
+| `packages/harness/evoflow/eval/dashboard.py:25` | 252 | `_clamp`、`_safe_score`、`_ts_str` | — |
+| `packages/harness/evoflow/observability/latency_waterfall.py:26` | 522 | `_parse_iso_ms`、`_load_trace_events`、`_load_model_invocations_for_timeline` | — |
+| `packages/harness/evoflow/observability/agent_trace_load.py:15` | 292 | `_store`、`_parse_payload_json`、`trace_events_by_lane` | — |
+| `packages/harness/evoflow/observability/compaction_file_log.py:120` | 424 | `compaction_trace_now_str`、`_file_logging_disabled`、`_console_mirror_enabled` | — |
+| `packages/harness/evoflow/observability/cache_pricing.py:17` | 174 | `CachePriceRule`；`_rule`、`detect_platform`、`resolve_cache_price` | ALIYUN_IMPLICIT_CACHE_READ_FRACTION、VOLCENGINE_RULES、ALIYUN_RULES |
+| `packages/harness/evoflow/observability/cache_metrics.py:20` | 222 | `compute_cache_hit_rate`、`_row_cache_triplet`、`cache_triplet_from_row` | — |
+| `packages/harness/evoflow/observability/model_list_projection.py:14` | 50 | `compute_model_list_projection`、`parse_stored_response_summary` | — |
+| `packages/harness/evoflow/persistence/usage_ledger.py:59` | 1886 | `_day_utc`、`_f`、`_s` | CATEGORY_LLM、CATEGORY_MEDIA、CATEGORY_TOOL |
+| `packages/harness/evoflow/persistence/usage_by_module.py:53` | 642 | `classify_session_module`、`resolve_usage_attribution`、`_load_session_map` | MODULE_CHAT、MODULE_EMPLOYEE、MODULE_WORKFLOW |
+| `packages/harness/evoflow/persistence/session_context_usage.py:12` | 190 | `build_context_usage_snapshot`、`load_session_context_usage`、`load_last_observed_active_tokens` | — |
 | `app/gateway/routers/debug_agent_trace.py` | 2801 | `_debug_ui_enabled`、`_repo_root`、`_backend_dir` | — |
 | `app/gateway/routers/client_trace.py` | 159 | `_now_iso`、`trace_first_token_client`、`trace_stream_end_client` | — |
 | `app/gateway/hang_diagnostics.py` | 649 | `_flag_enabled`、`_float_env`、`diagnostics_enabled` | — |
 | `app/gateway/routers/observability.py` | 659 | `ObservabilityEnabledRequest`；`_obs_access_dep`、`_disk_full_http`、`_run_obs_or_disk_full` | — |
-| `packages/harness/evoflow/persistence/usage_ledger.py` | 1886 | `_day_utc`、`_f`、`_s` | CATEGORY_LLM、CATEGORY_MEDIA、CATEGORY_TOOL |
+| `packages/harness/evoflow/persistence/usage_ledger.py:59` | 1886 | `_day_utc`、`_f`、`_s` | CATEGORY_LLM、CATEGORY_MEDIA、CATEGORY_TOOL |
 
 #### 核心概念
 - **span 化**：模型调用、工具调用、压缩、落库各自一个 span，带父子关系。
@@ -12189,18 +12189,18 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/eval/eval_engine.py` | 907 | `_now_ms`、`_new_run_id`、`_new_alert_id` | — |
-| `packages/harness/evoflow/eval/case_spec.py` | 1251 | `CaseDesign`、`CaseSpec`；`_d`、`_spec`、`catalog_by_id` | FLOW_LABELS、PRIORITY_LABELS、LEVEL_LABELS |
-| `packages/harness/evoflow/eval/modules.py` | 132 | `resolve_module`、`module_label`、`enrich_case_row` | MODULE_LABELS、MODULE_CASE_DESIGN、MODULE_ORDER |
-| `packages/harness/evoflow/eval/performance.py` | 366 | `_since_ms`、`_iter_response_latencies`、`_count_messages_by_role` | — |
-| `packages/harness/evoflow/eval/business_quality.py` | 328 | `_clamp`、`evaluate_task_quality`、`evaluate_tool_reliability` | — |
-| `packages/harness/evoflow/eval/security.py` | 467 | `_table_exists`、`_columns`、`scan_data_leaks` | — |
-| `packages/harness/evoflow/observability/eval_metrics.py` | 498 | `fetch_invalid_tool_calls_summary`、`fetch_thread_tool_density`、`fetch_compress_kind_stats` | — |
-| `packages/harness/evoflow/eval/data_sources.py` | 776 | `_now_ms`、`_table_exists`、`_columns` | — |
-| `packages/harness/evoflow/eval/response_adapters.py` | 688 | `_ms_to_s`、`_fmt_duration_ms`、`_iso_now` | — |
-| `packages/harness/evoflow/eval/dashboard.py` | 252 | `_clamp`、`_safe_score`、`_ts_str` | — |
+| `packages/harness/evoflow/eval/eval_engine.py:36` | 907 | `_now_ms`、`_new_run_id`、`_new_alert_id` | — |
+| `packages/harness/evoflow/eval/case_spec.py:22` | 1251 | `CaseDesign`、`CaseSpec`；`_d`、`_spec`、`catalog_by_id` | FLOW_LABELS、PRIORITY_LABELS、LEVEL_LABELS |
+| `packages/harness/evoflow/eval/modules.py:62` | 132 | `resolve_module`、`module_label`、`enrich_case_row` | MODULE_LABELS、MODULE_CASE_DESIGN、MODULE_ORDER |
+| `packages/harness/evoflow/eval/performance.py:21` | 366 | `_since_ms`、`_iter_response_latencies`、`_count_messages_by_role` | — |
+| `packages/harness/evoflow/eval/business_quality.py:22` | 328 | `_clamp`、`evaluate_task_quality`、`evaluate_tool_reliability` | — |
+| `packages/harness/evoflow/eval/security.py:32` | 467 | `_table_exists`、`_columns`、`scan_data_leaks` | — |
+| `packages/harness/evoflow/observability/eval_metrics.py:14` | 498 | `fetch_invalid_tool_calls_summary`、`fetch_thread_tool_density`、`fetch_compress_kind_stats` | — |
+| `packages/harness/evoflow/eval/data_sources.py:29` | 776 | `_now_ms`、`_table_exists`、`_columns` | — |
+| `packages/harness/evoflow/eval/response_adapters.py:22` | 688 | `_ms_to_s`、`_fmt_duration_ms`、`_iso_now` | — |
+| `packages/harness/evoflow/eval/dashboard.py:25` | 252 | `_clamp`、`_safe_score`、`_ts_str` | — |
 | `app/gateway/routers/eval.py` | 574 | `_org_admin_dep`、`_ok`、`dashboard_summary` | — |
-| `packages/harness/evoflow/eval/security.py` | 467 | `_table_exists`、`_columns`、`scan_data_leaks` | — |
+| `packages/harness/evoflow/eval/security.py:32` | 467 | `_table_exists`、`_columns`、`scan_data_leaks` | — |
 
 #### 核心概念
 - **场景（scenario）即测试用例**：输入 + 期望性质（不含逐字答案）。
@@ -12409,10 +12409,10 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/person_kernel.py` | 2033 | `extract_identity_block`、`extract_lessons_section`、`omit_identity_section` | — |
-| `packages/harness/evoflow/person_affect.py` | 351 | `clamp01`、`default_hormones`、`legacy_from_hormones` | HORMONE_AXES、LEGACY_AXES、HORMONE_DEFAULTS |
-| `packages/harness/evoflow/person_wrap_up_reflect.py` | 720 | `build_person_wrap_up_user_prompt`、`_extract_json_object`、`parse_wrap_up_llm_result` | PERSON_WRAP_UP_SYSTEM |
-| `packages/harness/evoflow/person_kernel.py` | 2033 | `extract_identity_block`、`extract_lessons_section`、`omit_identity_section` | — |
+| `packages/harness/evoflow/person_kernel.py:54` | 2033 | `extract_identity_block`、`extract_lessons_section`、`omit_identity_section` | — |
+| `packages/harness/evoflow/person_affect.py:70` | 351 | `clamp01`、`default_hormones`、`legacy_from_hormones` | HORMONE_AXES、LEGACY_AXES、HORMONE_DEFAULTS |
+| `packages/harness/evoflow/person_wrap_up_reflect.py:67` | 720 | `build_person_wrap_up_user_prompt`、`_extract_json_object`、`parse_wrap_up_llm_result` | PERSON_WRAP_UP_SYSTEM |
+| `packages/harness/evoflow/person_kernel.py:54` | 2033 | `extract_identity_block`、`extract_lessons_section`、`omit_identity_section` | — |
 
 #### 核心概念
 - **人格是约束不是表演**：稳定的价值观与表达边界，比「人设形容词」更可靠。
@@ -12785,16 +12785,16 @@ sequenceDiagram
 |---|---|---|---|
 | `app/gateway/routers/panel_settings.py` | 48 | `PanelSettingsResponse`、`PanelSettingsPatchBody`；`_principal_id`、`get_panel_ui_settings`、`patch_panel_ui_settings` | — |
 | `app/gateway/routers/models.py` | 1156 | `ModelResponse`、`ModelsListResponse`、`SetPrimaryModelRequest`；`_to_model_response`、`list_models`、`get_primary_model` | — |
-| `packages/harness/evoflow/models/factory.py` | 1245 | `_strip_provider_internal_keys`、`_is_local_noauth_endpoint`、`_normalize_reasoning_effort` | — |
+| `packages/harness/evoflow/models/factory.py:80` | 1245 | `_strip_provider_internal_keys`、`_is_local_noauth_endpoint`、`_normalize_reasoning_effort` | — |
 | `app/gateway/routers/agents.py` | 1555 | `AgentResponse`、`AgentsListResponse`、`AgentCreateRequest`；`_normalize_agent_tools_for_api`、`_matches_agent_list_filters`、`_agent_runtime_available_for_ui` | AGENT_NAME_PATTERN |
-| `packages/harness/evoflow/subagents/registry.py` | 223 | `_timeout_for_subagent`、`_resolve_subagent_system_prompt`、`_agent_config_to_subagent_config` | — |
+| `packages/harness/evoflow/subagents/registry.py:17` | 223 | `_timeout_for_subagent`、`_resolve_subagent_system_prompt`、`_agent_config_to_subagent_config` | — |
 | `app/gateway/routers/knowledge.py` | 418 | `CreateDatasetRequest`、`UpdateDatasetRequest`、`SyncLocalRequest`；`_org_admin_dep`、`list_knowledge_bases`、`create_knowledge_base` | — |
 | `app/gateway/routers/knowledge_owned.py` | 840 | `ReindexBaseBody`；`list_bases`、`create_base`、`get_base` | — |
-| `packages/harness/evoflow/admin/memory.py` | 62 | `_normalize_agent`、`list_memory_agents`、`get_memory` | — |
+| `packages/harness/evoflow/admin/memory.py:19` | 62 | `_normalize_agent`、`list_memory_agents`、`get_memory` | — |
 | `app/gateway/routers/sessions.py` | 159 | `SessionSearchRequest`、`SessionSearchResult`、`SessionSearchResponse`；`_filter_search_hits`、`search_sessions`、`search_sessions_get` | — |
 | `app/gateway/routers/automation_scheduler.py` | 665 | `_coerce_app_parameters`、`_apply_workflow_binding`、`_stamp_app_name` | — |
-| `packages/harness/evoflow/persistence/panel_settings.py` | 106 | `_panel_key`、`_deep_merge_defaults`、`get_panel_settings` | PANEL_SETTINGS_KEY、DEFAULT_PANEL_SETTINGS |
-| `packages/harness/evoflow/models/factory.py` | 1245 | `_strip_provider_internal_keys`、`_is_local_noauth_endpoint`、`_normalize_reasoning_effort` | — |
+| `packages/harness/evoflow/persistence/panel_settings.py:48` | 106 | `_panel_key`、`_deep_merge_defaults`、`get_panel_settings` | PANEL_SETTINGS_KEY、DEFAULT_PANEL_SETTINGS |
+| `packages/harness/evoflow/models/factory.py:80` | 1245 | `_strip_provider_internal_keys`、`_is_local_noauth_endpoint`、`_normalize_reasoning_effort` | — |
 
 #### 核心概念
 - **配置三层**：文件配置（启动项）→ 数据库配置（用户可改）→ 会话级覆盖（临时）。
@@ -12975,8 +12975,8 @@ sequenceDiagram
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
 |---|---|---|---|
-| `packages/harness/evoflow/app_server/stdio_rpc.py` | 719 | `StdioAppServer`；`_force_utf8_stdio`、`serve_stdio`、`serve_stdio_async` | PROTOCOL_VERSION |
-| `packages/harness/evoflow/app_server/chat_bridge.py` | 396 | `_client_lock`、`_get_shared_gateway_client`、`reset_shared_gateway_client_for_tests` | — |
+| `packages/harness/evoflow/app_server/stdio_rpc.py:26` | 719 | `StdioAppServer`；`_force_utf8_stdio`、`serve_stdio`、`serve_stdio_async` | PROTOCOL_VERSION |
+| `packages/harness/evoflow/app_server/chat_bridge.py:21` | 396 | `_client_lock`、`_get_shared_gateway_client`、`reset_shared_gateway_client_for_tests` | — |
 | `app/gateway/routers/models.py` | 1156 | `ModelResponse`、`ModelsListResponse`、`SetPrimaryModelRequest`；`_to_model_response`、`list_models`、`get_primary_model` | — |
 | `app/gateway/routers/codex_auth.py` | 180 | `LoginStartRequest`、`LoginPollRequest`、`EnsureModelRequest`；`_http_from_auth_error`、`require_local_plan_admin`、`codex_auth_status` | — |
 

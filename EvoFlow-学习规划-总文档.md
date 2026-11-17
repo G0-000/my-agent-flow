@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 11:36　源提交：`12a0ddb`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 14:10　源提交：`3c77da2`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -479,6 +479,8 @@ EvoFlow 使用 PolyForm Noncommercial License 1.0.0：可读、可学习、非�
 
 > **为什么表里有两列**：需求侧的七节是「内容必须回答的问题」；落地侧的标题允许等价替代。41 章用「与 EvoFlow 对照」表承担第 4 节、用章前「常见坑」承担第 6 节；`02/01` 更细，写成独立小节 `### 关键实现细节` / `### 跑不通怎么查`。两种都合规，不要为了统一标题去删内容。
 
+> **固定小节**：每章在「最小闭环」之后必须有 `## 调用逻辑 / Invocation logic`（一张 mermaid 时序图 + 入口/关键节点/出口/断点四条），全 13 个 Part 已补齐；时序图是「读代码前先看谁调谁」的地图，不是装饰。
+
 #### 2. 分步实现的写法（最重要的约束）
 
 每一步严格是四段，缺一不可：
@@ -649,7 +651,7 @@ model = model_factory(store)                                         # ③ 取�
 sequenceDiagram
     participant App
     participant C as config.py
-    participant S as ModelStore (SQLite)
+    participant S as ModelStore (SQLite
     participant F as model_factory
     App->>C: load_config(path?)
     C->>C: 解析路径 → safe_load → $ENV 替换 → 校验各节
@@ -1816,6 +1818,25 @@ uv run pytest tests/chapters/test_ch01_02_graph.py -q
 #### 最小闭环 / Minimal closed loop
 `create_session → add_message(user) → ...→ 重启 → get_messages 仍然一致`
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant C as 调用方 · 测试 / Agent
+    participant S as MessageStore
+    participant DB as SQLite
+    C->>S: append(session, role, text)
+    S->>DB: INSERT INTO messages(session, seq, role, text)
+    C->>S: history(session)
+    S->>DB: SELECT ... ORDER BY seq
+    S-->>C: [ {role, text}, ... ]
+```
+
+- **入口**：`MessageStore(db_path)` 构造一次，`append()` 写、`history()` 读，两个方法共用同一条连接。
+- **关键节点**：`append` 里必须按 `session` 自增 `seq`，否则并发写会乱序；`history` 只按 `seq` 排，不依赖时间戳。
+- **出口**：返回纯 dict 列表，上层（graph、SSE 回放）直接消费，不暴露 sqlite Row。
+- **最容易断的地方**：同一 session 用不同连接写，`seq` 撞车；解决方式是在写入语句里用 `MAX(seq)+1` 而不是在 Python 里算。
+
 #### 数据模型 / Data model
 ```text
 sessions 1 ──< messages     # 模型看到的历史（user / assistant / tool）
@@ -2437,9 +2458,9 @@ uv run pytest tests/chapters/test_ch01_04_tools.py -q
 ```mermaid
 sequenceDiagram
     participant C as Client
-    participant S as Server (WSGI)
+    participant S as Server (WSGI
     participant L as events 表
-    participant A as Agent (线程)
+    participant A as Agent (线程
     C->>S: POST /runs {text}
     S->>A: 后台执行 execute()
     S-->>C: 202 {run_id}
@@ -2687,6 +2708,28 @@ uv run python -c "from myagentflow.runtime.events import EventStream; print(Even
 ### 第 6 章　第 1 部分综合验收 / Part 1 Acceptance
 
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant T as test_end_to_end
+    participant G as graph · 第 2 章
+    participant M as EchoModel
+    participant S as MessageStore
+    participant E as events
+    T->>G: start_run(session) / execute()
+    G->>M: invoke(messages)
+    M-->>G: 固定回复（无网络）
+    G->>S: append(user) / append(assistant)
+    G->>E: emit run_start → token → done
+    T->>E: 断言事件序列与顺序
+```
+
+- **入口**：`tests/chapters/test_ch01_06_e2e.py::test_end_to_end`，它不启动 HTTP，直接驱动 Part 1 的四个模块。
+- **关键节点**：模型换成 `EchoModel`（离线），数据库用临时文件，事件用内存列表收集——三处都可在测试里替换，才叫「可验收」。
+- **出口**：断言三件事：消息落库条数、事件首尾类型、`done` 只出现一次。
+- **最容易断的地方**：为了跑通去改生产代码；验收测试只准换依赖，不准改逻辑。
+
 #### 验收场景 / Scenario
 发送一条需要计算的消息 → 观察流式事件（token、tool_start/tool_end、done）→ 重启服务 → 历史与结果完整。
 
@@ -2887,6 +2930,20 @@ Part 1 的 run/stream
 | 12 | 最终检查点还会由链头中间件再瘦身一次 | `CheckpointTranscriptSlimMiddleware`（`lead_agent/agent.py:705` 注释） |
 
 #### 2. 调用逻辑
+
+```mermaid
+sequenceDiagram
+    participant C as CLI / 脚本
+    participant P as get_checkpointer
+    participant S as Saver · SQLite / Memory
+    participant R as read_thread_state
+    C->>P: get_checkpointer()（进程内单例）
+    P->>S: _build() → SqliteSaver / InMemorySaver
+    C->>S: graph.invoke(config={"thread_id": ...})
+    C->>R: read_thread_state(cp, thread_id)
+    R-->>C: {values, next, checkpoint_id} / None（空线程）
+```
+
 
 ```text
 首次运行
@@ -3465,6 +3522,20 @@ MYAF_CHECKPOINTER=sqlite MYAF_CHECKPOINT_SQLITE_PATH=/tmp/myaf-cp.sqlite \
 
 #### 3. 调用逻辑
 
+```mermaid
+sequenceDiagram
+    participant W as 执行侧
+    participant G as RunRegistry
+    participant U as 用户
+    W->>G: start(thread_id)
+    G-->>W: RunRecord(run_id)（同线程已有活跃则拒绝）
+    U->>G: cancel(run_id)
+    W->>G: is_cancelled(run_id)?
+    G-->>W: True → 收敛
+    W->>G: finish(run_id, "cancelled")
+```
+
+
 ```text
 POST /runs/stream
   → start_session_turn(source="gateway")          # 清镜像 + 写 running
@@ -3699,6 +3770,22 @@ uv run pytest tests/chapters/test_ch02_02_lifecycle.py -q
 `evoflow --chat "算一下 2+3"` → 标准输出 SSE 事件 → 退出码 0；同一套逻辑通过 stdio JSON-RPC 被宿主程序调用。
 
 #### 调用逻辑
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant CLI as cli.main
+    participant GR as 图执行
+    participant H as 宿主程序
+    participant S as app_server.stdio
+    U->>CLI: evoflow --chat "算一下 2+3"
+    CLI->>GR: _chat() → 执行
+    CLI-->>U: 标准输出 SSE 事件，退出码 0
+    H->>S: JSON-RPC 请求（stdin）
+    S->>S: handle(req) → serve()
+    S-->>H: JSON-RPC 响应（stdout）
+```
+
 ```text
 CLI  → 直接调用 harness 会话服务 → 流事件打印
 stdio → 宿主进程 spawn → JSON-RPC 2.0 over stdin/stdout → chat_bridge → harness
@@ -3921,6 +4008,28 @@ printf '{"id":2,"method":"x"}\n' | uv run python -m myagentflow.app_server.stdio
 
 #### 最小闭环
 创建分享 → 拿到 token 链接 → 未登录可读 → 撤销后链接 404 → 原会话不受影响。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant A as API
+    participant S as ShareStore
+    participant H as _hash
+    participant V as 访客
+    A->>S: create(session_id)
+    S->>H: _hash(token)
+    S-->>A: ShareResult(token, url)
+    V->>S: resolve(token)
+    S-->>V: 只读视图 / None(已撤销)
+    A->>S: revoke(token)
+    V->>S: resolve(token) → None
+```
+
+- **入口**：`ShareStore.create()` 生成 token 并把 `hash(token)` 落库——库里永远不存明文 token。
+- **关键节点**：`resolve()` 先比对 hash，再判 `revoked_at`；两步都过才返回只读视图。
+- **出口**：`revoke()` 只改状态不删行，撤销后 `resolve` 返回 `None`（HTTP 层翻译成 404）。
+- **最容易断的地方**：撤销直接删行，导致审计断链；以及 token 用 `uuid1` 泄露时间与机器信息。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -4170,6 +4279,26 @@ uv run pytest tests/chapters/test_ch02_04_shares.py -q
 #### 最小闭环
 读文件 → 列出目录 → 执行一条只读命令 → 写文件被策略拒绝（或要求审批）。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant T as 工具 · read/write/bash
+    participant R as resolve
+    participant P as Policy
+    participant H as 宿主文件系统
+    T->>R: resolve(path, workspace, policy)
+    R->>P: 取 allow_write / follow_symlink
+    R->>R: realpath + 前缀比对
+    R-->>T: Resolution(allowed, reason, path)
+    T->>H: 允许才真正 open/exec
+```
+
+- **入口**：所有宿主工具第一步都调 `resolve()`，不允许各工具自己拼路径。
+- **关键节点**：先 `realpath` 再比对前缀，顺序反了 `../` 和 symlink 都能逃逸；`Resolution` 带 `reason` 是为了让拒绝可解释。
+- **出口**：`allowed=False` 时工具直接返回结构化拒绝，不抛异常（抛异常会被模型当成工具坏了反复重试）。
+- **最容易断的地方**：只查 `..` 字符串不查 realpath；以及 `policy` 默认放开（本章刻意默认收口，与 EvoFlow 的 `disabled` 语义对齐）。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -4373,6 +4502,30 @@ uv run pytest tests/chapters/test_ch03_01_guard.py -q
 
 #### 最小闭环
 启动后台命令 → 轮询输出 → 结束后读取完整日志；打开浏览器 → 截图 → 点击。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant T as 工具
+    participant B as BgManager
+    participant P as BgProc
+    participant A as verify_bridge_token
+    participant H as 宿主进程/浏览器
+    T->>B: start(cmd)
+    B->>P: Popen(..., stdout=PIPE)
+    B-->>T: proc_id
+    T->>B: poll(proc_id)
+    P-->>T: 增量输出 / exit_code
+    T->>B: kill(proc_id)（超时或取消）
+    T->>A: verify_bridge_token(token, secret)
+    A-->>T: True/False → 放行桥接请求
+```
+
+- **入口**：`BgManager.start()` 起进程并立刻返回 id，工具层拿 id 轮询，不阻塞事件循环。
+- **关键节点**：`poll()` 要能返回「还没结束」和「已结束+退出码」两种状态；桥接侧每个请求先过 `verify_bridge_token`，不信任来源 IP。
+- **出口**：`kill()` 负责收割进程组，`close()` 前必须全部 kill，否则测试结束残留子进程。
+- **最容易断的地方**：只 kill 父进程不管子进程；token 用固定字符串或漏校验重放。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -4599,6 +4752,28 @@ uv run python -c "from myagentflow.tools.host_direct.bridge_auth import verify_b
 
 #### 最小闭环
 模型请求前注入动态 prompt → 工具调用前走审批 → 工具报错转成 ToolMessage → 循环检测 → 预算耗尽中止 → 澄清请求最后拦截。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant G as graph 执行器
+    participant CH as run_chain
+    participant M as Middleware(before_tool
+    participant AU as AuditMiddleware
+    participant T as 实际工具
+    G->>CH: run_chain(mws, "before_tool", ctx)
+    CH->>M: before_tool(ctx) 依次
+    CH->>AU: before_tool → 记录 tool/args
+    CH-->>G: 可能改写/拦截
+    G->>T: 执行
+    G->>CH: run_chain(mws, "after_tool", ctx) 逆序
+```
+
+- **入口**：图执行器只认 `run_chain()`，中间件顺序由列表决定，新增中间件不改执行器。
+- **关键节点**：`before_tool` 顺序执行、`after_tool` **逆序**执行——逆序是为了让审计包住真实耗时；`AuditMiddleware` 只记录 `_brief(args)`，不落全量参数。
+- **出口**：链可以返回「拦截」结果替代工具输出，此时工具根本不执行。
+- **最容易断的地方**：把 `after_tool` 也顺序跑，导致外层中间件看不到内层异常；以及审计把密钥写进日志。
 
 #### 1. 先纠正一个数字
 
@@ -4876,6 +5051,26 @@ uv run python -c "from myagentflow.agents.middlewares.chain import run_chain; pr
 #### 最小闭环
 工具返回 1MB → 落盘 + 只回灌摘要 → token 超阈值 → 触发压缩 → 压缩后仍能回答原问题。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant G as graph 节点
+    participant B as budget
+    participant L as 模型
+    G->>B: estimate_tokens(messages)
+    B-->>G: 当前占用
+    G->>B: should_compact(tokens, ctx_len, ratio)
+    B->>B: compact_threshold(ctx_len) / refill_target()
+    B-->>G: True → 触发压缩
+    G->>L: 压缩后重新请求
+```
+
+- **入口**：每轮请求模型前先 `estimate_tokens()`，估算放在调用前而不是超限后。
+- **关键节点**：阈值有两个来源——比例（`ratio=0.9`）和绝对上限（cap），**cap 胜**（测试 `test_cap_beats_ratio` 钉死这条）；压缩后目标不是 0 而是 `refill_target()`，留出下一轮空间。
+- **出口**：`should_compact` 返回布尔，压缩动作由外层执行，`budget.py` 本身不调模型。
+- **最容易断的地方**：把估算做成精确 tokenizer（慢十倍且和模型不完全一致）；压缩后再塞回全部历史，等于没压。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -5152,6 +5347,26 @@ uv run pytest tests/chapters/test_ch03_04_budget.py -q
 #### 最小闭环
 对话里说「我习惯用 uv」→ 本轮生效（上下文）→ 会话结束写入长期记忆 → 新会话自动带上。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant R as run 执行
+    participant M as AgentMemoryManager
+    participant F as 文件 · agent/thread
+    R->>M: load_agent(agent_id) / load_thread(thread_id)
+    M->>F: _load(path)
+    F-->>M: facts / threads
+    R->>M: remember(scope, text)
+    M->>F: 写回
+    Note over M: _empty() 每次返回新对象
+```
+
+- **入口**：`load_agent()` 取跨任务偏好，`load_thread()` 取本线程事实，两者物理隔离。
+- **关键节点**：`remember()` 只写调用方指定的 scope；`_empty()` 每次都建新 dict/list，绝不复用默认对象（这里踩过浅拷贝 bug，会串味）。
+- **出口**：注入 prompt 时按 scope 拼接，agent 级在前、thread 级在后。
+- **最容易断的地方**：`dict(DEFAULT)` 共享内部 list；以及写失败直接抛出——本章要求 fail-soft，记忆坏了不能拖垮对话。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -5411,6 +5626,26 @@ uv run pytest tests/chapters/test_ch04_01_memory.py -q
 #### 最小闭环
 同一主题的 5 条记忆 → 巩固为 1 条结论 + 关联节点 → 下次召回命中结论而非 5 条碎片。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant I as 写入侧 · 记忆/上传
+    participant S as scan
+    participant E as scan_memory_entries
+    participant G as 召回侧
+    I->>S: scan(text)
+    S->>S: 12 条威胁正则 + 不可见 Unicode 检测
+    S-->>I: hits[] 或 放行
+    I->>E: scan_memory_entries(entries)
+    E-->>G: 只回灌 clean 条目
+```
+
+- **入口**：所有外部文本进上下文前先过 `scan()`：用户输入、工具输出、检索片段、记忆条目四个入口一个都不能漏。
+- **关键节点**：`scan()` 同时查「指令注入句式」和「不可见字符」（200B/200C/200D/2060/FEFF/202A–202E），后者是把指令藏进看似正常文本的手法。
+- **出口**：命中不抛异常，返回带 id 与偏移的命中列表，由上层决定拦截还是脱敏。
+- **最容易断的地方**：只扫用户消息不扫工具返回；正则漏掉全角/同形字。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -5659,6 +5894,24 @@ uv run pytest tests/chapters/test_ch04_02_scanner.py -q
 
 #### 最小闭环
 任务产出报告 → 登记为 artifact → 下一次任务可 `search_artifacts` 命中 → 反思写入改进点。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant T as 任务执行
+    participant A as AssetStore
+    participant L as 后续任务
+    T->>A: add(kind, title, path, meta)
+    A-->>T: asset_id
+    L->>A: list() / 按 kind 过滤
+    A-->>L: 命中资产 → 注入上下文
+```
+
+- **入口**：任务产出文件后立刻 `add()` 登记，登记与落盘同一步完成，不留「事后补登」的空档。
+- **关键节点**：`Asset` 里存 `path + meta`，正文不重复存；`list()` 支持按 kind/时间过滤，避免一次把全部资产塞进上下文。
+- **出口**：后续任务拿到的是「资产引用」，需要时再读正文。
+- **最容易断的地方**：登记了但文件被删（要做存在性校验）；反思写成空话，没有「下次改什么」。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -5912,6 +6165,26 @@ uv run pytest tests/chapters/test_ch04_03_assets.py -q
 #### 最小闭环
 上传 PDF → 解析出文本与页码 → 切成 500–800 字片段并带标题路径 → 落库 → 能被检索到。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant U as 上传接口
+    participant C as chunk_text
+    participant S as _split_sections
+    participant D as 文档库
+    U->>C: chunk_text(text, size, overlap)
+    C->>S: 按标题切段，继承 heading 路径
+    S-->>C: sections[]
+    C->>C: 滑窗切片 + overlap
+    C-->>D: Chunk(text, heading, page, offset)
+```
+
+- **入口**：`chunk_text()` 是唯一入口，参数只暴露 `size` 与 `overlap`，其余从文档元数据取。
+- **关键节点**：先按标题切成 section，再在 section 内滑窗——顺序反了跨标题的片段会丢掉归属；每个 chunk 必须带 heading 路径。
+- **出口**：`Chunk` 带 `text/heading/page/offset`，offset 用于回答时给「第几段」而不是「大概在文中」。
+- **最容易断的地方**：切块不看标题层级，检索命中后无法引用到具体小节；overlap 写成字符重叠但按 token 计。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -6126,6 +6399,27 @@ uv run pytest tests/chapters/test_ch05_01_chunker.py -q
 #### 最小闭环
 建索引 → 查询 → top-k 片段 → 注入上下文 → 回答带引用。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant U as 检索调用方
+    participant V as VectorStore
+    participant E as 嵌入模型
+    participant C as _cos
+    U->>E: embed(query)
+    E-->>U: q_vec
+    U->>V: search(q_vec, k)
+    V->>C: _cos(q_vec, doc_vec) × N
+    V-->>U: top-k(top_k, score)
+    U->>U: 片段拼进上下文 + 引用 id
+```
+
+- **入口**：`VectorStore.add(ids, vectors)` 建索引，`search(q_vec, k)` 查询；嵌入由调用方做，store 不依赖网络。
+- **关键节点**：`_cos` 自己算余弦，不引 numpy（少一个依赖、也方便手写理解）；维度不一致必须早失败，不能悄悄截断。
+- **出口**：返回 `(id, score)` 列表，低于阈值直接丢弃，宁少勿滥。
+- **最容易断的地方**：入库与查询用了两个不同嵌入模型；top-k 取回后没有引用 id，回答无法溯源。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -6308,6 +6602,26 @@ uv run pytest tests/chapters/test_ch05_02_vector.py -q
 #### 最小闭环
 创建知识库 → 导入资料 → 看到目录树 → 在对话中按知识库范围检索。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant A as 知识库 API
+    participant B as build_map
+    participant D as describe
+    participant R as 检索
+    A->>B: build_map(entries)
+    B-->>A: 目录树（库 → 目录 → 文档）
+    A->>D: describe(map)
+    D-->>R: 范围描述（用于限定检索范围）
+    R->>R: 只在指定库内检索
+```
+
+- **入口**：导入资料后 `build_map()` 由条目元数据（库 id、目录、文档名）构建树，不读正文。
+- **关键节点**：树只做展示与范围裁剪，不参与召回排序；`describe()` 输出一段可读的范围说明，用于告诉模型「你看到的是哪个库」。
+- **出口**：检索时把库/目录作为过滤条件传给向量检索，而不是检索完再筛。
+- **最容易断的地方**：把知识地图当成索引本体（改了树但没重建索引）；空库时 `describe` 返回空串导致 prompt 出现空段落。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -6468,6 +6782,25 @@ uv run pytest tests/chapters/test_ch05_03_map.py -q
 
 #### 最小闭环
 打开工作区 → 建索引 → 「函数 X 定义在哪」→「谁调用了 X」→ 给出文件:行号。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant T as 工具入口
+    participant I as index_file
+    participant C as CodeIndex
+    participant Q as 查询
+    T->>I: index_file(path, text)
+    I-->>C: add_file(path, symbols, calls)
+    Q->>C: find(symbol)
+    C-->>Q: [{path, line, kind}]
+```
+
+- **入口**：`index_file()` 只做「一个文件 → 符号表」，不递归、不读 git，扫描由上层决定。
+- **关键节点**：索引里必须存 `path:line`，只存文件名等于没索引；同名符号要按 kind（def/class）区分。
+- **出口**：`find()` 返回带行号的定义列表，「谁调用了 X」来自 calls 边。
+- **最容易断的地方**：改文件不增量更新；把注释里的同名文本当成定义。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -6719,6 +7052,28 @@ uv run pytest tests/chapters/test_ch05_04_code_index.py -q
 #### 最小闭环
 主 Agent 收到「同时查三份文档」→ 拆成 3 个子任务 → 并发执行 → 汇总成一份答案。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant M as 主 Agent
+    participant R as SubagentRegistry
+    participant S as 子代理 · N 个
+    participant Z as summarize
+    M->>R: register(SubagentSpec)
+    M->>R: pick(任务描述)
+    R-->>M: 选中的 spec 列表
+    M->>S: 并发派发（各自隔离上下文）
+    S-->>M: 结构化结果
+    M->>Z: summarize(results)
+    Z-->>M: 一份汇总
+```
+
+- **入口**：主 Agent 只通过 `pick()` 选子代理，选人依据是 `SubagentSpec` 的能力描述，不是模型自由发挥。
+- **关键节点**：子代理各自独立上下文，结果只回传结论+证据，不回传整段对话；`describe()` 用于把「有哪些子代理」告诉模型。
+- **出口**：`summarize()` 合并时保留来源标注，冲突要给「谁说了什么」而不是强行折中。
+- **最容易断的地方**：子代理共享一个 messages 列表（等于没隔离）；汇总丢掉出处，导致无法复核。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -6912,6 +7267,31 @@ uv run python -c "from myagentflow.subagents.registry import SubagentRegistry; p
 
 #### 最小闭环
 Agent 想执行 `rm -rf` → 被策略拒绝或要求审批；想跑测试 → 在沙箱内执行 → 结果回传。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant A as Agent 工具调用
+    participant P as evaluate
+    participant S as 沙箱/宿主
+    participant H as 审批 UI
+    A->>P: evaluate(cmd, policy)
+    P-->>A: PolicyResult(Decision, reason)
+    alt allow
+        A->>S: 执行
+    else ask
+        A->>H: 请求审批
+        H-->>S: 批准后执行一次
+    else deny
+        A-->>A: 返回拒绝原因
+    end
+```
+
+- **入口**：任何命令/写操作先 `evaluate()`，返回三态 `Decision`（allow / ask / deny），不是布尔。
+- **关键节点**：判定依据是命令 + 工作区 + policy，不是关键词黑名单；`reason` 必须能直接读给用户看。
+- **出口**：`ask` 交给审批（第 3 章），`deny` 直接结构化返回，绝不让模型「再试一次换个写法」。
+- **最容易断的地方**：把 `ask` 当 `allow` 处理；策略只匹配 `rm -rf` 字面，`rm -r -f` 漏网。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -7109,6 +7489,27 @@ uv run pytest tests/chapters/test_ch06_02_policy.py -q
 
 #### 最小闭环
 会话启用只读工具集 → 请求写操作 → 弹出审批 → 批准后执行一次 → 会话结束回收全部句柄。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant S as 会话
+    participant A as ApprovalStore
+    participant T as 工具句柄
+    participant U as 用户
+    S->>A: create(run_id, tool, args)
+    A-->>U: 待审批卡片
+    U->>A: resolve(approval_id, approved)
+    A-->>S: 批准 → 执行一次
+    S->>A: cancel_run(run_id)
+    S->>T: 回收句柄（关文件/杀进程）
+```
+
+- **入口**：写操作先 `create()` 建审批单，审批单绑定 `run_id`，run 结束自动失效。
+- **关键节点**：批准只对「这一次调用」有效，不能变成长期放行；`cancel_run` 要把该 run 下所有待审批一起置为取消。
+- **出口**：会话结束统一清理句柄，句柄泄漏比审批漏放更难查。
+- **最容易断的地方**：审批通过后没校验参数是否被改过；取消只改状态不杀进程。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -7352,6 +7753,25 @@ uv run pytest tests/chapters/test_ch06_03_approvals.py -q
 #### 最小闭环
 用户说「做一份竞品分析报告」→ 生成 4 步计划 → 每步有验收标准 → 执行时按依赖推进。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant U as 用户目标
+    participant P as parse
+    participant C as check_cycles
+    participant E as 执行器
+    U->>P: parse(plan_text)
+    P-->>U: Step[]（id/goal/accept/depends）
+    P->>C: check_cycles(steps) → visit()
+    C-->>E: 无环 → 按依赖拓扑推进
+```
+
+- **入口**：`parse()` 把文本计划转成 `Step` 列表，每步必须带验收标准，没有验收标准就解析失败。
+- **关键节点**：`check_cycles()` 用 DFS `visit()` 查环，环不报错而是给出环路径，方便改计划。
+- **出口**：执行器按依赖顺序推进，某步失败只阻塞依赖它的步骤。
+- **最容易断的地方**：步骤没有唯一 id（依赖对不上）；验收标准写成「完成即可」。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -7550,6 +7970,27 @@ uv run pytest tests/chapters/test_ch07_01_plan.py -q
 
 #### 最小闭环
 主 Agent 分派 2 个子任务给不同 Agent → 账本记录指派与状态 → 任务中心展示 → 完成后汇总。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant M as 主 Agent
+    participant L as Ledger
+    participant W as 子 Agent
+    participant T as 任务中心
+    M->>L: add(Task)
+    W->>L: claim(task_id)
+    L-->>W: 成功 / 已被占（原子）
+    W->>L: heartbeat(task_id)
+    M->>L: reclaim_stale(超时)
+    M->>T: 查询状态渲染看板
+```
+
+- **入口**：`add()` 建任务，`claim()` 抢占——抢占必须是原子的，两人同时抢只能一人成功。
+- **关键节点**：`heartbeat()` 续租，`reclaim_stale()` 把超时未续租的任务收回，防止任务被“忘死的 Agent”长期占着。
+- **出口**：任务中心只读账本，不做第二份状态，避免看板与真实状态不一致。
+- **最容易断的地方**：用「先查再写」实现抢占（并发下双claim）；没有心跳，挂了永远不回收。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -7765,6 +8206,27 @@ uv run pytest tests/chapters/test_ch07_02_ledger.py -q
 #### 最小闭环
 定义 workflow（步骤 + 输入 schema）→ 用同一输入跑两次得到结构一致的结果 → 应用中心可查看。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+participant C as 调用方
+participant W as Workflow
+participant S as 步骤
+participant R as StepResult
+C->>W: run(input)
+W->>S: 按序执行（schema 校验输入）
+S-->>W: StepResult(status, output)
+W-->>C: 汇总结果（同输入 → 同结构）
+C->>W: resume_from(step_index, state)
+W->>S: 从断点继续
+```
+
+- **入口**：`run(input)` 先按 `input_schema` 校验，再逐步执行；`resume_from()` 从指定步骤带状态续跑。
+- **关键节点**：每步产出 `StepResult`，失败要标 `status` 而不是抛异常中断整个 workflow。
+- **出口**：同一输入两次运行结构必须一致（可重放），这是 app center 能展示的前提。
+- **最容易断的地方**：步骤间靠全局变量传值；恢复时重跑已完成步骤造成副作用重复。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -7968,6 +8430,27 @@ uv run pytest tests/chapters/test_ch07_03_workflow.py -q
 #### 最小闭环
 探索类问题 → 分配预算（搜索次数/时间）→ 到点停止 → 输出「当前结论 + 覆盖度 + 未覆盖项」。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant Q as 问题
+    participant R as choose
+    participant B as Budget
+    participant E as 探索执行
+    Q->>R: choose(question)
+    R-->>Q: Strategy(档位)
+    Q->>B: 初始化（搜索次数 / 时限）
+    E->>B: spend(n)
+    B-->>E: 剩余 / 超限 → 停止
+    E-->>Q: 结论 + 覆盖度 + 未覆盖项
+```
+
+- **入口**：`choose()` 按问题类型给策略档位（快答 / 常规 / 深挖），档位决定预算，不由模型自己加码。
+- **关键节点**：`spend()` 每消耗一次就扣减，返回剩余；耗尽立刻停并输出「当前结论 + 覆盖度」。
+- **出口**：结果必须带未覆盖项，让用户知道「不是查完了，是预算用完了」。
+- **最容易断的地方**：预算只在进入时判一次，中途无限追加；停止后不给覆盖度。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -8143,6 +8626,28 @@ uv run pytest tests/chapters/test_ch07_04_budget.py -q
 
 #### 最小闭环
 执行到第 3 步被暂停 → 恢复 → 第 1、2 步不重跑 → 第 3 步从断点继续。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant R as 执行器
+    participant I as Idempotency
+    participant S as 第 N 步
+    R->>I: begin(key)
+    alt 已存在且完成
+        I-->>R: skip（不重跑）
+    else 新 key
+        I->>S: 执行
+        S-->>I: 结果
+        R->>I: finish(key, result)
+    end
+```
+
+- **入口**：每个有副作用的步骤执行前 `begin(key)`，key 由「任务+步骤+输入摘要」生成。
+- **关键节点**：`begin` 返回「首次」才执行，返回「已完成」直接拿旧结果；`finish` 写结果与状态，两步之间崩溃会留下 in-flight 记录。
+- **出口**：恢复时先扫 in-flight，超时的按失败处理再重跑。
+- **最容易断的地方**：key 里带时间戳（每次都不同，等于没幂等）；只在成功路径写 finish。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -8362,6 +8867,26 @@ uv run pytest tests/chapters/test_ch07_05_idempotency.py -q
 #### 最小闭环
 创建自动化（规则 + 指令 + 渠道）→ 到点生成 run → 结果写入会话并推送 → 历史里可查每次输出。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant U as 用户/定时器
+    participant A as AutomationStore
+    participant R as run 执行
+    participant H as 历史
+    U->>A: add(rule, instruction, channel)
+    U->>A: enabled(id, True)
+    A->>R: begin_run(id)
+    R->>H: finish_run(id, output)
+    U->>H: 查询每次输出
+```
+
+- **入口**：`add()` 存规则（触发条件 + 指令 + 渠道），启用状态由 `enabled()` 单独控制。
+- **关键节点**：每次触发 `begin_run()` 建一条运行记录，`finish_run()` 写输出与状态，历史不覆盖只追加。
+- **出口**：历史可按自动化 id 查，展示每次「跑了什么、产出什么」。
+- **最容易断的地方**：禁用后仍被调度器捞起；失败不写记录，历史看起来像「没跑过」。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -8560,6 +9085,27 @@ uv run pytest tests/chapters/test_ch08_01_automation.py -q
 
 #### 最小闭环
 注册 `0 9 * * *` → 到点触发 → 进程重启后补算「错过的触发」→ 不重复。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant T as 时钟
+    participant S as Scheduler
+    participant M as matches / _match
+    participant A as AutomationStore
+    T->>S: due(now)
+    S->>M: matches(cron, now) 逐条判定
+    M-->>S: 到期列表
+    S->>A: begin_run(每条)
+    Note over S: 重启后 catch_up(now)
+    S->>S: 补算错过的触发，去重后执行
+```
+
+- **入口**：`due(now)` 只算「这一分钟该跑哪些」，不自己起线程。
+- **关键节点**：`matches()` 支持 `*`、区间、步长三类语法；`catch_up()` 在进程重启后补算错过的时间点，但同一时间点只补一次。
+- **出口**：到期的自动化交给执行器，调度器不执行业务。
+- **最容易断的地方**：重启补算把停机期间所有分钟都补一遍（雪崩）；cron 解析不考虑本地时区。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -8768,6 +9314,31 @@ uv run pytest tests/chapters/test_ch08_02_scheduler.py -q
 #### 最小闭环
 心跳周期到 → 决策门判断「是否值得打扰用户」→ 是则生成一条主动消息 → 否则静默记录。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant C as 心跳周期
+    participant H as Heartbeat
+    participant F as fingerprint
+    participant G as 决策门
+    participant U as 用户
+    C->>H: should_run(now)
+    H->>F: fingerprint(上下文)
+    F-->>H: 指纹
+    H->>G: 与上次比对 → 值得打扰吗
+    alt 值得
+        G->>U: 主动消息
+    else 不值得
+        G->>H: 静默记录
+    end
+```
+
+- **入口**：每个心跳周期先 `should_run()`：时间到 + 上下文有变化才继续。
+- **关键节点**：`fingerprint()` 把「任务状态/未读变化」压成一个指纹，指纹相同就不打扰——这是防骚扰的核心。
+- **出口**：值得打扰才发消息，否则只写日志，用户无感。
+- **最容易断的地方**：指纹包含时间戳（每分钟都不同）；没有任何阈值，变成定时推送。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -8952,6 +9523,28 @@ uv run pytest tests/chapters/test_ch08_03_heartbeat.py -q
 
 #### 最小闭环
 自动化产出报告 → 选择飞书渠道 → 投递成功 → 任务中心可见 → 失败进入重试队列。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant A as 自动化产出
+    participant N as Notifier
+    participant C as 渠道 · 飞书/邮件
+    participant Q as 重试队列
+    A->>N: send(channel, title, body, dedup_key)
+    N->>C: 投递
+    alt 成功
+        C-->>N: 200
+    else 失败
+        N->>Q: 入队（带退避）
+    end
+```
+
+- **入口**：`send()` 必须带 `dedup_key`，同一产出重复触发不会发两遍。
+- **关键节点**：投递结果分「成功 / 可重试 / 永久失败」三类，只有可重试入队。
+- **出口**：任务中心显示投递状态，失败可手动重发。
+- **最容易断的地方**：失败无限重试；渠道之间互相影响（一个渠道挂掉拖垮全部）。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -9176,6 +9769,27 @@ uv run pytest tests/chapters/test_ch08_04_notify.py -q
 #### 最小闭环
 配置一个 MCP server（stdio）→ 启动并握手 → 列出 tools → 调用一次 → 结果进上下文。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant A as Agent
+    participant M as McpClient
+    participant S as MCP Server
+    A->>M: initialize()
+    M->>S: 握手（协议版本 + 能力）
+    A->>M: list_tools()
+    M-->>A: tools[]（名称/描述/schema）
+    A->>M: call_tool(name, args)
+    M->>S: tools/call
+    S-->>A: 结果 → 进上下文
+```
+
+- **入口**：`initialize()` 先握手拿能力集，再 `list_tools()`，顺序不能反。
+- **关键节点**：`_request()` 统一封装 JSON-RPC 请求/响应与超时；工具 schema 直接交给模型，不在本地改描述。
+- **出口**：`call_tool()` 返回结构化结果，失败要区分「工具报错」与「连接断了」。
+- **最容易断的地方**：握手失败仍继续列工具；进程退出没 `close()` 留下僵尸子进程。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -9362,6 +9976,26 @@ uv run python -c "from myagentflow.mcp.client import McpClient; print('ok')"
 #### 最小闭环
 安装插件包 → 声明 manifest（能力 + 入口）→ 运行时 spawn 桥接进程 → 工具调用走 token 鉴权。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant R as 运行时
+    participant L as load / load_all
+    participant P as PluginSpec
+    participant B as 桥接进程
+    R->>L: load_all(plugin_dir)
+    L->>P: 读 manifest（能力 + 入口）
+    P-->>R: 已启用插件
+    R->>B: spawn(entry)（token 鉴权）
+    B-->>R: 工具结果
+```
+
+- **入口**：`load_all()` 扫目录、`load()` 读单个 manifest；manifest 缺字段直接跳过并记原因。
+- **关键节点**：插件声明的能力要与宿主授予的权限求交集，声明了不等于允许。
+- **出口**：桥接进程按需启动、空闲退出，token 每次会话新签。
+- **最容易断的地方**：manifest 里写绝对路径（换机器就废）；插件崩溃拖垮主进程。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -9543,6 +10177,26 @@ uv run python -c "from myagentflow.skills.loader import PluginSpec; print('ok')"
 
 #### 最小闭环
 安装一个 skill 目录（含 `SKILL.md`）→ 触发时按描述命中 → 加载正文与脚本 → 执行后产出文件。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant U as 用户请求
+    participant R as SkillRegistry
+    participant M as read_manifest
+    participant K as SKILL.md
+    U->>R: 按描述匹配
+    R->>M: read_manifest(skill_dir)
+    M-->>R: name/description/triggers
+    R->>K: 读正文与脚本
+    K-->>U: 执行产出文件
+```
+
+- **入口**：`install()` 登记 skill 目录，`list()` 返回可用清单；匹配靠 description 而不是名字。
+- **关键节点**：`read_manifest()` 必须能容忍没有 frontmatter 的旧 skill；触发词与描述分开存。
+- **出口**：命中后加载正文，脚本按需执行，产物落到工作区。
+- **最容易断的地方**：只按名字匹配导致同义请求漏掉；把整篇 SKILL.md 无脑塞进上下文。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -9729,6 +10383,26 @@ uv run python -c "from myagentflow.skills.registry import SkillRegistry; print('
 
 #### 最小闭环
 注册一个外部 Agent（能力卡）→ 发一条任务 → 收到结构化结果 → 并入本地任务账本。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant L as 本地 Agent
+    participant A as ExternalAgent
+    participant X as 外部 Agent
+    participant B as 协作账本
+    L->>A: to_request(task, capability)
+    A->>X: 发任务（能力卡约定的格式）
+    X-->>A: 结构化结果
+    A->>A: to_summary(result)
+    A->>B: 记一条外部任务
+```
+
+- **入口**：`to_request()` 把本地任务转成对方约定的请求，能力不匹配就拒绝派发。
+- **关键节点**：`to_summary()` 把对方返回压成本地统一结构，缺字段要显式标 `partial`。
+- **出口**：结果并入本地账本，来源标为外部，便于追责。
+- **最容易断的地方**：直接信任外部返回的字段（注入/幻觉）；超时不设上限。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -9927,6 +10601,29 @@ uv run python -c "from myagentflow.subagents.adapter import to_request; print('o
 
 #### 最小闭环
 `/health` 返回依赖状态 → `POST /sessions/{key}/ensure-thread` 建线程 → `POST /runs/stream` 出流。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant C as 客户端
+    participant G as create_app
+    participant H as /health
+    participant R as routers.chat
+    participant A as Agent/图
+    C->>G: uvicorn 启动 → 装配路由
+    C->>H: GET /health
+    H-->>C: 依赖状态（db / checkpointer / model）
+    C->>R: POST /sessions/{key}/ensure-thread
+    C->>R: POST /runs/stream
+    R->>A: 执行 → 事件流
+    R-->>C: SSE（text/event-stream）
+```
+
+- **入口**：`create_app()` 只负责装配依赖与路由，不在启动时连接模型（起不来会拖死整个网关）。
+- **关键节点**：`/health` 逐个探依赖并返回结构化状态，便于部署时判断「哪一层没起来」；`ensure-thread` 幂等建线程。
+- **出口**：`/runs/stream` 用生成器 `gen()` 逐条 yield SSE，客户端断开即停止。
+- **最容易断的地方**：在 import 期初始化数据库/模型（测试无法离线跑）；SSE 忘了带 `Cache-Control: no-cache`。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -10159,6 +10856,26 @@ curl -s localhost:8070/health
 #### 最小闭环
 OpenAI 兼容 `/v1/chat/completions` 调一次 → 流式返回 delta → 工具调用事件也能透出。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant O as OpenAI 客户端
+    participant R as completions
+    participant U as _last_user
+    participant A as 内部 run
+    O->>R: POST /v1/chat/completions
+    R->>U: 取最后一条 user 消息
+    R->>A: 转成内部请求并执行
+    A-->>R: 事件流
+    R-->>O: delta 分片 + [DONE]
+```
+
+- **入口**：`completions()` 是唯一兼容入口，参数按 OpenAI schema 校验后再转换，不直接透传。
+- **关键节点**：`_last_user()` 负责把多轮 messages 归一成内部单轮输入 + 历史；工具调用要映射成 `tool_calls` 事件。
+- **出口**：流式返回 `data: {...}\n\n`，最后必须发 `[DONE]`，否则客户端一直挂着。
+- **最容易断的地方**：usage 字段缺失（客户端统计不到 token）；非流式与流式走两套逻辑导致行为不一致。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -10355,6 +11072,26 @@ uv run python -c "from app.gateway.routers.compat import router; print('ok')"
 
 #### 最小闭环
 飞书收到 @ 消息 → 归一化为内部事件 → 创建 run → 结果分片回发到飞书。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant F as 飞书/其他渠道
+    participant B as Bus
+    participant C as Channel
+    participant R as run 执行
+    F->>B: inbound(payload)
+    B->>C: 归一化为 Event
+    C->>R: 创建/续用 thread → run
+    R-->>C: 事件流
+    C->>F: outbound(分片回发)
+```
+
+- **入口**：`Bus.inbound()` 收原始 payload，交给对应 `Channel` 归一化，渠道差异只在这里出现。
+- **关键节点**：`Event` 至少带 `channel/user/thread/text/msg_id`；`msg_id` 用于幂等，重复回调不重复执行。
+- **出口**：`Bus.outbound()` 按渠道能力分片（有的限字数、有的限频率）。
+- **最容易断的地方**：渠道回调重试导致重复回复；长回答一次性发被渠道截断。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -10587,6 +11324,25 @@ uv run python -c "from app.channels.base import Bus; print('ok')"
 #### 最小闭环
 用户登录 → 得到 principal → 访问某 workspace 资源 → ACL 判定 → 允许/拒绝并可解释。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant U as 请求
+    participant P as principal
+    participant A as can
+    participant W as Workspace
+    U->>P: 解析身份（token → principal）
+    U->>A: can(principal, Resource(ws, kind))
+    A-->>U: True / False + 理由
+    U->>W: 通过才读写资源
+```
+
+- **入口**：`can(principal, resource)` 是唯一判定入口，路由层不许自己写 `if role == "admin"`。
+- **关键节点**：`Resource` 带 workspace + 资源类型，判定按「主体 → 资源 → 动作」三元组，缺一不可。
+- **出口**：拒绝时返回「缺哪个权限」，而不是笼统 403。
+- **最容易断的地方**：只在入口校验、资源内部再取数据时不复查；workspace 隔离靠前端传参。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -10789,6 +11545,27 @@ uv run pytest tests/chapters/test_ch11_01_acl.py -q
 
 #### 最小闭环
 OIDC 登录换 JWT → 请求带 token → 校验 → 进入业务；命中护栏规则 → 拦截并记录。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant C as 客户端
+    participant I as OIDC Provider
+    participant V as verify
+    participant B as _b64d
+    participant G as 业务接口
+    C->>I: 登录换 id_token
+    C->>V: 请求带 Authorization: Bearer
+    V->>B: 解码 header/payload
+    V->>V: 校验 alg / exp / iss / 签名
+    V-->>G: principal 或 401
+```
+
+- **入口**：所有受保护路由先 `verify(token)`，校验不通过直接 401，不进业务。
+- **关键节点**：`alg` 必须白名单（禁 `none`）；`exp/iss/aud` 逐项校验；`_b64d` 处理 URL-safe base64 补齐。
+- **出口**：返回 principal（sub/scope），护栏规则在此之后、业务之前执行。
+- **最容易断的地方**：只解码不验签；把公钥硬编码在代码里而不走 JWKS。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -11039,6 +11816,26 @@ uv run pytest tests/chapters/test_ch11_02_jwt.py -q
 #### 最小闭环
 管理员创建组织 → 分配席位 → 用户激活 License → 使用受限功能 → 审批流记录。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant A as Admin
+    participant L as license
+    participant U as 用户
+    participant F as 功能门
+    A->>L: issue(org, seats, features) → _sign
+    U->>L: parse(key)
+    L-->>U: License 对象（org/seats/features/exp）
+    F->>L: has_feature(license, "sso")
+    L-->>F: True/False → 放行或提示升级
+```
+
+- **入口**：`issue()` 由管理员签发，`_sign()` 做签名，客户端拿到的是不可篡改的 key。
+- **关键节点**：`parse()` 验签 + 校验过期与席位；`has_feature()` 只判功能位，不判具体用量。
+- **出口**：功能门返回布尔 + 原因，UI 据此展示「需要升级」。
+- **最容易断的地方**：只在前端隐藏按钮、后端不校验；席位统计用客户端上报。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -11210,6 +12007,26 @@ uv run python -c "from myagentflow.authz.license import issue; print(issue(['a']
 
 #### 最小闭环
 给一个 run_id → 看到完整 span 时间线（请求/模型/工具/落库）→ 看到 token 与费用 → 看到错误点。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant R as run 执行
+    participant T as Trace
+    participant S as span
+    participant D as dump
+    R->>T: span("model") / span("tool")
+    S->>S: ms(start→end)
+    R->>T: add_tokens(prompt, completion)
+    R->>D: dump(run_id)
+    D-->>R: 时间线 + token + 费用 + 错误点
+```
+
+- **入口**：每个节点包一层 `span()`，进出都记时间，嵌套靠上下文传递。
+- **关键节点**：`add_tokens()` 分别记 prompt/completion，费用按模型单价算；错误挂到对应 span 上而不是整条 run。
+- **出口**：`dump(run_id)` 输出可读时间线，定位「慢在哪一段、贵在哪一段」。
+- **最容易断的地方**：只记总耗时定位不到节点；token 记在全局导致多轮 run 无法归因。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -11404,6 +12221,26 @@ uv run python -c "from myagentflow.observability.trace import Trace; print(Trace
 
 #### 最小闭环
 定义 10 个场景 → 跑基线 → 改提示词/工具 → 再跑 → 对比通过率与成本。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant D as 开发者
+    participant E as eval.run
+    participant C as Case
+    participant S as score
+    D->>E: run(cases)
+    E->>C: 逐条执行（固定输入）
+    C-->>E: 输出
+    E->>S: score(case, output)
+    S-->>D: 通过率 + 成本 + 失败清单
+```
+
+- **入口**：`run(cases)` 批量跑，用例固定输入与期望，不允许每次临时改。
+- **关键节点**：`score()` 支持精确匹配与规则匹配两类；成本一并记录，否则「变好但贵十倍」看不出来。
+- **出口**：结果落基线文件，下次对比通过率与成本变化。
+- **最容易断的地方**：用例依赖真实模型导致不可复现；只看总分不看失败清单。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -11606,6 +12443,25 @@ uv run pytest tests/chapters/test_ch11_05_eval.py -q
 #### 最小闭环
 同一用户多次对话 → 称呼与语气一致 → 情绪状态可影响表达强度 → 关键关系事实被记住。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant R as run 执行
+    participant P as compose
+    participant F as Fragment
+    participant M as 模型
+    R->>P: compose(identity, mood, relation)
+    P->>F: 取身份/语气/关系片段
+    P-->>R: system prompt 片段
+    R->>M: 拼进 messages 后请求
+```
+
+- **入口**：`compose()` 把身份、情绪、关系三类 `Fragment` 合成一段 system 文本，顺序固定。
+- **关键节点**：片段之间冲突时后者覆盖前者，且总长要有限制（人格不能吃掉上下文预算）。
+- **出口**：输出纯文本片段，不写死具体措辞模板。
+- **最容易断的地方**：人格写死成一大段 prompt 导致每次请求都超预算；情绪状态影响事实判断。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -11776,6 +12632,26 @@ uv run python -c "from myagentflow.agents.persona import compose; print('ok')"
 #### 最小闭环
 输入框发送 → 乐观消息上屏 → POST `/runs/stream` → 逐 token 渲染 → 工具卡片 → 完成。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant W as index.html
+    participant G as Gateway
+    participant S as SSE 流
+    U->>W: 输入并发送
+    W->>W: 乐观消息上屏
+    W->>G: POST /runs/stream
+    G-->>S: run_start → token → tool → done
+    S-->>W: 逐 token 渲染 + 工具卡片
+```
+
+- **入口**：页面只有一个入口 `POST /runs/stream`，历史靠 `GET /sessions/{id}/messages` 回填。
+- **关键节点**：先渲染本地消息再发请求（乐观 UI），失败要能回滚；工具事件单独渲染成卡片而不是文本。
+- **出口**：`done` 后把 run 状态置完成，断线重连带 `Last-Event-ID` 补齐。
+- **最容易断的地方**：等首 token 才上屏（体感慢）；断线后从头重放导致消息重复。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -11939,6 +12815,26 @@ curl -s localhost:8070/health
 
 #### 最小闭环
 设置页改模型 → 保存 → 立即生效（下一次请求用新模型）→ 有变更记录。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant U as 设置页
+    participant R as read_settings / write_settings
+    participant S as 存储
+    participant A as 下一次 run
+    U->>R: GET 设置
+    R->>S: 读配置
+    U->>R: PUT 设置（模型/密钥）
+    R->>S: 写配置 + 记变更
+    A->>S: 下次请求取新配置
+```
+
+- **入口**：`read_settings()` / `write_settings()` 成对出现，写操作带版本号，避免并发覆盖。
+- **关键节点**：密钥类字段写入时脱敏、读出时只回 `masked`；变更要记审计（谁改了什么）。
+- **出口**：下一次 run 立即生效，不要求重启进程。
+- **最容易断的地方**：配置缓存在模块级变量里不失效；把明文密钥回显到前端。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -12112,6 +13008,26 @@ curl -s localhost:8070/api/settings
 #### 最小闭环
 前端调用 `api.chat.send` / `api.session.list` → 经 RPC 通道（HTTP / Tauri command / stdio）→ 后端路由 → 返回结构化结果。
 
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant F as 前端
+    participant R as Rpc
+    participant M as method / deco
+    participant B as 业务实现
+    F->>R: call("chat.send", params)
+    R->>M: 查注册表 + 参数校验
+    M->>B: 调用真实方法
+    B-->>R: 结构化结果
+    R-->>F: {ok, data} / {ok:false, error}
+```
+
+- **入口**：前端只认 `api.chat.send` 这类「点号方法名」，`Rpc.call()` 统一分发，不暴露 HTTP 细节。
+- **关键节点**：`method()` 装饰器注册方法并声明参数；`deco()` 负责统一异常 → 错误码。
+- **出口**：返回 `{ok, data}`，错误带可读 message 与 code，前端不需要解析异常栈。
+- **最容易断的地方**：方法名与实际实现漂移（文档写 `api.xxx`）；一个方法内部调另一个方法绕过校验。
+
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
 | 文件 | 行数 | 关键符号 | 模块常量 |
@@ -12257,6 +13173,27 @@ uv run python -c "from myagentflow.webui.rpc import Rpc; print('ok')"
 
 #### 最小闭环
 桌面端启动 → 申请必要权限 → 语音输入转文字 → 对话 → 升级包可平滑更新。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant T as Tauri 壳
+    participant P as 权限申请
+    participant R as RPC 后端
+    participant S as 语音服务
+    U->>T: 启动桌面端
+    T->>P: 申请麦克风/文件权限
+    U->>S: 语音输入
+    S-->>R: 转写文本
+    R-->>T: 对话结果
+```
+
+- **入口**：桌面端不新写业务逻辑，所有能力仍走 `/my-agent-flow` 同一套 RPC。
+- **关键节点**：权限按需申请（首次用麦克风时才弹），`tauri.conf.json` 里 allowlist 只开用到的命令。
+- **出口**：升级包走签名的更新通道，配置与数据留在用户目录。
+- **最容易断的地方**：allowlist 全开（等于没有沙箱）；把桌面端做成第二套后端，逻辑分叉。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -12404,6 +13341,27 @@ python3 -c "import json;json.load(open('src-tauri/tauri.conf.json'));print('ok')
 
 #### 最小闭环
 一条任务 → 全链路跑通 → 中途中断 → 恢复 → 产物落盘 → 通知送达。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant T as test_full_chain
+    participant M as ScriptedModel
+    participant G as 图/中间件
+    participant P as 持久化
+    participant N as 通知
+    T->>G: 一条任务 → 多轮工具调用
+    G->>M: 脚本化响应（固定序列）
+    G->>P: 检查点 + 消息 + 资产
+    G->>N: 完成后通知
+    T->>T: 中途 kill → 恢复 → 断言产物与通知
+```
+
+- **入口**：`test_full_chain` 用 `ScriptedModel` 把模型行为钉成固定脚本，整条链路可离线重放。
+- **关键节点**：覆盖「跑通 / 中断 / 恢复 / 产物落盘 / 通知」五段，任一段缺失都不算全链路。
+- **出口**：断言最终产物存在、通知只发一次、恢复后不重复执行已完成步骤。
+- **最容易断的地方**：只在 happy path 跑一遍；恢复测试没真的杀进程。
 
 #### 真实模块地图（已核对：路径 · 行数 · 符号）
 
@@ -12570,6 +13528,25 @@ uv run pytest tests/chapters/test_ch13_01_e2e.py -q
 1. **不要抄模块数量本身**：EvoFlow 的细分来自真实踩坑，不是设计目标；先写清问题再拆模块。
 2. **不要抄「到处 patched_*」**：`models/` 里的厂商补丁是被现实逼出来的，先做统一适配层。
 3. **不要抄许可边界之外的东西**：PolyForm Noncommercial 1.0.0，商用需授权；自研代码保持独立实现。
+
+#### 调用逻辑 / Invocation logic
+
+```mermaid
+sequenceDiagram
+    participant D as 运行者
+    participant S as scan
+    participant C as classify
+    participant R as 台账输出
+    D->>S: scan(evoflow_root, our_root)
+    S-->>C: 两侧模块清单（路径 + 行数）
+    C-->>R: 四态：新增/空壳/已实现/部分
+    R-->>D: 对照表 + 差异原因
+```
+
+- **入口**：`scan()` 只读目录与行数，不执行对方代码，避免误触副作用。
+- **关键节点**：`classify()` 用四态而不是「有/无」，因为「有文件但没实现」是最常见的假对齐。
+- **出口**：表格直接贴进文档，差异列必须写「为什么不做」，不能留空。
+- **最容易断的地方**：只比文件数不比行为；把 EvoFlow 的行数当成我们的进度。
 
 #### 验收
 - [ ] 每条差异有「为什么」而不只是「不同」

@@ -22,10 +22,11 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from myagentflow.config.checkpointer_config import CheckpointerConfig
 from myagentflow.config.model_config import ModelConfig
+from myagentflow.config.models_yaml import coerce_models_field_for_appconfig
 from myagentflow.config.storage_config import StorageConfig
 
 # 配置路径环境变量：EvoFlow 叫 EVOFLOW_CONFIG_PATH，这里只换前缀
@@ -42,6 +43,15 @@ class AppConfig(BaseModel):
     storage: StorageConfig = Field(default_factory=StorageConfig)
 
     model_config = ConfigDict(extra="allow")
+
+    @field_validator("models", mode="before")
+    @classmethod
+    def _coerce_models(cls, raw: Any) -> Any:
+        """models 允许两种写法：扁平列表，或 `{providers: {网关: {..., models: [...]}}}`。
+
+        对齐 EvoFlow：摊平逻辑放在 `config/models_yaml.py`，根对象只负责调用。
+        """
+        return coerce_models_field_for_appconfig(raw)
 
     @classmethod
     def resolve_config_path(cls, config_path: str | None = None) -> Path:

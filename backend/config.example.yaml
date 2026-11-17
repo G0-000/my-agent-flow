@@ -27,3 +27,16 @@ checkpointer:
 storage:
   backend: sqlite
   sqlite_path: data/app/myagentflow.db
+
+# 另一种写法：按网关分组（同一组共享连接配置），由 config/models_yaml.py 摊平
+# 想用就删掉上面的 models 列表，改用下面这段（两者只能留一个）
+# models:
+#   providers:
+#     local-gateway:
+#       vendor: openai
+#       use: langchain_openai:ChatOpenAI
+#       base_url: http://127.0.0.1:1234/v1
+#       api_key: ""
+#       models:
+#         - { name: local, model: gpt-4o-mini }
+

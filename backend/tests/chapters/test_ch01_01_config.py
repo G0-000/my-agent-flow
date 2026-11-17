@@ -111,3 +111,36 @@ def test_config_path_env_override(monkeypatch, tmp_path):
 
     assert resolve_run_model() == "alt"
     assert get_app_config().models[0].model == "m1"
+
+
+def test_providers_layout_is_flattened(monkeypatch, tmp_path):
+    """yaml 也可以按网关分组写 providers，进 AppConfig 前要摊平成一条一模型。"""
+    from myagentflow.config.app_config import get_app_config, reset_app_config
+
+    _isolate(monkeypatch, tmp_path)
+    (tmp_path / "config.yaml").write_text(
+        """
+primary_model: fast
+models:
+  providers:
+    local-gateway:
+      vendor: openai
+      use: langchain_openai:ChatOpenAI
+      base_url: http://127.0.0.1:1234/v1
+      api_key: sk-local
+      models:
+        - name: fast
+          model: gpt-4o-mini
+        - name: slow
+          model: gpt-4o
+""".lstrip(),
+        encoding="utf-8",
+    )
+    reset_app_config()
+
+    cfg = get_app_config()
+    assert [m.name for m in cfg.models] == ["fast", "slow"]
+    assert cfg.models[0].vendor == "openai"
+    assert cfg.models[0].base_url == "http://127.0.0.1:1234/v1"   # provider 层共享值下传
+    assert cfg.models[0].model == "gpt-4o-mini"
+

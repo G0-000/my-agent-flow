@@ -10,6 +10,8 @@ import time
 import uuid
 from pathlib import Path
 
+# 自动化任务与每次运行记录：automations 存「什么时候跑什么」，runs 存「跑了几次、成没成」。
+# 用 CREATE TABLE IF NOT EXISTS，进程重启时直接复用已有库，不需要迁移脚本。
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS automations (
     id TEXT PRIMARY KEY, name TEXT NOT NULL, cron TEXT NOT NULL,

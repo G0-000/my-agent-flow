@@ -13,6 +13,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+# 记忆文件的空结构（只是模板：读的时候用 _empty() 造新对象，不能直接改它）
 DEFAULT = {"facts": [], "context": {}}
 
 

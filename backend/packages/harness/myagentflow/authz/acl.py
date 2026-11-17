@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+# 角色到权限的映射。owner 不在这张表里：owner 走 can() 里的身份判断，
+# 否则改策略时容易把 owner 自己锁在门外。
 ROLES: dict[str, set[str]] = {
     "owner": {"read", "write", "delete", "share"},
     "member": {"read", "write"},

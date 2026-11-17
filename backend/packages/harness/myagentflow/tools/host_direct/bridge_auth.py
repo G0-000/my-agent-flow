@@ -8,6 +8,7 @@ from __future__ import annotations
 import hmac
 import os
 
+# token 从环境变量读，不落配置文件：桥接 token 等同于本机执行权限
 BRIDGE_TOKEN_ENV = "MYAF_BRIDGE_TOKEN"
 
 

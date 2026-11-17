@@ -16,12 +16,14 @@ class Decision(str, Enum):
     deny = "deny"
 
 
+# 一票否决的命令特征：出现即 deny，先于「是否已批准」判断（批准也不能放行）
 DANGEROUS = [
     re.compile(r"rm\s+-rf\s+/"),
     re.compile(r":\s*\(\s*\)\s*\{"),
     re.compile(r"mkfs|dd\s+if="),
     re.compile(r"curl[^|]*\|\s*(sh|bash)"),
 ]
+# 写盘特征：命中则从 allow 降级为 ask（要人批），不直接 deny——写文件本身是正常需求
 WRITE_MARKERS = [re.compile(r">\s*/"), re.compile(r"\btee\b"), re.compile(r"\bsed\s+-i\b")]
 
 

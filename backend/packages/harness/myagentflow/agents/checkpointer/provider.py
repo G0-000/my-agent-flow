@@ -19,10 +19,12 @@ logger = logging.getLogger(__name__)
 
 # 错误文案写成常量：报错时直接把「装什么」告诉人
 SQLITE_INSTALL = "需要 langgraph-checkpoint-sqlite。安装：uv add langgraph-checkpoint-sqlite"
+# 每条报错都写清「装什么」，而不是只抛一句 NotImplementedError
 POSTGRES_INSTALL = (
     "需要 langgraph-checkpoint-postgres。"
     "安装：uv add langgraph-checkpoint-postgres psycopg[binary] psycopg-pool"
 )
+# postgres 没有连接串就无法连库，这条错误必须点名环境变量
 POSTGRES_CONN_REQUIRED = "postgres 后端必须提供连接串（MYAF_CHECKPOINT_PG_DSN）"
 
 

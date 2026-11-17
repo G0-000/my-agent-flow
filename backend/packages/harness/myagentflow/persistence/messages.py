@@ -10,6 +10,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+# 消息表：主键 (thread_id, seq) 保证同一线程内序号唯一，seq 由写入方递增。
+# 不存 message id：同一线程的消息顺序就是唯一真相，重放按 seq 走。
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS messages (
     thread_id TEXT NOT NULL,

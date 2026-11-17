@@ -9,6 +9,8 @@ import ast
 import sqlite3
 from pathlib import Path
 
+# 代码符号表：只存 path/kind/name/line 四列，供「这个函数在哪」这类检索。
+# name 建索引：查询几乎都按符号名进。
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS symbols (
     path TEXT NOT NULL,

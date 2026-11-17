@@ -7,7 +7,9 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+# 计划条目：Markdown 任务列表的一行，「[ ] / [x]」都算一个步骤
 _STEP = re.compile(r"^\s*-\s*\[[ xX]\]\s*(.+)$")
+# 依赖声明：同一步骤行尾写「depends: a, b」，只允许字母数字与逗号
 _DEP = re.compile(r"depends:\s*([\w\-, ]+)")
 
 

@@ -10,6 +10,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+# manifest 的版本号只接受 x.y.z 三段数字：带 v 前缀或日期版本会让排序出错
 _VER = re.compile(r"^\d+\.\d+\.\d+$")
 
 

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 
+# 注入特征表：第一列是威胁名（写进 BLOCKED 文案，便于排查），第二列是正则。
 PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("prompt_injection", re.compile(r"ignore\s+(all\s+)?(previous|above|prior)\s+instructions", re.IGNORECASE)),
     ("role_hijack", re.compile(r"you\s+are\s+now\s+", re.IGNORECASE)),
@@ -23,9 +24,11 @@ PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("case_bypass", re.compile(r"o\s*v\s*e\s*r\s*r\s*i\s*d\s*e", re.IGNORECASE)),
 ]
 
+# 零宽 / 双向控制字符：肉眼看不见，却能让「删掉前半句」这类指令藏在正常文本里
 INVISIBLE = ["\u200b", "\u200c", "\u200d", "\u2060", "\ufeff",
              "\u202a", "\u202b", "\u202c", "\u202d", "\u202e"]
 
+# 命中后返回的降级文本：带威胁名、说明「未加载」，让模型知道这段被拦过
 BLOCKED = "[BLOCKED: source contained potential prompt injection ({threat}). Content was not loaded.]"
 
 

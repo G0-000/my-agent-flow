@@ -10,6 +10,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 
+# 允许的终态：running 之外的三个。别把 "failed" 也放进来，否则调用方分不清「取消」和「出错」
 ALLOWED_END = {"finished", "cancelled", "error"}
 
 

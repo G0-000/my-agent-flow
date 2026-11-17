@@ -15,6 +15,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # 单轮输出预算默认值（EvoFlow 同名常量，`model_config.py:6`）
 DEFAULT_MODEL_MAX_OUTPUT_TOKENS = 65536
+# 历史默认值：早期面板统一写 8192。现在读到这个值要当成「没配」升级到 65536，
+# 否则老配置文件会把输出硬卡在 8K。
 _LEGACY_DEFAULT_MAX_OUTPUT_TOKENS = 8192
 
 

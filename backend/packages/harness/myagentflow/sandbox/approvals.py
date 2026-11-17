@@ -9,6 +9,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 
+# 审批单的终态：pending 之外四个。expired 也是终态，过期后不能再被批准
 ALLOWED = {"approved", "rejected", "expired", "cancelled"}
 
 

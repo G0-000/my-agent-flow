@@ -11,6 +11,8 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
+# 线程产物表：记录这条线程生成过哪些文件/图片，ref 指向实际存储位置。
+# 组合索引 (thread_id, kind, created_at) 对「按线程列最近的产物」最省。
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS assets (
     id         TEXT PRIMARY KEY,

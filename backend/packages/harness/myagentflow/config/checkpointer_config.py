@@ -10,6 +10,10 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+# 检查点的存放方式（对齐 EvoFlow 同名类型）：
+#   memory   —— 进程内字典，重启即丢，只适合测试
+#   sqlite   —— 单文件库，本地开发默认；需要 langgraph-checkpoint-sqlite
+#   postgres —— 多实例共享，需要 langgraph-checkpoint-postgres（本复刻未实现）
 CheckpointerType = Literal["memory", "sqlite", "postgres"]
 
 

@@ -11,6 +11,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+# 分享表只存 token 的哈希，不存明文：库泄露也拿不到可用链接（明文下发仅一次）。
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS shares (
     token_hash TEXT PRIMARY KEY,

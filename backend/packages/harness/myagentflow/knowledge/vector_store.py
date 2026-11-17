@@ -10,6 +10,7 @@ import math
 import sqlite3
 from pathlib import Path
 
+# 知识库分块表：vector 以 JSON 文本落库（SQLite 没有向量类型），相似度在 Python 里算。
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS chunks (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,

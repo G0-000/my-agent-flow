@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+# 只认 1–6 级标题（跳过代码块里的 # 由调用方处理）；分组编号给「按标题切块」用
 _HEADING = re.compile(r"^(#{1,6})\s+(.*)$", re.MULTILINE)
 
 

@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 20:05　源提交：`a4dbb21`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 20:36　源提交：`ecacc71`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -557,15 +557,15 @@ uv run python -c "from myagentflow.agents.checkpointer.provider import get_check
 ### 第 1 部分　最小闭环 / Part 1: Minimal Closed Loop
 
 
-目标：用 **纯标准库 Python** 跑通一条完整链路——配置 → 模型 → Agent → 会话存储 → 工具 → 流式输出。
+目标：按 EvoFlow 后端的模块职责逐章搭建一条可运行链路——配置与模型 → Agent → 会话与消息 → 工具 → 流式事件。先完成最小闭环，再只在对应章节增加能力；不提前实现后续部分。
 
 | 章 | 主题 | 代码 |
 |---|---|---|
-| 第 1 章（01-配置与模型.md） | 配置与模型（✅ 已与 `config.example.yaml` 核对） | `config.py`, `model_store.py`, `models.py`, `config.example.yaml` |
-| 第 2 章（02-Agent与单轮执行.md） | Agent 与单轮执行 | `agent.py` |
-| 第 3 章（03-会话与消息存储.md） | 会话与消息存储 | `store.py` |
-| 第 4 章（04-工具协议与首批工具.md） | 工具协议与首批工具 | `tools.py`, `agent.py` |
-| 第 5 章（05-流式事件与断线恢复.md） | 流式事件与断线恢复 | `server.py`, `store.py` |
+| 第 1 章（01-配置与模型.md） | 配置与模型 | `config/`, `models/` |
+| 第 2 章（02-Agent与单轮执行.md） | Agent 与单轮执行 | `agents/lead_agent/`, `models/` |
+| 第 3 章（03-会话与消息存储.md） | 会话与消息存储 | `persistence/`, `agents/` |
+| 第 4 章（04-工具协议与首批工具.md） | 工具协议与首批工具 | `tools/`, `agents/` |
+| 第 5 章（05-流式事件与断线恢复.md） | 流式事件与断线恢复 | `runtime/`, `persistence/` |
 | 第 6 章（06-本部分综合验收.md） | 综合验收 | `tests/`, `demo.py` |
 
 #### 依赖关系 / Dependencies
@@ -576,9 +576,9 @@ store ───────────┘
 ```
 
 #### 状态 / Status
-- 代码：✅ 已实现，**35 个离线测试通过**。
-- 第 1 章：✅ 已与 EvoFlow 公开的 `config.example.yaml` 核对（见章内「已核对的事实」）。
-- 第 2–5 章：🟡 仍是自研参考实现。模块地图显示真实运行时是 **LangGraph + middleware 链**，这几章需要等源码后重写。
+- 代码和章节状态以各章实现步骤、`PROGRESS.md` 及实际验收结果为准；不能用旧的整体测试数字替代逐章状态。
+- 本部分代码按 `backend/packages/harness/myagentflow/` 中与 EvoFlow 同构的职责目录组织，不再使用 `config.py`、`store.py` 等虚构的扁平目标文件。
+- EvoFlow 的 Agent 运行时是 LangGraph 与 middleware 组合；章节按学习顺序先实现当前最小行为，并明确哪些高级行为留到后续章节。简化必须标为本项目阶段选择，不能描述成 EvoFlow 实现。
 
 
 <!-- ===== 01-最小闭环/01-配置与模型.md ===== -->
@@ -588,17 +588,15 @@ store ───────────┘
 
 
 > **EvoFlow 对照状态 / Alignment status**
-> ✅ **已核对：** 配置文件格式、字段名、`$ENV` 规则、`use:` 路径、模型存放位置——来自 EvoFlow 公开仓库根目录的 `config.example.yaml`（796 行，已读全文）。
-> 🟡 **自研：** 文件里没写明的默认值、SQLite 列结构、API 返回格式、默认数据目录。下文逐条标出。
+> 配置章节的文件职责与关键符号按 EvoFlow `config/`、`models/` 结构核对；本项目只实现当前闭环所需的五个配置分区和 OpenAI provider。实现细节与上游不同处均标为本项目阶段选择。
 >
 > ::: warning 证据边界
-> 本章的**配置事实**来自 `config.example.yaml` 全文（796 行）；但 `AppConfig` 的**实现代码逐行读过并对齐**（见「示例代码」与文末手把手），`ModelStore` 不复刻，凡是描述函数行为的段落都标了 🟡。
+> 本章以当前仿写仓库代码为实现事实；EvoFlow 源码路径和符号作为结构参照，不把配置示例的注释当作运行时行为证据。
 > :::
-> ⬜ **未读：** 解析这些配置的 EvoFlow 源码（`config/app_config.py` 等）。所以「校验细节」是我们自己的设计，不代表 EvoFlow 的校验行为。
 
 #### 本章目标 / Goals
 - 用 **YAML + `$ENV` 替换 + 类型化配置节** 描述应用配置，并在启动时 **fail fast**。
-- 理解一个关键设计：**聊天模型不在 YAML 里，而在 SQLite**（`ModelStore`）。
+- 本项目当前阶段将模型条目放在配置中，由 resolver 选择、factory 构造；EvoFlow 模型持久化方式属于后续差异说明，不在此伪造 ModelStore。
 - 建立 **credential boundary**：密钥只来自环境变量或模型库，且不会出现在 repr、日志、API 列表中。
 - 通过 **model factory** 取得「主模型」；测试用 **FakeModel**。
 
@@ -842,7 +840,7 @@ def create_chat_model(name=None, thinking_enabled=False, **kwargs):
 
 ```bash
 cd /Users/main/my-agent-flow/backend
-.venv/bin/python -m pytest tests/chapters/test_ch01_01_config.py -q     # 5 passed
+uv run python -m pytest tests/chapters/test_ch01_01_config.py -q     # 5 passed
 ```
 
 ##### 不复刻：模型存 SQLite（EvoFlow `persistence/schema.py:1031`）
@@ -927,13 +925,17 @@ storage:
 **验证**：把上面存成 `backend/config.yaml`，然后
 
 ```bash
-cd /Users/main/my-agent-flow/backend && .venv/bin/python -c "
+cd /Users/main/my-agent-flow/backend && uv run python -c "
 from myagentflow.config.app_config import get_app_config
 cfg = get_app_config()
-entry = next(m for m in cfg.models if m.name == cfg.primary_model)
-print(cfg.primary_model, entry.model, entry.vendor, cfg.checkpointer.type, cfg.checkpointer.connection_string)
+print('primary_model =', cfg.primary_model)
+print('models =', [(m.name, m.model, m.vendor) for m in cfg.models])
+print('checkpointer =', cfg.checkpointer.type, cfg.checkpointer.connection_string)
 "
-# 期望：local gpt-4o-mini openai sqlite data/checkpoints.db
+# 有 config.yaml 时期望：
+# primary_model = local
+# models = [('local', 'gpt-4o-mini', 'openai')]
+# checkpointer = sqlite data/checkpoints.db
 ```
 
 #### 验收 / Acceptance（24 个新测试，全部离线）
@@ -968,6 +970,8 @@ print(cfg.primary_model, entry.model, entry.vendor, cfg.checkpointer.type, cfg.c
 | `token_usage`、`observability` | 第 11 部分 |
 
 #### 从零实现（手把手）
+
+> **Step 0　环境准备**：`.venv` 不进仓库，被删掉很正常。在 `backend/` 下执行一次 `uv sync` 就能重建并装齐依赖（`uv.lock` 锁版本）。下文所有命令都在 `backend/` 目录下跑；用 `uv run` 时它会自动检查环境，缺了会先同步。
 
 ##### Step 1　建 `config/model_config.py`：一条模型的类型（照 `model_config.py:78`）
 
@@ -1029,7 +1033,7 @@ def resolve_model_max_output_tokens(raw: int | None) -> int:
 
 ```bash
 cd /Users/main/my-agent-flow/backend
-.venv/bin/python -c "
+uv run python -c "
 from myagentflow.config.model_config import ModelConfig
 m = ModelConfig(name='local', model='gpt-4o-mini', use='langchain_openai:ChatOpenAI')
 print(m.name, '->', m.model)
@@ -1086,7 +1090,7 @@ class StorageConfig(BaseModel):
 **验证**
 
 ```bash
-.venv/bin/python -c "
+uv run python -c "
 from myagentflow.config.checkpointer_config import CheckpointerConfig, get_checkpointer_config
 print(CheckpointerConfig().type, get_checkpointer_config())
 "
@@ -1141,7 +1145,7 @@ def get_app_config() -> AppConfig:
 **验证**
 
 ```bash
-.venv/bin/python -c "
+uv run python -c "
 from myagentflow.config.app_config import AppConfig
 print(list(AppConfig.model_fields))
 "
@@ -1188,7 +1192,7 @@ def create_chat_model(name=None, thinking_enabled=False, **kwargs):
 **验证**
 
 ```bash
-.venv/bin/python -c "
+uv run python -c "
 from myagentflow.models.factory import create_chat_model
 print(create_chat_model.__name__)
 "
@@ -1226,10 +1230,10 @@ def test_env_model_becomes_primary(monkeypatch, tmp_path):
 **验证**
 
 ```bash
-.venv/bin/python -m pytest tests/chapters/test_ch01_01_config.py -q
+uv run python -m pytest tests/chapters/test_ch01_01_config.py -q
 # 期望：5 passed
 
-.venv/bin/python -m ruff check packages tests --output-format=concise
+uv run python -m ruff check packages tests --output-format=concise
 # 期望：All checks passed!
 ```
 
@@ -1255,7 +1259,9 @@ def test_env_model_becomes_primary(monkeypatch, tmp_path):
 ##### 验收
 
 ```bash
-uv run pytest tests/chapters/test_ch01_01_config.py -q && uv run python -c "from myagentflow.models.resolver import resolve_run_model; print(resolve_run_model())"
+uv run pytest tests/chapters/test_ch01_01_config.py -q \
+  && MYAF_MODEL_NAME=local MYAF_MODEL_ID=gpt-4o-mini uv run python -c "from myagentflow.models.resolver import resolve_run_model; print(resolve_run_model())"
+# 期望：5 passed 之后打印 local
 ```
 
 
@@ -1265,7 +1271,7 @@ uv run pytest tests/chapters/test_ch01_01_config.py -q && uv run python -c "from
 ### 第 2 章　Agent 构造与单轮执行 / Agent Construction and Single-Turn Execution
 
 
-> **EvoFlow 对照状态 / Alignment status：** 📄 **原文迁移**——内容是教材版自研实现，完整迁移、未与 EvoFlow 源码核对。
+> **EvoFlow 对照状态 / Alignment status：** 以 EvoFlow `lead_agent` 的 LangGraph/LangChain 装配为结构参照；本章只实现单轮调用的教学最小图，不代表上游内部节点结构。
 >
 > ::: warning 与 EvoFlow 真实实现的差异
 > 本章是**手写 agent loop**（调模型 → 执行工具 → 再调模型）。EvoFlow 里没有这个循环：它由 `lead_agent/agent.py`（2002 行）编译成 LangGraph 图，外层再套一条中间件链 `build_lead_runtime_middlewares(lazy_init=True)`；`after_model` 是**逆序**执行的，Clarification 固定链尾。差异详见 03/03 Middleware 调用链（../03-工具深化与上下文控制/03-Middleware调用链与工具审计.md）。
@@ -1533,7 +1539,7 @@ uv run pytest tests/chapters/test_ch01_02_graph.py -q
 ### 第 3 章　会话与消息存储 / Sessions and Message Storage
 
 
-> **EvoFlow 对照状态 / Alignment status：** 📄 **原文迁移**——内容是教材版自研实现，完整迁移、未与 EvoFlow 源码核对。
+> **EvoFlow 对照状态 / Alignment status：** 按 EvoFlow persistence 职责拆分作结构参照；本章的 `MessageStore` 是教学实现，表结构与事务语义不宣称等同上游。
 >
 > ::: warning 与 EvoFlow 真实实现的差异
 > 本章把 `messages` 表当历史。EvoFlow 的事实源是 **`evoflow_chat_messages`**；检查点层故意**不存对话**——`omit_transcript.py` 在 put/aput 时摘掉 `messages` 与 `ui_messages`（`_TRANSCRIPT_CHANNELS`），唯一例外是存在未配对 tool_call。详见 02/01 检查点与线程恢复（../02-持久化与运行生命周期/01-检查点与线程恢复.md）。
@@ -1798,7 +1804,7 @@ uv run pytest tests/chapters/test_ch01_03_messages.py -q
 ### 第 4 章　工具协议与首批工具 / Tool Protocol and First Tools
 
 
-> **EvoFlow 对照状态 / Alignment status：** 📄 **原文迁移**——内容是教材版自研实现，完整迁移、未与 EvoFlow 源码核对。
+> **EvoFlow 对照状态 / Alignment status：** 对照 EvoFlow tools 与 middleware 的职责边界；本章仅实现最小注册/调用接口，审批、审计与沙箱留到对应章节。
 >
 > ::: warning 与 EvoFlow 真实实现的差异
 > 本章自研 `tools.py` + JSON schema 注册。EvoFlow 的工具治理是**分层中间件**：`agents/middlewares/` 有 71 个条目、约 60 个类，其中 `tool_approval_middleware.py` 一个文件 1553 行（含 4 个类），审批、错误兜底、审计各自成层。详见 03/03（../03-工具深化与上下文控制/03-Middleware调用链与工具审计.md）。
@@ -2171,7 +2177,7 @@ uv run pytest tests/chapters/test_ch01_04_tools.py -q
 ### 第 5 章　流式事件与断线恢复 / Streaming Events and SSE Recovery
 
 
-> **EvoFlow 对照状态 / Alignment status：** 📄 **原文迁移**——内容是教材版自研实现，完整迁移、未与 EvoFlow 源码核对。
+> **EvoFlow 对照状态 / Alignment status：** 以 EvoFlow LangGraph streaming 与 AG-UI 投影为结构参照；本章只映射当前可观察事件，不宣称实现完整协议或断线恢复。
 >
 > ::: warning 与 EvoFlow 真实实现的差异
 > 本章自己写 SSE 帧。EvoFlow 的链路是 **LangGraph streaming → AG-UI 事件 → v4 projection**，断线恢复依赖 run 状态与检查点，而不是重放自建日志。详见 02/02 运行生命周期与取消（../02-持久化与运行生命周期/02-运行生命周期与取消.md）。
@@ -2489,7 +2495,7 @@ python3 demo.py                            # 打印一次完整 SSE 流和一次
 - SSE 使用轮询，未做并发压测。
 - 存储用 SQLite + 全局锁，不适合高并发。
 - 没有取消、检查点、鉴权 —— 分别属于第 2、11 部分。
-- 第 1 章已与公开的 `config.example.yaml` 核对；第 2–5 章是自研参考实现，**尚未与 EvoFlow 源码核对**（真实运行时是 LangGraph + middleware，结构不同）。
+- 第 1–5 章均为按 EvoFlow 模块职责逐步构建的教学实现；逐项行为是否等同上游，以各章对照表为准，不以“结构对齐”暗示“功能等同”。
 
 #### 常见坑
 

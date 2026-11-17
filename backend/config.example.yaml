@@ -1,36 +1,29 @@
 # my-agent-flow 配置样例
-# 用法：复制为 config.yaml（已被 .gitignore 忽略），真实密钥放 .env，不写进本文件。
-# 字段值支持环境变量占位：api_key: $OPENAI_API_KEY
+# 用法：cp config.example.yaml config.yaml（config.yaml 已被 .gitignore 忽略）
+# 字段名严格对齐 EvoFlow：models 里每条是 ModelConfig，name 是条目名，model 是模型 ID。
 
-config_version: 1
 log_level: info
 
-# S1：模型配置（最小闭环阶段可用 provider: fake）
 models:
-  - name: main
-    provider: fake          # fake / openai / anthropic / deepseek ...
-    model: fake-chat-model
-    # base_url: http://127.0.0.1:11434/v1
-    # api_key: $OPENAI_API_KEY
-primary_model: main
+  # name  —— 条目名，primary_model 指向它（唯一）
+  # model —— 真正发给厂商的模型 ID
+  # use   —— provider 类路径（目前只实现 langchain_openai:ChatOpenAI）
+  - name: local
+    vendor: openai
+    use: langchain_openai:ChatOpenAI
+    model: gpt-4o-mini
+    base_url: http://127.0.0.1:1234/v1     # 本地 LM Studio / Ollama / 自建网关，按需改
+    api_key: ""                            # 本地可留空；云端填 key（本复刻暂不做 $ENV 展开）
+    temperature: 0.0
+    request_timeout: 120
+    max_retries: 1
 
-# S1：持久化
-persistence:
-  backend: sqlite
-  path: ./data/myagentflow.db   # data/ 已被 .gitignore 忽略
+primary_model: local
 
-# S1：checkpoint
 checkpointer:
+  type: sqlite                             # memory | sqlite | postgres（postgres 未实现）
+  connection_string: data/checkpoints.db
+
+storage:
   backend: sqlite
-  path: ./data/checkpoints.db
-
-# S2：工具
-tools:
-  workspace_root: ./data/workspace
-  output_max_chars: 20000
-
-# S3：上下文与记忆
-context:
-  token_budget: 120000
-memory:
-  enabled: false               # S3 阶段再打开
+  sqlite_path: data/app/myagentflow.db

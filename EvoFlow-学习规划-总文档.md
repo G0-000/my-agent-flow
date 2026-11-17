@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 20:36　源提交：`ecacc71`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-17 20:40　源提交：`2d49959`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -922,10 +922,12 @@ storage:
   sqlite_path: data/app/myagentflow.db
 ```
 
-**验证**：把上面存成 `backend/config.yaml`，然后
+**验证**：仓库里已有 `backend/config.example.yaml`，先复制一份成 `config.yaml`（`config.yaml` 被 `.gitignore` 忽略，不会误传密钥），然后
 
 ```bash
-cd /Users/main/my-agent-flow/backend && uv run python -c "
+cd /Users/main/my-agent-flow/backend
+cp config.example.yaml config.yaml      # 没有 config.yaml 时：models 会是空列表，下面的 next() 会抛 StopIteration
+uv run python -c "
 from myagentflow.config.app_config import get_app_config
 cfg = get_app_config()
 print('primary_model =', cfg.primary_model)

@@ -32,7 +32,8 @@ def _checkpointer_config():
     环境变量只在测试里当覆盖用（`MYAF_CHECKPOINTER` / `MYAF_CHECKPOINT_SQLITE_PATH`），
     生产路径一律走 config.yaml。
     """
-    from myagentflow.config.app_config import CheckpointerConfig, get_app_config
+    from myagentflow.config.app_config import get_app_config
+    from myagentflow.config.checkpointer_config import CheckpointerConfig
 
     cfg = get_app_config().checkpointer
     backend = (os.getenv("MYAF_CHECKPOINTER") or "").strip().lower()

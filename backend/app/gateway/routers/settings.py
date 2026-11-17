@@ -20,13 +20,13 @@ def read_settings() -> dict:
     from myagentflow.config.app_config import get_app_config
 
     cfg = get_app_config()
-    primary = cfg.get_model()
+    entry = next((m for m in cfg.models if m.name == cfg.primary_model), None)
     return {
         "model": {
-            "vendor": primary.vendor,
-            "name": primary.name,
-            "base_url": primary.base_url,
-            "api_key": "***" if primary.api_key else None,
+            "vendor": entry.vendor if entry else None,
+            "name": cfg.primary_model,
+            "base_url": entry.base_url if entry else None,
+            "api_key": "***" if entry and entry.api_key else None,
         },
         "checkpointer": cfg.checkpointer.model_dump(),
     }

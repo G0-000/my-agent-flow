@@ -8,16 +8,15 @@ from __future__ import annotations
 import argparse
 import json
 
-from myagentflow.config.app_config import get_app_config
+from myagentflow.models.factory import create_chat_model
 
 
 def _chat(args: argparse.Namespace) -> int:
     from langchain_core.messages import HumanMessage
 
     from myagentflow.agents.lead_agent.graph import build_graph
-    from myagentflow.models.factory import build_chat_model
 
-    graph = build_graph(build_chat_model(get_app_config().get_model()))
+    graph = build_graph(create_chat_model())
     out = graph.invoke(
         {"messages": [HumanMessage(content=args.text)]},
         {"configurable": {"thread_id": args.thread}},

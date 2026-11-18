@@ -32,6 +32,8 @@ cd ../agent-book && python3 scripts/build_evoflow_master.py
 
 ## 目录
 
+核心包的模块职责、请求调用图和常用文件入口见 [`backend/packages/harness/myagentflow/代码结构导览.md`](backend/packages/harness/myagentflow/代码结构导览.md)。
+
 ```
 my-agent-flow/
 ├── backend/

@@ -8,8 +8,8 @@
     └── chain.py  中间件链：进正序、出逆序。
 
 三、关键方法
-    _brief()
-    AuditMiddleware
+    _brief()         把工具参数压成一行短文本并截断，供审计日志用。
+    AuditMiddleware  记录每次工具调用的参数、耗时与结果的中间件。
 """
 from __future__ import annotations
 
@@ -24,11 +24,13 @@ logger = logging.getLogger("myaf.audit")
 
 
 def _brief(args: dict[str, Any], limit: int = 120) -> str:
+    """把工具参数压成一行短文本并截断，供审计日志用。"""
     text = json.dumps(args, ensure_ascii=False, default=str)
     return text if len(text) <= limit else text[:limit] + "…"   # 截断：日志里不该出现完整密钥
 
 
 class AuditMiddleware(Middleware):
+    """记录每次工具调用的参数、耗时与结果的中间件。"""
     name = "audit"
 
     def __init__(self) -> None:

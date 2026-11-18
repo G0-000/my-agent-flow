@@ -10,7 +10,7 @@
     └── summarize.py  ← 本文件
 
 三、关键方法
-    summarize()
+    summarize()  生成统一的子代理结果摘要，超长截断。
 """
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ LIMIT = 600
 
 
 def summarize(name: str, result: str, ok: bool = True, evidence: list[str] | None = None) -> str:
+    """生成统一的子代理结果摘要，超长截断。"""
     head = f"[子代理 {name}] {'完成' if ok else '失败'}"
     body = result.strip()
     if len(body) > LIMIT:

@@ -11,9 +11,9 @@
 
 三、关键方法
     estimate_tokens()    粗估：中文约 1 字 1 token，英文约 4 字符 1 token。宁可高估。
-    compact_threshold()
-    should_compact()
-    refill_target()
+    compact_threshold()  压缩触发阈值：上下文比例与绝对上限取较小值。
+    should_compact()     当前 token 数是否达到压缩阈值。
+    refill_target()      压缩后的回填目标：按同轮/跨轮比例把阈值换算成可用预算。
 """
 from __future__ import annotations
 
@@ -38,14 +38,17 @@ def estimate_tokens(text: str) -> int:
 
 
 def compact_threshold(context_length: int = DEFAULT_CONTEXT) -> int:
+    """压缩触发阈值：上下文比例与绝对上限取较小值。"""
     by_ratio = int(context_length * AUTO_COMPACT_RATIO)
     return min(by_ratio, ABSOLUTE_CAP)   # 两者取小：绝对上限永远生效
 
 
 def should_compact(tokens: int, context_length: int = DEFAULT_CONTEXT) -> bool:
+    """当前 token 数是否达到压缩阈值。"""
     return tokens >= compact_threshold(context_length)
 
 
 def refill_target(threshold: int, same_turn: bool = False) -> int:
+    """压缩后的回填目标：按同轮/跨轮比例把阈值换算成可用预算。"""
     ratio = SAME_TURN_REFILL if same_turn else POST_COMPRESS_REFILL
     return int(threshold / ratio)

@@ -10,8 +10,8 @@
     └── workflow.py  流程（Workflow）：一组有序步骤 + 一次执行记录。
 
 三、关键方法
-    Step
-    parse()
+    Step            计划中的一步：标题与依赖的前置步骤 id。
+    parse()         把 Markdown 勾选列表解析成 Step 列表，识别 depends。
     check_cycles()  依赖写的是标题时，先映射成 id 再查环。
 """
 from __future__ import annotations
@@ -27,12 +27,14 @@ _DEP = re.compile(r"depends:\s*([\w\-, ]+)")
 
 @dataclass
 class Step:
+    """计划中的一步：标题与依赖的前置步骤 id。"""
     id: str
     title: str
     depends: list[str] = field(default_factory=list)
 
 
 def parse(markdown: str) -> list[Step]:
+    """把 Markdown 勾选列表解析成 Step 列表，识别 depends。"""
     steps: list[Step] = []
     for line in markdown.splitlines():
         m = _STEP.match(line)

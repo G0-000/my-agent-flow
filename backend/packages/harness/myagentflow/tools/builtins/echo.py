@@ -7,8 +7,8 @@
     └── echo.py  ← 本文件
 
 三、关键方法
-    _echo()
-    register_echo()
+    _echo()          原样返回输入，用于验证工具通路。
+    register_echo()  把 echo 工具连同 schema 注册进注册表。
 """
 from __future__ import annotations
 
@@ -16,10 +16,12 @@ from myagentflow.tools.registry import ToolRegistry, ToolSpec
 
 
 def _echo(text: str) -> str:
+    """原样返回输入，用于验证工具通路。"""
     return text
 
 
 def register_echo(registry: ToolRegistry) -> None:
+    """把 echo 工具连同 schema 注册进注册表。"""
     registry.register(
         ToolSpec(
             name="echo",

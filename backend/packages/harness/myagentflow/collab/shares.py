@@ -9,9 +9,9 @@
     └── shares.py  ← 本文件
 
 三、关键方法
-    ShareResult
-    _hash()
-    ShareStore
+    ShareResult  分享 token 的解析结果：状态与对应线程。
+    _hash()      对分享 token 做 SHA-256；库里只存哈希，不存明文。
+    ShareStore   分享记录的 SQLite 存储：创建、解析、吊销。
 """
 from __future__ import annotations
 
@@ -36,15 +36,18 @@ CREATE TABLE IF NOT EXISTS shares (
 
 @dataclass(frozen=True)
 class ShareResult:
+    """分享 token 的解析结果：状态与对应线程。"""
     status: str          # ok | expired | revoked | missing
     thread_id: str | None = None
 
 
 def _hash(token: str) -> str:
+    """对分享 token 做 SHA-256；库里只存哈希，不存明文。"""
     return hashlib.sha256(token.encode()).hexdigest()
 
 
 class ShareStore:
+    """分享记录的 SQLite 存储：创建、解析、吊销。"""
     def __init__(self, db_path: str | Path):
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(db_path), check_same_thread=False)

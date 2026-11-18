@@ -12,7 +12,7 @@
     └── store.py  ← 本文件
 
 三、关键方法
-    AutomationStore
+    AutomationStore  自动化定义与运行记录的 SQLite 存储。
 """
 from __future__ import annotations
 
@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS runs (
 
 
 class AutomationStore:
+    """自动化定义与运行记录的 SQLite 存储。"""
     def __init__(self, db_path: str | Path):
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(db_path), check_same_thread=False)

@@ -11,8 +11,8 @@
 
 三、关键方法
     _empty()            每次返回全新对象：dict(DEFAULT) 是浅拷贝，facts 列表会被所有调用方共享。
-    _load()
-    AgentMemoryManager
+    _load()             读记忆文件；结构不是对象就返回空记忆并记日志。
+    AgentMemoryManager  读写 agent 级与 thread 级记忆文件（facts + context）。
 """
 from __future__ import annotations
 
@@ -34,6 +34,7 @@ def _empty() -> dict[str, Any]:
 
 
 def _load(path: Path) -> dict[str, Any]:
+    """读记忆文件；结构不是对象就返回空记忆并记日志。"""
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
         if isinstance(data, dict):
@@ -48,6 +49,7 @@ def _load(path: Path) -> dict[str, Any]:
 
 @dataclass
 class AgentMemoryManager:
+    """读写 agent 级与 thread 级记忆文件（facts + context）。"""
     base_dir: Path
     agent_name: str = "lead"
     _agent_path: Path = field(init=False)

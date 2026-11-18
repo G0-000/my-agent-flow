@@ -10,8 +10,8 @@
     └── persona.py  ← 本文件
 
 三、关键方法
-    Fragment
-    compose()
+    Fragment   提示词片段：文本加优先级，用来拼 system prompt。
+    compose()  按优先级从高到低拼片段；超预算整段丢弃，不截半句。
 """
 from __future__ import annotations
 
@@ -20,12 +20,14 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Fragment:
+    """提示词片段：文本加优先级，用来拼 system prompt。"""
     name: str
     text: str
     priority: int = 10        # 数字越大越先保留
 
 
 def compose(fragments: list[Fragment], max_chars: int = 2000) -> str:
+    """按优先级从高到低拼片段；超预算整段丢弃，不截半句。"""
     ordered = sorted(fragments, key=lambda f: -f.priority)
     kept, used = [], 0
     for f in ordered:

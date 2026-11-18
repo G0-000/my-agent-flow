@@ -10,8 +10,8 @@
     └── assets.py  ← 本文件
 
 三、关键方法
-    Asset
-    AssetStore
+    Asset       一条资产：产物/待办/反思，带引用。
+    AssetStore  资产表的 SQLite 读写。
 """
 from __future__ import annotations
 
@@ -38,6 +38,7 @@ CREATE INDEX IF NOT EXISTS idx_assets_thread ON assets(thread_id, kind, created_
 
 @dataclass(frozen=True)
 class Asset:
+    """一条资产：产物/待办/反思，带引用。"""
     thread_id: str
     kind: str        # artifact | todo | reflection
     title: str
@@ -45,6 +46,7 @@ class Asset:
 
 
 class AssetStore:
+    """资产表的 SQLite 读写。"""
     def __init__(self, db_path: str | Path):
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(db_path), check_same_thread=False)

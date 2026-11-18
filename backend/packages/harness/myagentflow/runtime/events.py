@@ -10,7 +10,7 @@
     └── streaming.py  把 LangGraph 的 astream_events 收敛成我们自己的事件。
 
 三、关键方法
-    StreamEvent
+    StreamEvent  一条流事件：类型、数据、序号，可转成 SSE 帧。
     EventStream  把「生成事件」和「排 seq」分开，调用方只管产出业务数据。
 """
 from __future__ import annotations
@@ -23,6 +23,7 @@ from typing import Any
 
 @dataclass
 class StreamEvent:
+    """一条流事件：类型、数据、序号，可转成 SSE 帧。"""
     type: str                      # token | tool | done | error
     data: dict[str, Any] = field(default_factory=dict)
     seq: int = 0

@@ -11,7 +11,7 @@
     └── store.py  自动化：规则 + 执行历史。
 
 三、关键方法
-    Notifier
+    Notifier  按渠道发通知；同一 dedup_key 只发一次。
 """
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Notifier:
+    """按渠道发通知；同一 dedup_key 只发一次。"""
     senders: dict[str, Callable[[str], bool]] = field(default_factory=dict)
     _sent: set[str] = field(default_factory=set)
 

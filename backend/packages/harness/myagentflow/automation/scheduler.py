@@ -12,9 +12,9 @@
     └── store.py  自动化：规则 + 执行历史。
 
 三、关键方法
-    _match()
-    matches()
-    Scheduler
+    _match()   判断 cron 单个字段是否命中某值，支持 *、*/n 与逗号枚举。
+    matches()  判断五段 cron 是否命中给定时间戳。
+    Scheduler  记录每个自动化的上次运行时间，避免同一时间窗重复触发。
 """
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from dataclasses import dataclass
 
 
 def _match(field: str, value: int) -> bool:
+    """判断 cron 单个字段是否命中某值，支持 *、*/n 与逗号枚举。"""
     if field == "*":
         return True
     for part in field.split(","):
@@ -40,6 +41,7 @@ def _match(field: str, value: int) -> bool:
 
 
 def matches(cron: str, ts: float) -> bool:
+    """判断五段 cron 是否命中给定时间戳。"""
     minute, hour, day, month, weekday = cron.split()
     t = time.localtime(ts)
     return (
@@ -50,6 +52,7 @@ def matches(cron: str, ts: float) -> bool:
 
 @dataclass
 class Scheduler:
+    """记录每个自动化的上次运行时间，避免同一时间窗重复触发。"""
     last_run: dict[str, float]
 
     def due(self, automation_id: str, cron: str, now: float | None = None) -> bool:

@@ -11,8 +11,8 @@
     └── vector_store.py  向量存储：SQLite + Python 余弦。
 
 三、关键方法
-    build_map()
-    describe()
+    build_map()  把 {doc, heading, chunk} 聚成「文档 → 章节 → 块号」的知识地图。
+    describe()   把知识地图压成几行摘要，限制文档数与章节数。
 """
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ from collections.abc import Iterable
 
 
 def build_map(items: Iterable[dict]) -> dict[str, dict[str, list[int]]]:
+    """把 {doc, heading, chunk} 聚成「文档 → 章节 → 块号」的知识地图。"""
     tree: dict[str, dict[str, list[int]]] = defaultdict(lambda: defaultdict(list))
     for it in items:                       # it: {doc_id, heading, chunk_id}
         tree[it["doc_id"]][it["heading"]].append(it["chunk_id"])
@@ -29,6 +30,7 @@ def build_map(items: Iterable[dict]) -> dict[str, dict[str, list[int]]]:
 
 def describe(tree: dict[str, dict[str, list[int]]], max_docs: int = 5,
              max_sections: int = 3) -> str:
+    """把知识地图压成几行摘要，限制文档数与章节数。"""
     lines = []
     for doc, sections in list(tree.items())[:max_docs]:
         count = sum(len(v) for v in sections.values())

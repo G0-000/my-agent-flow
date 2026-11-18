@@ -10,7 +10,7 @@
     └── rpc.py  ← 本文件
 
 三、关键方法
-    Rpc
+    Rpc  极简 RPC：按方法名注册并分发。
 """
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ from typing import Any
 
 
 class Rpc:
+    """极简 RPC：按方法名注册并分发。"""
     def __init__(self) -> None:
         self._methods: dict[str, Callable[..., Any]] = {}
 

@@ -11,10 +11,10 @@
     └── license.py  ← 本文件
 
 三、关键方法
-    _sign()
-    issue()
-    parse()
-    has_feature()
+    _sign()        用 HMAC-SHA256 对许可载荷签名，输出 base64url。
+    issue()        签发带功能列表与有效期的许可串。
+    parse()        校验许可签名并解出 features/expires；签名不符或过期抛 ValueError。
+    has_feature()  判断许可是否包含某功能；解析失败一律返回 False。
 """
 from __future__ import annotations
 
@@ -26,12 +26,14 @@ import time
 
 
 def _sign(payload: str, key: str) -> str:
+    """用 HMAC-SHA256 对许可载荷签名，输出 base64url。"""
     return base64.urlsafe_b64encode(
         hmac.new(key.encode(), payload.encode(), hashlib.sha256).digest()
     ).decode().rstrip("=")
 
 
 def issue(features: list[str], days: int, key: str) -> str:
+    """签发带功能列表与有效期的许可串。"""
     payload = base64.urlsafe_b64encode(
         json.dumps({"features": features, "expires": time.time() + days * 86400}).encode()
     ).decode().rstrip("=")
@@ -39,6 +41,7 @@ def issue(features: list[str], days: int, key: str) -> str:
 
 
 def parse(lic: str, key: str, now: float | None = None) -> dict:
+    """校验许可签名并解出 features/expires；签名不符或过期抛 ValueError。"""
     try:
         payload, sig = lic.split(".")
     except ValueError as exc:
@@ -52,6 +55,7 @@ def parse(lic: str, key: str, now: float | None = None) -> dict:
 
 
 def has_feature(lic: str, key: str, feature: str, now: float | None = None) -> bool:
+    """判断许可是否包含某功能；解析失败一律返回 False。"""
     try:
         return feature in parse(lic, key, now).get("features", [])
     except ValueError:

@@ -11,8 +11,8 @@
     └── vector_store.py  ← 本文件
 
 三、关键方法
-    _cos()
-    VectorStore
+    _cos()       余弦相似度；零向量分母按 1 处理，避免除零。
+    VectorStore  向量与元数据的 SQLite 存储：写入、按相似度取 top-k。
 """
 from __future__ import annotations
 
@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS chunks (
 
 
 def _cos(a: list[float], b: list[float]) -> float:
+    """余弦相似度；零向量分母按 1 处理，避免除零。"""
     dot = sum(x * y for x, y in zip(a, b))
     na = math.sqrt(sum(x * x for x in a)) or 1.0
     nb = math.sqrt(sum(y * y for y in b)) or 1.0
@@ -41,6 +42,7 @@ def _cos(a: list[float], b: list[float]) -> float:
 
 
 class VectorStore:
+    """向量与元数据的 SQLite 存储：写入、按相似度取 top-k。"""
     def __init__(self, db_path: str | Path):
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(db_path), check_same_thread=False)

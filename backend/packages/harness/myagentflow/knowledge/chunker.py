@@ -11,9 +11,9 @@
     └── vector_store.py  向量存储：SQLite + Python 余弦。
 
 三、关键方法
-    Chunk
-    _split_sections()
-    chunk_text()
+    Chunk              一个切片：正文、所属标题、序号。
+    _split_sections()  按 Markdown 标题把正文切成（标题, 正文）段。
+    chunk_text()       按标题与长度切片；相邻块保留 overlap 个字符的重叠。
 """
 from __future__ import annotations
 
@@ -26,12 +26,14 @@ _HEADING = re.compile(r"^(#{1,6})\s+(.*)$", re.MULTILINE)
 
 @dataclass(frozen=True)
 class Chunk:
+    """一个切片：正文、所属标题、序号。"""
     text: str
     heading: str
     index: int
 
 
 def _split_sections(text: str) -> list[tuple[str, str]]:
+    """按 Markdown 标题把正文切成（标题, 正文）段。"""
     sections: list[tuple[str, str]] = []
     current_heading = ""
     buf: list[str] = []
@@ -50,6 +52,7 @@ def _split_sections(text: str) -> list[tuple[str, str]]:
 
 
 def chunk_text(text: str, max_chars: int = 800, overlap: int = 80) -> list[Chunk]:
+    """按标题与长度切片；相邻块保留 overlap 个字符的重叠。"""
     chunks: list[Chunk] = []
     idx = 0
     for heading, body in _split_sections(text):

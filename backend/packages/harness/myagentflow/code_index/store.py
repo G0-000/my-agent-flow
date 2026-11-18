@@ -9,8 +9,8 @@
     └── store.py  ← 本文件
 
 三、关键方法
-    index_file()
-    CodeIndex
+    index_file()  用 AST 抽出模块、函数、类的位置，供索引写入。
+    CodeIndex     代码索引的 SQLite 读写。
 """
 from __future__ import annotations
 
@@ -32,6 +32,7 @@ CREATE INDEX IF NOT EXISTS idx_symbols_name ON symbols(name);
 
 
 def index_file(py_path: Path) -> list[tuple[str, str, str, int]]:
+    """用 AST 抽出模块、函数、类的位置，供索引写入。"""
     tree = ast.parse(py_path.read_text(encoding="utf-8"), filename=str(py_path))
     path = str(py_path)
     out: list[tuple[str, str, str, int]] = [(path, "module", py_path.stem, 1)]
@@ -44,6 +45,7 @@ def index_file(py_path: Path) -> list[tuple[str, str, str, int]]:
 
 
 class CodeIndex:
+    """代码索引的 SQLite 读写。"""
     def __init__(self, db_path: str | Path):
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(db_path), check_same_thread=False)

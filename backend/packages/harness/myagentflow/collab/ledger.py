@@ -10,8 +10,8 @@
     └── shares.py  分享链接：创建、解析、撤销。
 
 三、关键方法
-    Task
-    Ledger
+    Task    协作任务：状态、认领人、版本号（版本号用于防重复认领）。
+    Ledger  内存任务账本：添加、认领、完成，认领时校验版本号。
 """
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Task:
+    """协作任务：状态、认领人、版本号（版本号用于防重复认领）。"""
     id: str
     title: str
     status: str = "open"          # open | claimed | done | failed
@@ -30,6 +31,7 @@ class Task:
 
 
 class Ledger:
+    """内存任务账本：添加、认领、完成，认领时校验版本号。"""
     def __init__(self) -> None:
         self._tasks: dict[str, Task] = {}
 

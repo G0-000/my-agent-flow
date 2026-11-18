@@ -8,7 +8,7 @@
     └── streaming.py  ← 本文件
 
 三、关键方法
-    stream_graph()
+    stream_graph()  把 LangGraph 事件流转成 SSE 文本块，异常收敛成 error 事件。
 """
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ from myagentflow.runtime.events import EventStream
 
 
 async def stream_graph(graph: Any, payload: dict, config: dict) -> AsyncIterator[str]:
+    """把 LangGraph 事件流转成 SSE 文本块，异常收敛成 error 事件。"""
     stream = EventStream()
     try:
         async for raw in graph.astream_events(payload, config=config, version="v2"):

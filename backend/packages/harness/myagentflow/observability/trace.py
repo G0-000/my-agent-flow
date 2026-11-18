@@ -9,8 +9,8 @@
     └── trace.py  ← 本文件
 
 三、关键方法
-    Span
-    Trace
+    Span   一段耗时：名称、起止时间、附加字段。
+    Trace  一次运行的 span 集合与 token 计数，提供计时的上下文管理器。
 """
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Span:
+    """一段耗时：名称、起止时间、附加字段。"""
     name: str
     start: float = field(default_factory=time.time)
     end: float | None = None
@@ -34,6 +35,7 @@ class Span:
 
 @dataclass
 class Trace:
+    """一次运行的 span 集合与 token 计数，提供计时的上下文管理器。"""
     run_id: str
     spans: list[Span] = field(default_factory=list)
     tokens: int = 0

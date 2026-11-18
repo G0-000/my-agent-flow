@@ -12,8 +12,8 @@
     └── workspace_path_guard.py  宿主路径守卫：解析 + 可切换策略。
 
 三、关键方法
-    BgProc
-    BgManager
+    BgProc     一个后台命令：进程、输出文件、日志缓存。
+    BgManager  管理后台命令：启动、读输出、停止。
 """
 from __future__ import annotations
 
@@ -24,12 +24,14 @@ from typing import Any
 
 @dataclass
 class BgProc:
+    """一个后台命令：进程、输出文件、日志缓存。"""
     proc: subprocess.Popen
     stdout_path: str
     _log: list[str] = field(default_factory=list)
 
 
 class BgManager:
+    """管理后台命令：启动、读输出、停止。"""
     def __init__(self) -> None:
         self._procs: dict[str, BgProc] = {}
 

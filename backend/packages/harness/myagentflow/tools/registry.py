@@ -9,8 +9,8 @@
     └── registry.py  ← 本文件
 
 三、关键方法
-    ToolSpec
-    ToolRegistry
+    ToolSpec      一个工具的完整声明：名字、描述、JSON Schema、可调用对象。
+    ToolRegistry  工具注册表：注册、查找、调用；重名直接拒绝。
 """
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ from typing import Any
 
 @dataclass(frozen=True)
 class ToolSpec:
+    """一个工具的完整声明：名字、描述、JSON Schema、可调用对象。"""
     name: str
     description: str
     input_schema: dict[str, Any]
@@ -28,6 +29,7 @@ class ToolSpec:
 
 
 class ToolRegistry:
+    """工具注册表：注册、查找、调用；重名直接拒绝。"""
     def __init__(self) -> None:
         self._tools: dict[str, ToolSpec] = {}
 

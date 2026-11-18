@@ -8,7 +8,7 @@
     └── graph.py  ← 本文件
 
 三、关键方法
-    build_graph()
+    build_graph()  建单节点图：一次 invoke 调一次模型；可选挂 checkpointer 保留同线程历史。
 """
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 
 
 def build_graph(model: Any, checkpointer: Any = None):
+    """建单节点图：一次 invoke 调一次模型；可选挂 checkpointer 保留同线程历史。"""
     graph = StateGraph(MessagesState)
 
     def call_model(state: MessagesState):

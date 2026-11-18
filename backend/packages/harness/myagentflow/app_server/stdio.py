@@ -9,8 +9,8 @@
     └── stdio.py  ← 本文件
 
 三、关键方法
-    handle()
-    serve()
+    handle()  处理一行 JSON-RPC 请求；目前只实现 ping。
+    serve()   从 stdin 逐行读 JSON-RPC 并写回 stdout；坏行返回错误而不退出进程。
 """
 from __future__ import annotations
 
@@ -20,12 +20,14 @@ from typing import Any
 
 
 def handle(req: dict[str, Any]) -> dict[str, Any]:
+    """处理一行 JSON-RPC 请求；目前只实现 ping。"""
     if req.get("method") != "ping":
         return {"id": req.get("id"), "error": f"未知方法：{req.get('method')}"}
     return {"id": req.get("id"), "result": "pong"}
 
 
 def serve(stdin=sys.stdin, stdout=sys.stdout) -> None:
+    """从 stdin 逐行读 JSON-RPC 并写回 stdout；坏行返回错误而不退出进程。"""
     for line in stdin:
         line = line.strip()
         if not line:

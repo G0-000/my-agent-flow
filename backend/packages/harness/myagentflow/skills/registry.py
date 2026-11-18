@@ -10,9 +10,9 @@
     └── registry.py  ← 本文件
 
 三、关键方法
-    Manifest
-    read_manifest()
-    SkillRegistry
+    Manifest         技能包清单：名字、版本、入口。
+    read_manifest()  读 manifest.json 并校验必填字段与版本格式。
+    SkillRegistry    已安装技能的内存注册表。
 """
 from __future__ import annotations
 
@@ -27,12 +27,14 @@ _VER = re.compile(r"^\d+\.\d+\.\d+$")
 
 @dataclass(frozen=True)
 class Manifest:
+    """技能包清单：名字、版本、入口。"""
     name: str
     version: str
     entry: str
 
 
 def read_manifest(pkg_dir: Path) -> Manifest:
+    """读 manifest.json 并校验必填字段与版本格式。"""
     data = json.loads((pkg_dir / "manifest.json").read_text(encoding="utf-8"))
     for key in ("name", "version", "entry"):
         if not data.get(key):
@@ -43,6 +45,7 @@ def read_manifest(pkg_dir: Path) -> Manifest:
 
 
 class SkillRegistry:
+    """已安装技能的内存注册表。"""
     def __init__(self) -> None:
         self._installed: dict[str, Manifest] = {}
 

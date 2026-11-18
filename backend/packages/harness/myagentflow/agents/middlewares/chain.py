@@ -10,8 +10,8 @@
     └── chain.py  ← 本文件
 
 三、关键方法
-    Middleware
-    run_chain()
+    Middleware   中间件基类：工具前后各一个钩子，默认原样放行。
+    run_chain()  顺序跑 before_tool、执行工具、逆序跑 after_tool；异常时只回滚已进入的中间件。
 """
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ from typing import Any
 
 
 class Middleware:
+    """中间件基类：工具前后各一个钩子，默认原样放行。"""
     name: str = "middleware"
 
     def before_tool(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
@@ -31,6 +32,7 @@ class Middleware:
 
 def run_chain(mws: Iterable[Middleware], name: str, args: dict[str, Any],
               call: Callable[[str, dict[str, Any]], Any]) -> Any:
+    """顺序跑 before_tool、执行工具、逆序跑 after_tool；异常时只回滚已进入的中间件。"""
     entered: list[Middleware] = []
     current = args
     try:

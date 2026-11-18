@@ -11,7 +11,7 @@
     └── workspace_path_guard.py  宿主路径守卫：解析 + 可切换策略。
 
 三、关键方法
-    verify_bridge_token()
+    verify_bridge_token()  校验宿主桥接 token；没配 token 一律拒绝，不「没配就放行」。
 """
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ BRIDGE_TOKEN_ENV = "MYAF_BRIDGE_TOKEN"
 
 
 def verify_bridge_token(provided: str | None) -> bool:
+    """校验宿主桥接 token；没配 token 一律拒绝，不「没配就放行」。"""
     expected = os.getenv(BRIDGE_TOKEN_ENV, "")
     if not expected or not provided:
         return False          # 没配 token 一律拒绝，不能「没配就放行」

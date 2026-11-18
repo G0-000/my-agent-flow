@@ -10,8 +10,8 @@
     └── lifecycle.py  ← 本文件
 
 三、关键方法
-    RunRecord
-    RunRegistry
+    RunRecord    一次运行的记录：线程、状态、起止时间。
+    RunRegistry  线程内 run 的注册表：启动、完成、取消、查询。
 """
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ ALLOWED_END = {"finished", "cancelled", "error"}
 
 @dataclass
 class RunRecord:
+    """一次运行的记录：线程、状态、起止时间。"""
     thread_id: str
     run_id: str = field(default_factory=lambda: uuid.uuid4().hex)
     status: str = "running"
@@ -35,6 +36,7 @@ class RunRecord:
 
 
 class RunRegistry:
+    """线程内 run 的注册表：启动、完成、取消、查询。"""
     def __init__(self) -> None:
         self._runs: dict[str, RunRecord] = {}
         self._lock = threading.RLock()

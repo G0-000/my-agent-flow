@@ -9,9 +9,9 @@
     └── main.py  ← 本文件
 
 三、关键方法
-    _chat()
-    _state()
-    main()
+    _chat()   命令行跑一轮对话：读一条输入、调图、打印回复。
+    _state()  打印某线程的检查点状态；刻意不编译图。
+    main()    解析 chat/state 子命令并分发。
 """
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ from myagentflow.models.factory import create_chat_model
 
 
 def _chat(args: argparse.Namespace) -> int:
+    """命令行跑一轮对话：读一条输入、调图、打印回复。"""
     from langchain_core.messages import HumanMessage
 
     from myagentflow.agents.lead_agent.graph import build_graph
@@ -36,6 +37,7 @@ def _chat(args: argparse.Namespace) -> int:
 
 
 def _state(args: argparse.Namespace) -> int:
+    """打印某线程的检查点状态；刻意不编译图。"""
     from myagentflow.agents.checkpointer import get_checkpointer
     from myagentflow.agents.checkpointer.thread_state_reader import read_thread_state
 
@@ -45,6 +47,7 @@ def _state(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """解析 chat/state 子命令并分发。"""
     parser = argparse.ArgumentParser(prog="myaf")
     sub = parser.add_subparsers(dest="cmd", required=True)
 

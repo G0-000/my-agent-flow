@@ -11,9 +11,9 @@
     └── workspace_path_guard.py  ← 本文件
 
 三、关键方法
-    Policy
-    Resolution
-    resolve()
+    Policy      路径策略：disabled 原样放行，confine 限制在工作区内。
+    Resolution  路径解析结果：实际路径、是否在区内、结论。
+    resolve()   realpath 折平 .. 与软链后判断是否越界，按策略给出结论。
 """
 from __future__ import annotations
 
@@ -24,18 +24,21 @@ from pathlib import Path
 
 
 class Policy(str, Enum):
+    """路径策略：disabled 原样放行，confine 限制在工作区内。"""
     disabled = "disabled"   # 原样使用，绝对路径也放行（默认策略）
     confine = "confine"     # 必须落在 workspace 之下
 
 
 @dataclass(frozen=True)
 class Resolution:
+    """路径解析结果：实际路径、是否在区内、结论。"""
     path: Path
     inside: bool
     decision: str          # allowed | escaped | resolved
 
 
 def resolve(path: str, workspace: str | Path, policy: Policy = Policy.disabled) -> Resolution:
+    """realpath 折平 .. 与软链后判断是否越界，按策略给出结论。"""
     root = Path(os.path.realpath(str(workspace)))
     # realpath 先把 `..`、软链、重复分隔符全部折平，再做前缀比较
     target = Path(os.path.realpath(os.path.expanduser(path)))

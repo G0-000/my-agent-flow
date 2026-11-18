@@ -16,7 +16,7 @@
     _next_seq()                    同一会话的下一个序号；调用方必须已在锁内，否则并发插入会拿到同一个值。
     append_message()               追加一条消息并返回它的 seq；role 只允许 user/assistant/tool（由调用方保证）。
     list_messages()                按 seq 正序读回；limit 取「最近 N 条」而不是「最前 N 条」才有意义，故先倒序再翻转。
-    count_messages()
+    count_messages()               会话内消息条数。
     delete_messages_for_session()  整会话清空，返回删掉的行数；删会话时先调它，再删 sessions 行。
 """
 from __future__ import annotations
@@ -92,6 +92,7 @@ def list_messages(
 
 
 def count_messages(thread_id: str, *, conn: sqlite3.Connection | None = None) -> int:
+    """会话内消息条数。"""
     db = conn or get_db()
     row = db.execute("SELECT COUNT(*) FROM chat_messages WHERE thread_id = ?", (thread_id,)).fetchone()
     return int(row[0])

@@ -11,8 +11,8 @@
     └── license.py  离线许可：签名内容 + 功能位。
 
 三、关键方法
-    Resource
-    can()
+    Resource  被访问的资源：类型、id、属主。
+    can()     判断某人能否对资源执行动作：属主直接放行，否则查角色权限表。
 """
 from __future__ import annotations
 
@@ -29,12 +29,14 @@ ROLES: dict[str, set[str]] = {
 
 @dataclass(frozen=True)
 class Resource:
+    """被访问的资源：类型、id、属主。"""
     kind: str
     id: str
     owner: str
 
 
 def can(principal: str, roles: dict[str, str], resource: Resource, action: str) -> bool:
+    """判断某人能否对资源执行动作：属主直接放行，否则查角色权限表。"""
     if resource.owner == principal:
         return True                      # owner 永远有权
     role = roles.get(principal, "")

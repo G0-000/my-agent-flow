@@ -11,8 +11,8 @@
     └── workflow.py  ← 本文件
 
 三、关键方法
-    StepResult
-    Workflow
+    StepResult  一步的执行结果：成功与否、输出、错误。
+    Workflow    顺序执行步骤并记录历史；某步失败即停。
 """
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from typing import Any
 
 @dataclass
 class StepResult:
+    """一步的执行结果：成功与否、输出、错误。"""
     name: str
     ok: bool
     output: Any = None
@@ -31,6 +32,7 @@ class StepResult:
 
 @dataclass
 class Workflow:
+    """顺序执行步骤并记录历史；某步失败即停。"""
     name: str
     steps: list[tuple[str, Callable[[], Any]]] = field(default_factory=list)
     history: list[StepResult] = field(default_factory=list)

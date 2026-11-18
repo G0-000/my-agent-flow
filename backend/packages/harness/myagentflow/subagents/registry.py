@@ -11,8 +11,8 @@
     └── summarize.py  子代理结果汇总：只回填「结论 + 证据 + 失败原因」。
 
 三、关键方法
-    SubagentSpec
-    SubagentRegistry
+    SubagentSpec      子代理声明：名字、描述、标签、执行函数。
+    SubagentRegistry  按名字注册与查找子代理。
 """
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from typing import Any
 
 @dataclass(frozen=True)
 class SubagentSpec:
+    """子代理声明：名字、描述、标签、执行函数。"""
     name: str
     description: str
     tags: tuple[str, ...]
@@ -30,6 +31,7 @@ class SubagentSpec:
 
 
 class SubagentRegistry:
+    """按名字注册与查找子代理。"""
     def __init__(self) -> None:
         self._agents: dict[str, SubagentSpec] = {}
 

@@ -10,8 +10,8 @@
     └── lifecycle.py  运行生命周期：登记、取消、收尾。
 
 三、关键方法
-    Entry
-    Idempotency
+    Entry        幂等键的状态与结果。
+    Idempotency  同一 key 只执行一次；重复请求直接返回上次结果。
 """
 from __future__ import annotations
 
@@ -22,12 +22,14 @@ from dataclasses import dataclass
 
 @dataclass
 class Entry:
+    """幂等键的状态与结果。"""
     status: str          # running | done
     result: object = None
     at: float = 0.0
 
 
 class Idempotency:
+    """同一 key 只执行一次；重复请求直接返回上次结果。"""
     def __init__(self) -> None:
         self._items: dict[str, Entry] = {}
         self._lock = threading.Lock()

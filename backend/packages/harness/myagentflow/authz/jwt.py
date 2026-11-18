@@ -11,8 +11,8 @@
     └── license.py  离线许可：签名内容 + 功能位。
 
 三、关键方法
-    _b64d()
-    verify()
+    _b64d()   base64url 解码并按长度补齐 padding。
+    verify()  校验 HS256 JWT 的签名、受众、签发者与过期时间，返回 payload。
 """
 from __future__ import annotations
 
@@ -24,12 +24,14 @@ import time
 
 
 def _b64d(part: str) -> bytes:
+    """base64url 解码并按长度补齐 padding。"""
     pad = "=" * (-len(part) % 4)
     return base64.urlsafe_b64decode(part + pad)
 
 
 def verify(token: str, secret: str, audience: str, issuer: str,
            now: float | None = None) -> dict:
+    """校验 HS256 JWT 的签名、受众、签发者与过期时间，返回 payload。"""
     try:
         head_b64, body_b64, sig_b64 = token.split(".")
     except ValueError as exc:

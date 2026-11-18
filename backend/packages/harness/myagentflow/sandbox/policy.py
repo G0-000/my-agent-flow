@@ -10,9 +10,9 @@
     └── policy.py  ← 本文件
 
 三、关键方法
-    Decision
-    PolicyResult
-    evaluate()
+    Decision      策略结论：放行 / 询问 / 拒绝。
+    PolicyResult  策略结论加上命中的原因。
+    evaluate()    按危险模式与写操作标记给命令定级。
 """
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ from enum import Enum
 
 
 class Decision(str, Enum):
+    """策略结论：放行 / 询问 / 拒绝。"""
     allow = "allow"
     ask = "ask"
     deny = "deny"
@@ -40,11 +41,13 @@ WRITE_MARKERS = [re.compile(r">\s*/"), re.compile(r"\btee\b"), re.compile(r"\bse
 
 @dataclass(frozen=True)
 class PolicyResult:
+    """策略结论加上命中的原因。"""
     decision: Decision
     reason: str
 
 
 def evaluate(command: str) -> PolicyResult:
+    """按危险模式与写操作标记给命令定级。"""
     for pat in DANGEROUS:
         if pat.search(command):
             return PolicyResult(Decision.deny, f"命中危险模式：{pat.pattern}")

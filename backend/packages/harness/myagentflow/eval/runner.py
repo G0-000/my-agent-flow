@@ -9,9 +9,9 @@
     └── runner.py  ← 本文件
 
 三、关键方法
-    Case
-    score()
-    run()
+    Case     一条评测用例：提示词与回答必须包含的片段。
+    score()  回答是否包含用例要求的全部片段。
+    run()    跑完全部用例并汇总；单条失败不影响其余用例。
 """
 from __future__ import annotations
 
@@ -21,16 +21,19 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Case:
+    """一条评测用例：提示词与回答必须包含的片段。"""
     name: str
     prompt: str
     must_contain: tuple[str, ...] = ()
 
 
 def score(case: Case, answer: str) -> bool:
+    """回答是否包含用例要求的全部片段。"""
     return all(k in answer for k in case.must_contain)
 
 
 def run(cases: list[Case], answer_fn: Callable[[str], str]) -> dict:
+    """跑完全部用例并汇总；单条失败不影响其余用例。"""
     results = []
     for c in cases:
         try:

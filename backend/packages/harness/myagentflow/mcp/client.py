@@ -9,7 +9,7 @@
     └── client.py  ← 本文件
 
 三、关键方法
-    McpClient
+    McpClient  以子进程启动 MCP server，按 JSON-RPC 逐行收发。
 """
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ from typing import Any
 
 
 class McpClient:
+    """以子进程启动 MCP server，按 JSON-RPC 逐行收发。"""
     def __init__(self, command: list[str]) -> None:
         self._proc = subprocess.Popen(
             command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1

@@ -13,8 +13,8 @@
     └── store.py  自动化：规则 + 执行历史。
 
 三、关键方法
-    fingerprint()
-    Heartbeat
+    fingerprint()  把状态字典排序后哈希成 16 位指纹，用于判断状态有没有变。
+    Heartbeat      心跳节流：状态没变不重复跑，每小时最多 max_per_hour 次。
 """
 from __future__ import annotations
 
@@ -24,12 +24,14 @@ from dataclasses import dataclass, field
 
 
 def fingerprint(values: dict[str, str]) -> str:
+    """把状态字典排序后哈希成 16 位指纹，用于判断状态有没有变。"""
     raw = "|".join(f"{k}={values[k]}" for k in sorted(values))
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
 @dataclass
 class Heartbeat:
+    """心跳节流：状态没变不重复跑，每小时最多 max_per_hour 次。"""
     max_per_hour: int = 6
     _last_fp: str | None = None
     _events: list[float] = field(default_factory=list)

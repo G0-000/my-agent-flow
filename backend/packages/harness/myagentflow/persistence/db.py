@@ -11,7 +11,7 @@
     └── session_repositories.py  会话仓储：一条会话一行，负责标题与时间戳。
 
 三、关键方法
-    _resolve_db_path()
+    _resolve_db_path()    库文件路径：MYAF_DB_PATH 优先，否则读 AppConfig.storage.sqlite_path。
     db_connection_lock()  写操作的进程内互斥锁；多线程同时 append 时靠它保证 seq 不撞。
     _ensure_schema()      建各仓储的表；延迟 import 避免 `db ← repositories → db` 的循环。
     get_db()              取共享连接；第一次调用时建目录、开 WAL、建表。
@@ -32,6 +32,7 @@ DB_PATH_ENV = "MYAF_DB_PATH"
 
 
 def _resolve_db_path() -> Path:
+    """库文件路径：MYAF_DB_PATH 优先，否则读 AppConfig.storage.sqlite_path。"""
     env_path = os.getenv(DB_PATH_ENV, "").strip()
     if env_path:
         return Path(env_path).expanduser()

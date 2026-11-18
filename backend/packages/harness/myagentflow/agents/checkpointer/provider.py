@@ -14,7 +14,7 @@
     _checkpointer_config()  配置来源：AppConfig.checkpointer（type / connection_string）。
     _backend()              读后端类型；默认 memory —— 保证「什么配置都没有」也能跑起来。
     _sqlite_path()          检查点库文件路径。放 .myaf/ 下，跟仓库源码分开。
-    _pg_dsn()
+    _pg_dsn()               读 Postgres 检查点的 DSN 环境变量；没配返回空串。
     _build()                按 backend 造一个全新的 saver（不缓存）。
     _close()                关掉 saver 底下的真实连接。不是所有后端都暴露 .conn，所以探测着来。
     get_checkpointer()      取全局 saver：同一份配置返回同一对象，配置变了自动重建。
@@ -75,6 +75,7 @@ def _sqlite_path() -> str:
 
 
 def _pg_dsn() -> str:
+    """读 Postgres 检查点的 DSN 环境变量；没配返回空串。"""
     return os.getenv("MYAF_CHECKPOINT_PG_DSN", "").strip()
 
 

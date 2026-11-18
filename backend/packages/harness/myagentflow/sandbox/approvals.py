@@ -10,8 +10,8 @@
     └── policy.py  沙箱策略：allow / ask / deny。
 
 三、关键方法
-    Approval
-    ApprovalStore
+    Approval       一条待审批的工具调用：run、工具、参数、状态、截止时间。
+    ApprovalStore  内存审批队列：创建、通过、拒绝、清理超时项。
 """
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ ALLOWED = {"approved", "rejected", "expired", "cancelled"}
 
 @dataclass
 class Approval:
+    """一条待审批的工具调用：run、工具、参数、状态、截止时间。"""
     run_id: str
     tool: str
     args: dict
@@ -34,6 +35,7 @@ class Approval:
 
 
 class ApprovalStore:
+    """内存审批队列：创建、通过、拒绝、清理超时项。"""
     def __init__(self) -> None:
         self._items: dict[str, Approval] = {}
 

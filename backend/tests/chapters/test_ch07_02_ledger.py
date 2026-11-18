@@ -1,9 +1,20 @@
+"""一、文件说明
+    07/02 协作账本：防双领与超时回收。
+
+二、覆盖
+    test_double_claim_and_reclaim()  旧版本号二次认领被拒；超时后回收成 open 且版本递增。
+
+三、运行
+    uv run pytest tests/chapters/test_ch07_02_ledger.py -q
+"""
+
 from __future__ import annotations
 
 import pytest
 
 
 def test_double_claim_and_reclaim():
+    """旧版本号二次认领被拒；超时后回收成 open 且版本递增。"""
     from myagentflow.collab.ledger import Ledger, Task
 
     l = Ledger()

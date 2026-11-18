@@ -1,3 +1,14 @@
+"""一、文件说明
+    04/02 内容扫描：注入、越权、外泄等模式命中。
+
+二、覆盖
+    test_patterns()                每类注入/越权/外泄样例都命中对应规则名。
+    test_clean_text_passthrough()  正常文本不误报，原样返回。
+
+三、运行
+    uv run pytest tests/chapters/test_ch04_02_scanner.py -q
+"""
+
 from __future__ import annotations
 
 import pytest
@@ -18,6 +29,7 @@ import pytest
     ("o v e r r i d e", "case_bypass"),
 ])
 def test_patterns(text, expected):
+    """每类注入/越权/外泄样例都命中对应规则名。"""
     from myagentflow.agents.content_scanner import scan
 
     hit, blocked = scan(text)
@@ -25,6 +37,7 @@ def test_patterns(text, expected):
 
 
 def test_clean_text_passthrough():
+    """正常文本不误报，原样返回。"""
     from myagentflow.agents.content_scanner import scan
 
     assert scan("今天天气不错") == (False, "今天天气不错")

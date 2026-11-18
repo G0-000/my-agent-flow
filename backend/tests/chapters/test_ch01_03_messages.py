@@ -1,4 +1,14 @@
-"""第 3 章 / 会话与消息仓储：两个文件各自负责，函数名与 EvoFlow 一致。"""
+"""一、文件说明
+    第 3 章仓储：消息顺序、删除与会话生命周期。
+
+二、覆盖
+    test_append_and_list()              seq 连续、不同会话各自从 1 开始、limit 取最近 N 条、计数正确。
+    test_delete_messages_for_session()  删除返回条数，重复删返回 0。
+    test_session_row_lifecycle()        upsert 不覆盖已有标题、列表倒序、删除后查不到。
+
+三、运行
+    uv run pytest tests/chapters/test_ch01_03_messages.py -q
+"""
 from __future__ import annotations
 
 
@@ -11,6 +21,7 @@ def _fresh_db(monkeypatch, tmp_path):
 
 
 def test_append_and_list(monkeypatch, tmp_path):
+    """seq 连续、不同会话各自从 1 开始、limit 取最近 N 条、计数正确。"""
     from myagentflow.persistence.chat_message_repositories import (
         append_message,
         count_messages,
@@ -28,6 +39,7 @@ def test_append_and_list(monkeypatch, tmp_path):
 
 
 def test_delete_messages_for_session(monkeypatch, tmp_path):
+    """删除返回条数，重复删返回 0。"""
     from myagentflow.persistence.chat_message_repositories import (
         append_message,
         delete_messages_for_session,
@@ -41,6 +53,7 @@ def test_delete_messages_for_session(monkeypatch, tmp_path):
 
 
 def test_session_row_lifecycle(monkeypatch, tmp_path):
+    """upsert 不覆盖已有标题、列表倒序、删除后查不到。"""
     from myagentflow.persistence.session_repositories import (
         delete_sessions_by_thread_id,
         get_session_row_for_ui,

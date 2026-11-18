@@ -1,14 +1,27 @@
+"""一、文件说明
+    第 1 部分验收：模型 → 图 → 消息落库 → SSE 串成一条链。
+
+二、覆盖
+    EchoModel()        假模型：不联网，只回显；测试里所有模型都该这样替身。
+    test_end_to_end()  模型回复落库后按角色读回，SSE 首帧带 id。
+
+三、运行
+    uv run pytest tests/chapters/test_ch01_06_e2e.py -q
+"""
+
 from __future__ import annotations
 
 from langchain_core.messages import AIMessage, HumanMessage
 
 
 class EchoModel:
+    """假模型：不联网，只回显；测试里所有模型都该这样替身。"""
     def invoke(self, messages, *_a, **_k):
         return AIMessage(content="echo: " + messages[-1].content)
 
 
 def test_end_to_end(monkeypatch, tmp_path):
+    """模型回复落库后按角色读回，SSE 首帧带 id。"""
     from myagentflow.agents.lead_agent.graph import build_graph
     from myagentflow.persistence.chat_message_repositories import (
         append_message,

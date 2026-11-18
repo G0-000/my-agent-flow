@@ -1,9 +1,21 @@
+"""一、文件说明
+    02/02 run 生命周期：线程内单活、取消优先。
+
+二、覆盖
+    test_one_active_run_per_thread()  同线程第二次 start 抛 RuntimeError，finish 后可再开。
+    test_cancel_wins_over_finish()    cancel 后即使再 finish，状态仍是 cancelled。
+
+三、运行
+    uv run pytest tests/chapters/test_ch02_02_lifecycle.py -q
+"""
+
 from __future__ import annotations
 
 import pytest
 
 
 def test_one_active_run_per_thread():
+    """同线程第二次 start 抛 RuntimeError，finish 后可再开。"""
     from myagentflow.session_execution.lifecycle import RunRegistry
 
     reg = RunRegistry()
@@ -15,6 +27,7 @@ def test_one_active_run_per_thread():
 
 
 def test_cancel_wins_over_finish():
+    """cancel 后即使再 finish，状态仍是 cancelled。"""
     from myagentflow.session_execution.lifecycle import RunRegistry
 
     reg = RunRegistry()

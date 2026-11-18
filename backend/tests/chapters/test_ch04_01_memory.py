@@ -1,7 +1,19 @@
+"""一、文件说明
+    04/01 记忆：坏文件容错与 agent/thread 作用域隔离。
+
+二、覆盖
+    test_fail_soft()            记忆文件是坏 JSON 时返回空记忆，不让流程崩。
+    test_scopes_are_separate()  thread 记忆与 agent 记忆互不混。
+
+三、运行
+    uv run pytest tests/chapters/test_ch04_01_memory.py -q
+"""
+
 from __future__ import annotations
 
 
 def test_fail_soft(tmp_path):
+    """记忆文件是坏 JSON 时返回空记忆，不让流程崩。"""
     from myagentflow.memory.agent_memory import AgentMemoryManager
 
     m = AgentMemoryManager(tmp_path)
@@ -12,6 +24,7 @@ def test_fail_soft(tmp_path):
 
 
 def test_scopes_are_separate(tmp_path):
+    """thread 记忆与 agent 记忆互不混。"""
     from myagentflow.memory.agent_memory import AgentMemoryManager
 
     m = AgentMemoryManager(tmp_path)

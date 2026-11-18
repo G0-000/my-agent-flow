@@ -1,3 +1,15 @@
+"""一、文件说明
+    第 2 章最小图：单轮调用与同线程历史累积。
+
+二、覆盖
+    EchoModel()                       假模型：不联网，只回显。
+    test_single_turn()                一轮 invoke 把用户消息交给模型并取回回复。
+    test_same_thread_keeps_history()  同 thread 第二次 invoke 带上前一轮消息，总共 4 条。
+
+三、运行
+    uv run pytest tests/chapters/test_ch01_02_graph.py -q
+"""
+
 from __future__ import annotations
 
 from langchain_core.messages import AIMessage, HumanMessage
@@ -11,6 +23,7 @@ class EchoModel:
 
 
 def test_single_turn():
+    """一轮 invoke 把用户消息交给模型并取回回复。"""
     from myagentflow.agents.lead_agent.graph import build_graph
 
     graph = build_graph(EchoModel())
@@ -19,6 +32,7 @@ def test_single_turn():
 
 
 def test_same_thread_keeps_history():
+    """同 thread 第二次 invoke 带上前一轮消息，总共 4 条。"""
     from langchain_core.messages import HumanMessage
     from langgraph.checkpoint.memory import InMemorySaver
     from myagentflow.agents.lead_agent.graph import build_graph

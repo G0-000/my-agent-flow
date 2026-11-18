@@ -1,7 +1,18 @@
+"""一、文件说明
+    05/03 知识地图：按文档/章节聚合与摘要截断。
+
+二、覆盖
+    test_map_and_describe()  地图按文档/章节聚合块号，摘要受 max_docs 限制。
+
+三、运行
+    uv run pytest tests/chapters/test_ch05_03_map.py -q
+"""
+
 from __future__ import annotations
 
 
 def test_map_and_describe():
+    """地图按文档/章节聚合块号，摘要受 max_docs 限制。"""
     from myagentflow.knowledge.map import build_map, describe
 
     items = [

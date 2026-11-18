@@ -1,3 +1,14 @@
+"""一、文件说明
+    13/01 全链路：计划 → 图 → 消息 → 记忆 → SSE。
+
+二、覆盖
+    ScriptedModel()    假模型：按顺序返回固定回复，保证测试可重复。
+    test_full_chain()  计划依赖、图回复、消息落库、记忆与 SSE 全链路成立。
+
+三、运行
+    uv run pytest tests/chapters/test_ch13_01_e2e.py -q
+"""
+
 from __future__ import annotations
 
 
@@ -15,6 +26,7 @@ class ScriptedModel:
 
 
 def test_full_chain(monkeypatch, tmp_path):
+    """计划依赖、图回复、消息落库、记忆与 SSE 全链路成立。"""
     from myagentflow.agents.lead_agent.graph import build_graph
     from myagentflow.memory.agent_memory import AgentMemoryManager
     from myagentflow.persistence.chat_message_repositories import (

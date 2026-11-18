@@ -1,4 +1,12 @@
-"""测试用 HS256 token 生成器（只服务测试，不参与运行时）。"""
+"""一、文件说明
+    测试用 HS256 token 生成器，只服务测试，不参与运行时。
+
+二、提供
+    make_token()  按 HS256 生成测试 token；exp_offset 正数=未来过期，负数=已过期。
+
+三、用法
+    只给测试用：from tests.chapters.helpers_jwt import make_token
+"""
 from __future__ import annotations
 
 import base64
@@ -11,6 +19,7 @@ SECRET = "k"          # 与测试里 verify(..., "k", ...) 保持一致
 
 
 def _b64(obj: dict) -> str:
+    """JSON 紧凑序列化后做无填充 base64url，符合 JWT 段格式。"""
     raw = json.dumps(obj, separators=(",", ":")).encode()
     return base64.urlsafe_b64encode(raw).decode().rstrip("=")   # JWT 用无填充 base64
 

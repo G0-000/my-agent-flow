@@ -1,6 +1,16 @@
-"""第 1 章 / 配置层测试：`config/` 四文件布局与字段行为。
+"""一、文件说明
+    第 1 章配置层：环境变量、YAML、providers 布局与模型解析。
 
-覆盖：env 兜底、空字符串、缺模型异常（在 models/resolver.py）、yaml 生效、路径覆盖。
+二、覆盖
+    test_env_model_becomes_primary()      只配环境变量也能建模型，且第一个模型被选为 primary。
+    test_blank_base_url_is_none()         空字符串 base_url 归一成 None，避免请求打到空地址。
+    test_no_model_raises()                一个模型都没配时抛 NoChatModelConfiguredError，不静默开跑。
+    test_yaml_config_defines_models()     YAML 里的 log_level、primary_model 与模型条目都被读进来。
+    test_config_path_env_override()       改 MYAF_CONFIG_PATH 后解析结果跟着变，说明没有走旧缓存。
+    test_providers_layout_is_flattened()  providers 嵌套写法被摊平成扁平模型列表，顺序保持。
+
+三、运行
+    uv run pytest tests/chapters/test_ch01_01_config.py -q
 """
 from __future__ import annotations
 
@@ -22,6 +32,7 @@ def _isolate(monkeypatch, tmp_path):
 
 
 def test_env_model_becomes_primary(monkeypatch, tmp_path):
+    """只配环境变量也能建模型，且第一个模型被选为 primary。"""
     from myagentflow.config.app_config import get_app_config, reset_app_config
 
     _isolate(monkeypatch, tmp_path)
@@ -38,6 +49,7 @@ def test_env_model_becomes_primary(monkeypatch, tmp_path):
 
 
 def test_blank_base_url_is_none(monkeypatch, tmp_path):
+    """空字符串 base_url 归一成 None，避免请求打到空地址。"""
     from myagentflow.config.app_config import get_app_config, reset_app_config
 
     _isolate(monkeypatch, tmp_path)
@@ -49,6 +61,7 @@ def test_blank_base_url_is_none(monkeypatch, tmp_path):
 
 
 def test_no_model_raises(monkeypatch, tmp_path):
+    """一个模型都没配时抛 NoChatModelConfiguredError，不静默开跑。"""
     from myagentflow.config.app_config import get_app_config, reset_app_config
     from myagentflow.models.resolver import (
         NoChatModelConfiguredError,
@@ -64,6 +77,7 @@ def test_no_model_raises(monkeypatch, tmp_path):
 
 
 def test_yaml_config_defines_models(monkeypatch, tmp_path):
+    """YAML 里的 log_level、primary_model 与模型条目都被读进来。"""
     from myagentflow.config.app_config import get_app_config, reset_app_config
 
     _isolate(monkeypatch, tmp_path)
@@ -97,6 +111,7 @@ checkpointer:
 
 
 def test_config_path_env_override(monkeypatch, tmp_path):
+    """改 MYAF_CONFIG_PATH 后解析结果跟着变，说明没有走旧缓存。"""
     from myagentflow.config.app_config import get_app_config, reset_app_config
     from myagentflow.models.resolver import resolve_run_model
 

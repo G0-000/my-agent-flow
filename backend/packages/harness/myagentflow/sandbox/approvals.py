@@ -1,7 +1,17 @@
-"""审批单：一次危险调用一张单子。
+"""一、文件说明
+    审批单：一次危险调用一张单子。
+    为什么用 deadline 而不是定时器：
+    重启后定时器全丢，deadline 存在表里，进程起来照样能判过期。
 
-为什么用 deadline 而不是定时器：
-重启后定时器全丢，deadline 存在表里，进程起来照样能判过期。
+二、目录结构
+    packages/harness/myagentflow/sandbox/
+    ├── __init__.py
+    ├── approvals.py  ← 本文件
+    └── policy.py  沙箱策略：allow / ask / deny。
+
+三、关键方法
+    Approval
+    ApprovalStore
 """
 from __future__ import annotations
 

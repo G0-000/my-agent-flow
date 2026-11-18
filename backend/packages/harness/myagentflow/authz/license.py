@@ -1,7 +1,20 @@
-"""离线许可：签名内容 + 功能位。
+"""一、文件说明
+    离线许可：签名内容 + 功能位。
+    为什么许可要签名：许可文件会被用户改，
+    不签名的 JSON 等于把「企业版」写在明文里等别人改。
 
-为什么许可要签名：许可文件会被用户改，
-不签名的 JSON 等于把「企业版」写在明文里等别人改。
+二、目录结构
+    packages/harness/myagentflow/authz/
+    ├── __init__.py
+    ├── acl.py  ACL：角色 → 权限 → 资源。
+    ├── jwt.py  JWT 校验：HS256，手写。
+    └── license.py  ← 本文件
+
+三、关键方法
+    _sign()
+    issue()
+    parse()
+    has_feature()
 """
 from __future__ import annotations
 

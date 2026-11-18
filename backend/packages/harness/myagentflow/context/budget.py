@@ -1,8 +1,19 @@
-"""上下文预算：估算、阈值、封顶。
+"""一、文件说明
+    上下文预算：估算、阈值、封顶。
+    为什么要有绝对上限：
+    模型窗口写着 256K，但实测 334K ctx 时 TTFT 会飙到 10.9s，
+    所以「比例阈值」必须再被一个绝对值压住。
 
-为什么要有绝对上限：
-模型窗口写着 256K，但实测 334K ctx 时 TTFT 会飙到 10.9s，
-所以「比例阈值」必须再被一个绝对值压住。
+二、目录结构
+    packages/harness/myagentflow/context/
+    ├── __init__.py
+    └── budget.py  ← 本文件
+
+三、关键方法
+    estimate_tokens()    粗估：中文约 1 字 1 token，英文约 4 字符 1 token。宁可高估。
+    compact_threshold()
+    should_compact()
+    refill_target()
 """
 from __future__ import annotations
 

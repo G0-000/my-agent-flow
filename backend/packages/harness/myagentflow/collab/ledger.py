@@ -1,7 +1,17 @@
-"""协作账本：任务认领与心跳。
+"""一、文件说明
+    协作账本：任务认领与心跳。
+    为什么要版本号：两个人同时点「认领」，后写的那次必须失败，
+    否则同一个任务会被执行两遍。
 
-为什么要版本号：两个人同时点「认领」，后写的那次必须失败，
-否则同一个任务会被执行两遍。
+二、目录结构
+    packages/harness/myagentflow/collab/
+    ├── __init__.py
+    ├── ledger.py  ← 本文件
+    └── shares.py  分享链接：创建、解析、撤销。
+
+三、关键方法
+    Task
+    Ledger
 """
 from __future__ import annotations
 

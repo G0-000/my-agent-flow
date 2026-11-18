@@ -1,13 +1,23 @@
-"""单个模型的配置：连接信息 + 采样参数。
-
-两个最容易混的字段：
+"""一、文件说明
+    单个模型的配置：连接信息 + 采样参数。
+    两个最容易混的字段：
     name  —— 配置条目名（唯一），primary_model 引用它，也用来在列表里回查
     model —— 真正发给厂商的模型 ID（如 gpt-4o-mini）
+    本文件只保留第 1 章用得到的 13 列；其余列名列在文末注释里，读到对应章节再加。
 
-本文件只保留第 1 章用得到的 13 列；其余列名列在文末注释里，读到对应章节再加。
+二、目录结构
+    packages/harness/myagentflow/config/
+    ├── __init__.py
+    ├── app_config.py  应用根配置：把各配置节拼起来，并负责加载与缓存。
+    ├── checkpointer_config.py  LangGraph 检查点的配置节：存哪种后端、连到哪。
+    ├── model_config.py  ← 本文件
+    ├── models_yaml.py  YAML 里 `models` 的两种写法：嵌套 `providers` 与扁平
+    └── storage_config.py  应用 SQLite 存储配置：只回答「应用库放哪」。
+
+三、关键方法
+    resolve_model_max_output_tokens()  把 DB/API 里的 max_tokens 归一：未设或历史 8192 → 64k。
+    ModelConfig                        一条模型的配置。
 """
-
-
 from __future__ import annotations
 
 from typing import Any

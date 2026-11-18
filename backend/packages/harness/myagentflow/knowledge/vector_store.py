@@ -1,7 +1,18 @@
-"""向量存储：SQLite + Python 余弦。
+"""一、文件说明
+    向量存储：SQLite + Python 余弦。
+    为什么先不上向量库：几千块规模下，一次全表扫描 <10ms，
+    引入 FAISS 只会让部署多一个依赖。
 
-为什么先不上向量库：几千块规模下，一次全表扫描 <10ms，
-引入 FAISS 只会让部署多一个依赖。
+二、目录结构
+    packages/harness/myagentflow/knowledge/
+    ├── __init__.py
+    ├── chunker.py  切块：先按标题分段，再按窗口滑。
+    ├── map.py  知识地图：文档 → 标题 → 块 id。
+    └── vector_store.py  ← 本文件
+
+三、关键方法
+    _cos()
+    VectorStore
 """
 from __future__ import annotations
 

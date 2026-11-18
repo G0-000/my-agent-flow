@@ -1,7 +1,18 @@
-"""子代理注册表：谁能干什么，谁来干。
+"""一、文件说明
+    子代理注册表：谁能干什么，谁来干。
+    为什么要 tags 而不是让模型自由挑：
+    子代理名字对模型没有语义，标签才有；而且挑错人的代价是一整轮白跑。
 
-为什么要 tags 而不是让模型自由挑：
-子代理名字对模型没有语义，标签才有；而且挑错人的代价是一整轮白跑。
+二、目录结构
+    packages/harness/myagentflow/subagents/
+    ├── __init__.py
+    ├── adapter.py  外部 Agent 适配：把 A2A 响应变成内部子代理结果。
+    ├── registry.py  ← 本文件
+    └── summarize.py  子代理结果汇总：只回填「结论 + 证据 + 失败原因」。
+
+三、关键方法
+    SubagentSpec
+    SubagentRegistry
 """
 from __future__ import annotations
 

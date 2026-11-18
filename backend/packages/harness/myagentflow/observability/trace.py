@@ -1,7 +1,16 @@
-"""Trace：一次运行的耗时与成本。
+"""一、文件说明
+    Trace：一次运行的耗时与成本。
+    为什么不用 print 调试：线上没有 stdout，
+    trace 必须能以结构化字段落到日志/表里，才能按 run_id 追。
 
-为什么不用 print 调试：线上没有 stdout，
-trace 必须能以结构化字段落到日志/表里，才能按 run_id 追。
+二、目录结构
+    packages/harness/myagentflow/observability/
+    ├── __init__.py
+    └── trace.py  ← 本文件
+
+三、关键方法
+    Span
+    Trace
 """
 from __future__ import annotations
 

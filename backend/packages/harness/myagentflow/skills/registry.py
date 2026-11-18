@@ -1,7 +1,18 @@
-"""技能包注册：manifest 校验 + 安装列表。
+"""一、文件说明
+    技能包注册：manifest 校验 + 安装列表。
+    为什么安装时就校验：坏包在运行时才炸，用户看到的是「Agent 突然不能用了」，
+    很难联想到是某个技能包的问题。
 
-为什么安装时就校验：坏包在运行时才炸，用户看到的是「Agent 突然不能用了」，
-很难联想到是某个技能包的问题。
+二、目录结构
+    packages/harness/myagentflow/skills/
+    ├── __init__.py
+    ├── loader.py  插件加载：声明式入口 + 失败隔离。
+    └── registry.py  ← 本文件
+
+三、关键方法
+    Manifest
+    read_manifest()
+    SkillRegistry
 """
 from __future__ import annotations
 

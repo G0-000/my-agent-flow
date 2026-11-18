@@ -1,7 +1,17 @@
-"""中间件链：进正序、出逆序。
+"""一、文件说明
+    中间件链：进正序、出逆序。
+    为什么 after 要逆序：它是「清理」语义——后申请的资源先释放，
+    否则 A 依赖 B 的资源时，A 先清理会让 B 拿到已失效的对象。
 
-为什么 after 要逆序：它是「清理」语义——后申请的资源先释放，
-否则 A 依赖 B 的资源时，A 先清理会让 B 拿到已失效的对象。
+二、目录结构
+    packages/harness/myagentflow/agents/middlewares/
+    ├── __init__.py
+    ├── audit.py  审计中间件：每次工具调用留一行。
+    └── chain.py  ← 本文件
+
+三、关键方法
+    Middleware
+    run_chain()
 """
 from __future__ import annotations
 

@@ -1,7 +1,19 @@
-"""切块：先按标题分段，再按窗口滑。
+"""一、文件说明
+    切块：先按标题分段，再按窗口滑。
+    为什么保留标题路径：检索命中一段后，模型需要知道「这段属于哪一章」，
+    否则会把某个小节的结论当全局结论。
 
-为什么保留标题路径：检索命中一段后，模型需要知道「这段属于哪一章」，
-否则会把某个小节的结论当全局结论。
+二、目录结构
+    packages/harness/myagentflow/knowledge/
+    ├── __init__.py
+    ├── chunker.py  ← 本文件
+    ├── map.py  知识地图：文档 → 标题 → 块 id。
+    └── vector_store.py  向量存储：SQLite + Python 余弦。
+
+三、关键方法
+    Chunk
+    _split_sections()
+    chunk_text()
 """
 from __future__ import annotations
 

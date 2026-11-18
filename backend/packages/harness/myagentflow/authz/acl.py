@@ -1,7 +1,18 @@
-"""ACL：角色 → 权限 → 资源。
+"""一、文件说明
+    ACL：角色 → 权限 → 资源。
+    为什么 owner 单独判：把 owner 也塞进角色表，
+    会出现「管理员改了策略把自己锁在门外」。
 
-为什么 owner 单独判：把 owner 也塞进角色表，
-会出现「管理员改了策略把自己锁在门外」。
+二、目录结构
+    packages/harness/myagentflow/authz/
+    ├── __init__.py
+    ├── acl.py  ← 本文件
+    ├── jwt.py  JWT 校验：HS256，手写。
+    └── license.py  离线许可：签名内容 + 功能位。
+
+三、关键方法
+    Resource
+    can()
 """
 from __future__ import annotations
 

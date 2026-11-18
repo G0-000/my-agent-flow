@@ -1,6 +1,17 @@
-"""通知投递：多渠道 + 去重 + 失败隔离。
+"""一、文件说明
+    通知投递：多渠道 + 去重 + 失败隔离。
+    为什么失败要隔离：一个 webhook 挂了不该让桌面通知也发不出去。
 
-为什么失败要隔离：一个 webhook 挂了不该让桌面通知也发不出去。
+二、目录结构
+    packages/harness/myagentflow/automation/
+    ├── __init__.py
+    ├── heartbeat.py  心跳：状态没变就别叫模型。
+    ├── notify.py  ← 本文件
+    ├── scheduler.py  调度器：最小 cron + 重启补偿。
+    └── store.py  自动化：规则 + 执行历史。
+
+三、关键方法
+    Notifier
 """
 from __future__ import annotations
 

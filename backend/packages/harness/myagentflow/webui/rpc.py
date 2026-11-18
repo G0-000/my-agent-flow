@@ -1,8 +1,16 @@
-"""UI RPC：桌面端不需要 REST，一层方法表就够。
+"""一、文件说明
+    UI RPC：桌面端不需要 REST，一层方法表就够。
+    错误码照 JSON-RPC 规范：
+    -32601 方法不存在 / -32602 参数错误 / -32603 内部错误。
+    自创错误码会让所有客户端各写一套映射。
 
-错误码照 JSON-RPC 规范：
--32601 方法不存在 / -32602 参数错误 / -32603 内部错误。
-自创错误码会让所有客户端各写一套映射。
+二、目录结构
+    packages/harness/myagentflow/webui/
+    ├── __init__.py
+    └── rpc.py  ← 本文件
+
+三、关键方法
+    Rpc
 """
 from __future__ import annotations
 

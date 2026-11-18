@@ -1,7 +1,18 @@
-"""流程（Workflow）：一组有序步骤 + 一次执行记录。
+"""一、文件说明
+    流程（Workflow）：一组有序步骤 + 一次执行记录。
+    为什么失败要保留已完成产物：用户修完失败那一步后，
+    不该从第一步重跑（重跑会重复写文件、重复调外部接口）。
 
-为什么失败要保留已完成产物：用户修完失败那一步后，
-不该从第一步重跑（重跑会重复写文件、重复调外部接口）。
+二、目录结构
+    packages/harness/myagentflow/plans/
+    ├── __init__.py
+    ├── parser.py  计划解析：Markdown → 步骤 DAG。
+    ├── router.py  探索预算：给「再试一次」一个硬上限。
+    └── workflow.py  ← 本文件
+
+三、关键方法
+    StepResult
+    Workflow
 """
 from __future__ import annotations
 

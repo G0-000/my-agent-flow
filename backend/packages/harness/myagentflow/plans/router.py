@@ -1,7 +1,20 @@
-"""探索预算：给「再试一次」一个硬上限。
+"""一、文件说明
+    探索预算：给「再试一次」一个硬上限。
+    为什么必须硬上限：模型天然倾向再试一次，没有外部约束时，
+    一个死循环能烧掉整晚的额度和上下文。
 
-为什么必须硬上限：模型天然倾向再试一次，没有外部约束时，
-一个死循环能烧掉整晚的额度和上下文。
+二、目录结构
+    packages/harness/myagentflow/plans/
+    ├── __init__.py
+    ├── parser.py  计划解析：Markdown → 步骤 DAG。
+    ├── router.py  ← 本文件
+    └── workflow.py  流程（Workflow）：一组有序步骤 + 一次执行记录。
+
+三、关键方法
+    Strategy
+    Budget
+    choose()
+    spend()
 """
 from __future__ import annotations
 

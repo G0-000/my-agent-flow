@@ -1,7 +1,17 @@
-"""CLI：最小两个子命令。
+"""一、文件说明
+    CLI：最小两个子命令。
+    为什么 CLI 要和 Gateway 共用代码：调试时想在终端复现线上问题，
+    两条代码路径一定会分叉。
 
-为什么 CLI 要和 Gateway 共用代码：调试时想在终端复现线上问题，
-两条代码路径一定会分叉。
+二、目录结构
+    packages/harness/myagentflow/cli/
+    ├── __init__.py
+    └── main.py  ← 本文件
+
+三、关键方法
+    _chat()
+    _state()
+    main()
 """
 from __future__ import annotations
 

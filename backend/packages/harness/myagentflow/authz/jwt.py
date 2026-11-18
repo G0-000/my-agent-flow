@@ -1,7 +1,18 @@
-"""JWT 校验：HS256，手写。
+"""一、文件说明
+    JWT 校验：HS256，手写。
+    为什么不用现成库：这一步要理解「先验签再读 payload」这件事，
+    顺序反了等于相信未经验证的内容。
 
-为什么不用现成库：这一步要理解「先验签再读 payload」这件事，
-顺序反了等于相信未经验证的内容。
+二、目录结构
+    packages/harness/myagentflow/authz/
+    ├── __init__.py
+    ├── acl.py  ACL：角色 → 权限 → 资源。
+    ├── jwt.py  ← 本文件
+    └── license.py  离线许可：签名内容 + 功能位。
+
+三、关键方法
+    _b64d()
+    verify()
 """
 from __future__ import annotations
 

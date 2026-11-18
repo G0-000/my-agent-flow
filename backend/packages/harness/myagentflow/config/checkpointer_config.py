@@ -1,10 +1,22 @@
-"""LangGraph 检查点的配置节：存哪种后端、连到哪。
+"""一、文件说明
+    LangGraph 检查点的配置节：存哪种后端、连到哪。
+    为什么带模块级单例：provider 每次建图都要取「当前生效的配置」，
+    让它自己 new 对象会重复开连接；运行中切换后端也由 set_checkpointer_config() 统一改。
 
-为什么带模块级单例：provider 每次建图都要取「当前生效的配置」，
-让它自己 new 对象会重复开连接；运行中切换后端也由 set_checkpointer_config() 统一改。
+二、目录结构
+    packages/harness/myagentflow/config/
+    ├── __init__.py
+    ├── app_config.py  应用根配置：把各配置节拼起来，并负责加载与缓存。
+    ├── checkpointer_config.py  ← 本文件
+    ├── model_config.py  单个模型的配置：连接信息 + 采样参数。
+    ├── models_yaml.py  YAML 里 `models` 的两种写法：嵌套 `providers` 与扁平
+    └── storage_config.py  应用 SQLite 存储配置：只回答「应用库放哪」。
+
+三、关键方法
+    CheckpointerConfig         Configuration for LangGraph state persistence checkpointer.
+    get_checkpointer_config()  Get the current checkpointer configuration, or None if not configured.
+    set_checkpointer_config()  Set the checkpointer configuration.
 """
-
-
 from __future__ import annotations
 
 from typing import Literal

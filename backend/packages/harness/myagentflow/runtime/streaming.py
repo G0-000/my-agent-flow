@@ -1,4 +1,15 @@
-"""把 LangGraph 的 astream_events 收敛成我们自己的事件。"""
+"""一、文件说明
+    把 LangGraph 的 astream_events 收敛成我们自己的事件。
+
+二、目录结构
+    packages/harness/myagentflow/runtime/
+    ├── __init__.py
+    ├── events.py  流式事件：统一形状 + SSE 序列化。
+    └── streaming.py  ← 本文件
+
+三、关键方法
+    stream_graph()
+"""
 from __future__ import annotations
 
 from collections.abc import AsyncIterator

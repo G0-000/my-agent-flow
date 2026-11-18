@@ -1,4 +1,16 @@
-"""审计中间件：每次工具调用留一行。"""
+"""一、文件说明
+    审计中间件：每次工具调用留一行。
+
+二、目录结构
+    packages/harness/myagentflow/agents/middlewares/
+    ├── __init__.py
+    ├── audit.py  ← 本文件
+    └── chain.py  中间件链：进正序、出逆序。
+
+三、关键方法
+    _brief()
+    AuditMiddleware
+"""
 from __future__ import annotations
 
 import json

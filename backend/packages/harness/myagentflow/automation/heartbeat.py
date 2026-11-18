@@ -1,8 +1,20 @@
-"""心跳：状态没变就别叫模型。
+"""一、文件说明
+    心跳：状态没变就别叫模型。
+    为什么用指纹而不是时间：
+    按时间触发的话，一切正常时也在烧 token；
+    按指纹触发，只有「真的有变化」才动作。
 
-为什么用指纹而不是时间：
-按时间触发的话，一切正常时也在烧 token；
-按指纹触发，只有「真的有变化」才动作。
+二、目录结构
+    packages/harness/myagentflow/automation/
+    ├── __init__.py
+    ├── heartbeat.py  ← 本文件
+    ├── notify.py  通知投递：多渠道 + 去重 + 失败隔离。
+    ├── scheduler.py  调度器：最小 cron + 重启补偿。
+    └── store.py  自动化：规则 + 执行历史。
+
+三、关键方法
+    fingerprint()
+    Heartbeat
 """
 from __future__ import annotations
 

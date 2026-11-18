@@ -1,7 +1,20 @@
-"""会话仓储：一条会话一行，负责标题与时间戳。
+"""一、文件说明
+    会话仓储：一条会话一行，负责标题与时间戳。
+    为什么会话和消息分两张表：会话是「目录」，消息是「正文」；
+    删会话要能留下审计（先删消息、再删行），两者的生命周期不绑在一起。
 
-为什么会话和消息分两张表：会话是「目录」，消息是「正文」；
-删会话要能留下审计（先删消息、再删行），两者的生命周期不 bind 在一起。
+二、目录结构
+    packages/harness/myagentflow/persistence/
+    ├── __init__.py
+    ├── chat_message_repositories.py  消息仓储：会话正文的追加、读取、计数、清理。
+    ├── db.py  应用 SQLite 的连接与事务：整个进程共用一条连接。
+    └── session_repositories.py  ← 本文件
+
+三、关键方法
+    upsert_session_row()            建或更新会话：已存在就刷新 updated_at，标题只在传入非空时改。
+    get_session_row_for_ui()        按 session_key 取一行；不存在返回 None（不抛异常，调用方据此决定建不建）。
+    list_sessions_for_ui()          最近有更新的会话，按 updated_at 倒序；limit 限制条数，防止首页一次拉全库。
+    delete_sessions_by_thread_id()  删一条会话，返回删掉的行数（0 表示本来就不存在）。
 """
 from __future__ import annotations
 

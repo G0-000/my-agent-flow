@@ -1,7 +1,17 @@
-"""Eval：固定用例 + 可判定的断言。
+"""一、文件说明
+    Eval：固定用例 + 可判定的断言。
+    为什么不用「让模型打分」：模型评分每次都会飘，
+    回归测试需要的是稳定信号，哪怕它很粗糙。
 
-为什么不用「让模型打分」：模型评分每次都会飘，
-回归测试需要的是稳定信号，哪怕它很粗糙。
+二、目录结构
+    packages/harness/myagentflow/eval/
+    ├── __init__.py
+    └── runner.py  ← 本文件
+
+三、关键方法
+    Case
+    score()
+    run()
 """
 from __future__ import annotations
 

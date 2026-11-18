@@ -1,8 +1,19 @@
-"""后台命令：启动、查询、终止。
+"""一、文件说明
+    后台命令：启动、查询、终止。
+    为什么 poll 要区分 404/409：
+    404 = 你问的这个 id 我从没见过（客户端 bug）；
+    409 = 见过但已经退出（正常的生命周期结束）。两者混在一起就没法排查。
 
-为什么 poll 要区分 404/409：
-404 = 你问的这个 id 我从没见过（客户端 bug）；
-409 = 见过但已经退出（正常的生命周期结束）。两者混在一起就没法排查。
+二、目录结构
+    packages/harness/myagentflow/tools/host_direct/
+    ├── __init__.py
+    ├── background_bash.py  ← 本文件
+    ├── bridge_auth.py  桥接鉴权：浏览器桥 / CUA 桥共用的 token 校验。
+    └── workspace_path_guard.py  宿主路径守卫：解析 + 可切换策略。
+
+三、关键方法
+    BgProc
+    BgManager
 """
 from __future__ import annotations
 

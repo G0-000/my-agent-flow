@@ -1,15 +1,21 @@
-"""应用 SQLite 的连接与事务：整个进程共用一条连接。
+"""一、文件说明
+    应用 SQLite 的连接与事务：整个进程共用一条连接。
+    为什么共用一条：应用库是单文件，多个写连接会互相抢锁；一条连接 + 一把进程内锁，
+    把并发问题收在一个地方，SQLite 的 WAL 再兜住跨进程读写。
 
-为什么共用一条：应用库是单文件，多个写连接会互相抢锁；一条连接 + 一把进程内锁，
-把并发问题收在一个地方，SQLite 的 WAL 再兜住跨进程读写。
+二、目录结构
+    packages/harness/myagentflow/persistence/
+    ├── __init__.py
+    ├── chat_message_repositories.py  消息仓储：会话正文的追加、读取、计数、清理。
+    ├── db.py  ← 本文件
+    └── session_repositories.py  会话仓储：一条会话一行，负责标题与时间戳。
 
-模块位置（调用方向自上而下）:
-
-    app/gateway/routers/chat.py
-        └─ persistence/session_repositories.py      会话标题与时间戳
-        └─ persistence/chat_message_repositories.py 消息追加与读回
-              └─ persistence/db.py  ← 本文件          get_db / db_connection_lock
-                    └─ config/app_config.py            storage.sqlite_path
+三、关键方法
+    _resolve_db_path()
+    db_connection_lock()  写操作的进程内互斥锁；多线程同时 append 时靠它保证 seq 不撞。
+    _ensure_schema()      建各仓储的表；延迟 import 避免 `db ← repositories → db` 的循环。
+    get_db()              取共享连接；第一次调用时建目录、开 WAL、建表。
+    reset_db()            关掉并丢弃共享连接（测试换库文件、或进程收尾时用）。
 """
 from __future__ import annotations
 

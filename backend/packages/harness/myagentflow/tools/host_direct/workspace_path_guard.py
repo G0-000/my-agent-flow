@@ -1,7 +1,19 @@
-"""宿主路径守卫：解析 + 可切换策略。
+"""一、文件说明
+    宿主路径守卫：解析 + 可切换策略。
+    EvoFlow 的实现把 confinement 关掉了（docstring 明写 no confinement），
+    这里保留同样行为，但把它变成一个显式开关，避免「以为有护栏」。
 
-EvoFlow 的实现把 confinement 关掉了（docstring 明写 no confinement），
-这里保留同样行为，但把它变成一个显式开关，避免「以为有护栏」。
+二、目录结构
+    packages/harness/myagentflow/tools/host_direct/
+    ├── __init__.py
+    ├── background_bash.py  后台命令：启动、查询、终止。
+    ├── bridge_auth.py  桥接鉴权：浏览器桥 / CUA 桥共用的 token 校验。
+    └── workspace_path_guard.py  ← 本文件
+
+三、关键方法
+    Policy
+    Resolution
+    resolve()
 """
 from __future__ import annotations
 

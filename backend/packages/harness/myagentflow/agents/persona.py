@@ -1,7 +1,17 @@
-"""人格：可组合片段 + 预算内保序拼装。
+"""一、文件说明
+    人格：可组合片段 + 预算内保序拼装。
+    为什么分片段：人格要能按场景覆盖（比如客服场景换语气），
+    一整段提示词没法局部替换。
 
-为什么分片段：人格要能按场景覆盖（比如客服场景换语气），
-一整段提示词没法局部替换。
+二、目录结构
+    packages/harness/myagentflow/agents/
+    ├── __init__.py
+    ├── content_scanner.py  内容扫描：命中即阻断，返回降级文本。
+    └── persona.py  ← 本文件
+
+三、关键方法
+    Fragment
+    compose()
 """
 from __future__ import annotations
 

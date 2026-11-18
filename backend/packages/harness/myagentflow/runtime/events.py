@@ -1,7 +1,17 @@
-"""流式事件：统一形状 + SSE 序列化。
+"""一、文件说明
+    流式事件：统一形状 + SSE 序列化。
+    为什么事件要带 seq：前端断线重连时用 Last-Event-ID 续传，
+    没有 seq 就只能整段重放，用户会看到重复内容。
 
-为什么事件要带 seq：前端断线重连时用 Last-Event-ID 续传，
-没有 seq 就只能整段重放，用户会看到重复内容。
+二、目录结构
+    packages/harness/myagentflow/runtime/
+    ├── __init__.py
+    ├── events.py  ← 本文件
+    └── streaming.py  把 LangGraph 的 astream_events 收敛成我们自己的事件。
+
+三、关键方法
+    StreamEvent
+    EventStream  把「生成事件」和「排 seq」分开，调用方只管产出业务数据。
 """
 from __future__ import annotations
 

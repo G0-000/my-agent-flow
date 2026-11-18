@@ -1,14 +1,28 @@
-"""YAML 里 `models` 的两种写法：嵌套 `providers` 与扁平列表。
+"""一、文件说明
+    YAML 里 `models` 的两种写法：嵌套 `providers` 与扁平列表。
+    为什么需要摊平：`AppConfig.models` 是 `list[ModelConfig]`，一条一个模型；
+    而 yaml 为了少写重复的 base_url/api_key，习惯按「一个网关」分组写成
+    `providers: {网关: {base_url, api_key, models: [...]}}`。两种输入都要能进 Pydantic。
+    只做「yaml → 扁平条目」这一个方向；把库里的模型还原成 providers 写回 yaml
+    需要模型库，本复刻没有，故不实现。
 
-为什么需要摊平：`AppConfig.models` 是 `list[ModelConfig]`，一条一个模型；
-而 yaml 为了少写重复的 base_url/api_key，习惯按「一个网关」分组写成
-`providers: {网关: {base_url, api_key, models: [...]}}`。两种输入都要能进 Pydantic。
+二、目录结构
+    packages/harness/myagentflow/config/
+    ├── __init__.py
+    ├── app_config.py  应用根配置：把各配置节拼起来，并负责加载与缓存。
+    ├── checkpointer_config.py  LangGraph 检查点的配置节：存哪种后端、连到哪。
+    ├── model_config.py  单个模型的配置：连接信息 + 采样参数。
+    ├── models_yaml.py  ← 本文件
+    └── storage_config.py  应用 SQLite 存储配置：只回答「应用库放哪」。
 
-只做「yaml → 扁平条目」这一个方向；把库里的模型还原成 providers 写回 yaml
-需要模型库，本复刻没有，故不实现。
+三、关键方法
+    infer_vendor_from_connection()       老配置没写 `vendor` 时，从 host 或模型名猜一个。
+    _coerce_model_entry()                把列表里的一个元素归一成 dict；无法归一的返回 None（跳过，不报错）。
+    _ensure_vendor_field()               条目没写 vendor 就补一个，保证 `ModelConfig.vendor` 尽量非空。
+    flatten_providers_dict()             把 `models.providers` 摊平成「一条模型一个 dict」。
+    _normalize_models_input()            yaml `models` 的入口：list 走逐条归一，dict 走 providers 摊平，其余给空列表。
+    coerce_models_field_for_appconfig()  给 `AppConfig` 的 before-validator 用：把 models 键统一成扁平列表。
 """
-
-
 from __future__ import annotations
 
 import logging

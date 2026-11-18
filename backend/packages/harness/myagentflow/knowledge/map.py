@@ -1,7 +1,18 @@
-"""知识地图：文档 → 标题 → 块 id。
+"""一、文件说明
+    知识地图：文档 → 标题 → 块 id。
+    为什么要地图：让模型先看「有哪些文档」，再决定检索哪一篇，
+    比直接 top-k 更省 token，也更少答错文档。
 
-为什么要地图：让模型先看「有哪些文档」，再决定检索哪一篇，
-比直接 top-k 更省 token，也更少答错文档。
+二、目录结构
+    packages/harness/myagentflow/knowledge/
+    ├── __init__.py
+    ├── chunker.py  切块：先按标题分段，再按窗口滑。
+    ├── map.py  ← 本文件
+    └── vector_store.py  向量存储：SQLite + Python 余弦。
+
+三、关键方法
+    build_map()
+    describe()
 """
 from __future__ import annotations
 

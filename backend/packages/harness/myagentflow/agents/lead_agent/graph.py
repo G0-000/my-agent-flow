@@ -1,6 +1,14 @@
-"""最小 Agent：一个节点 + 两条边。
+"""一、文件说明
+    最小 Agent：一个节点 + 两条边。
+    刻意不做工具循环：先把「单轮」跑通，后面每章只在这张图上加节点/加边。
 
-刻意不做工具循环：先把「单轮」跑通，后面每章只在这张图上加节点/加边。
+二、目录结构
+    packages/harness/myagentflow/agents/lead_agent/
+    ├── __init__.py
+    └── graph.py  ← 本文件
+
+三、关键方法
+    build_graph()
 """
 from __future__ import annotations
 

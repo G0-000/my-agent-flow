@@ -1,7 +1,17 @@
-"""运行生命周期：登记、取消、收尾。
+"""一、文件说明
+    运行生命周期：登记、取消、收尾。
+    为什么用 Event 而不是 bool：取消可能来自另一个线程（HTTP cancel 接口），
+    bool 读写没有内存屏障，Event 有。
 
-为什么用 Event 而不是 bool：取消可能来自另一个线程（HTTP cancel 接口），
-bool 读写没有内存屏障，Event 有。
+二、目录结构
+    packages/harness/myagentflow/session_execution/
+    ├── __init__.py
+    ├── idempotency.py  幂等：同一个请求只执行一次。
+    └── lifecycle.py  ← 本文件
+
+三、关键方法
+    RunRecord
+    RunRegistry
 """
 from __future__ import annotations
 

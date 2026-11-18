@@ -1,7 +1,19 @@
-"""外部 Agent 适配：把 A2A 响应变成内部子代理结果。
+"""一、文件说明
+    外部 Agent 适配：把 A2A 响应变成内部子代理结果。
+    为什么单独一层：外部协议随时会变，变化只该影响这个文件，
+    不该渗透到计划执行、记忆写入这些内部模块。
 
-为什么单独一层：外部协议随时会变，变化只该影响这个文件，
-不该渗透到计划执行、记忆写入这些内部模块。
+二、目录结构
+    packages/harness/myagentflow/subagents/
+    ├── __init__.py
+    ├── adapter.py  ← 本文件
+    ├── registry.py  子代理注册表：谁能干什么，谁来干。
+    └── summarize.py  子代理结果汇总：只回填「结论 + 证据 + 失败原因」。
+
+三、关键方法
+    ExternalAgent
+    to_request()
+    to_summary()
 """
 from __future__ import annotations
 

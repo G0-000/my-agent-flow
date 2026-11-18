@@ -1,7 +1,18 @@
-"""插件加载：声明式入口 + 失败隔离。
+"""一、文件说明
+    插件加载：声明式入口 + 失败隔离。
+    为什么失败不抛出：插件是第三方代码，一个 import 报错
+    不该让整个宿主起不来。
 
-为什么失败不抛出：插件是第三方代码，一个 import 报错
-不该让整个宿主起不来。
+二、目录结构
+    packages/harness/myagentflow/skills/
+    ├── __init__.py
+    ├── loader.py  ← 本文件
+    └── registry.py  技能包注册：manifest 校验 + 安装列表。
+
+三、关键方法
+    PluginSpec
+    load()
+    load_all()
 """
 from __future__ import annotations
 

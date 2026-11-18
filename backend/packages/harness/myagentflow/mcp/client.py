@@ -1,7 +1,15 @@
-"""最小 MCP 客户端：stdio + JSON-RPC。
+"""一、文件说明
+    最小 MCP 客户端：stdio + JSON-RPC。
+    为什么先只做 stdio：HTTP/SSE 传输要多处理一层鉴权与重连，
+    stdio 能把「协议本身」讲清楚。
 
-为什么先只做 stdio：HTTP/SSE 传输要多处理一层鉴权与重连，
-stdio 能把「协议本身」讲清楚。
+二、目录结构
+    packages/harness/myagentflow/mcp/
+    ├── __init__.py
+    └── client.py  ← 本文件
+
+三、关键方法
+    McpClient
 """
 from __future__ import annotations
 

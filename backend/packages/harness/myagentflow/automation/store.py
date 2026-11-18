@@ -1,7 +1,18 @@
-"""自动化：规则 + 执行历史。
+"""一、文件说明
+    自动化：规则 + 执行历史。
+    为什么执行前先写 running：进程被杀时，只看历史会以为「从没跑过」，
+    先写一条 running 才能让「上次是否完成」可判断。
 
-为什么执行前先写 running：进程被杀时，只看历史会以为「从没跑过」，
-先写一条 running 才能让「上次是否完成」可判断。
+二、目录结构
+    packages/harness/myagentflow/automation/
+    ├── __init__.py
+    ├── heartbeat.py  心跳：状态没变就别叫模型。
+    ├── notify.py  通知投递：多渠道 + 去重 + 失败隔离。
+    ├── scheduler.py  调度器：最小 cron + 重启补偿。
+    └── store.py  ← 本文件
+
+三、关键方法
+    AutomationStore
 """
 from __future__ import annotations
 

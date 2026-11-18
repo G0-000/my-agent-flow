@@ -1,7 +1,16 @@
-"""只读检查点读线程状态：不编译图。
+"""一、文件说明
+    只读检查点读线程状态：不编译图。
+    为什么独立成文件：刷新页面、拉历史这类高频路径会反复调它。
+    一旦有人顺手在这里 compile/invoke 图，整条读路径就变成秒级。
 
-为什么独立成文件：刷新页面、拉历史这类高频路径会反复调它。
-一旦有人顺手在这里 compile/invoke 图，整条读路径就变成秒级。
+二、目录结构
+    packages/harness/myagentflow/agents/checkpointer/
+    ├── __init__.py  检查点层：对外只暴露「拿 saver / 重置 / 一次性上下文」三件事。
+    ├── provider.py  检查点提供者：单例 + 一次性上下文（memory / sqlite / pos
+    └── thread_state_reader.py  ← 本文件
+
+三、关键方法
+    read_thread_state()  返回最新检查点的最小快照；线程不存在返回 None。
 """
 from __future__ import annotations
 

@@ -1,7 +1,16 @@
-"""代码索引：用 ast 抽符号，不靠正则。
+"""一、文件说明
+    代码索引：用 ast 抽符号，不靠正则。
+    为什么必须用 ast：注释里的 `def foo` 和字符串里的 `class Bar` 会骗过正则，
+    索引一旦有两成错，Agent 就会跳到不存在的行。
 
-为什么必须用 ast：注释里的 `def foo` 和字符串里的 `class Bar` 会骗过正则，
-索引一旦有两成错，Agent 就会跳到不存在的行。
+二、目录结构
+    packages/harness/myagentflow/code_index/
+    ├── __init__.py
+    └── store.py  ← 本文件
+
+三、关键方法
+    index_file()
+    CodeIndex
 """
 from __future__ import annotations
 

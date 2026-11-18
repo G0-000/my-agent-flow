@@ -1,7 +1,17 @@
-"""资产与反思：一张表管三类东西。
+"""一、文件说明
+    资产与反思：一张表管三类东西。
+    为什么不拆三张表：它们都要「按 thread 查、按时间排」，
+    拆开以后每次跨类检索都要 UNION。
 
-为什么不拆三张表：它们都要「按 thread 查、按时间排」，
-拆开以后每次跨类检索都要 UNION。
+二、目录结构
+    packages/harness/myagentflow/memory/
+    ├── __init__.py
+    ├── agent_memory.py  两层记忆：agent 级跨任务，thread 级随线程删。
+    └── assets.py  ← 本文件
+
+三、关键方法
+    Asset
+    AssetStore
 """
 from __future__ import annotations
 

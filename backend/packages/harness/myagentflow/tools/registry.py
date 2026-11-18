@@ -1,7 +1,16 @@
-"""工具注册表：一个数据结构 + 三个方法。
+"""一、文件说明
+    工具注册表：一个数据结构 + 三个方法。
+    为什么要 ToolSpec 而不是裸函数：模型要的是 name/description/JSON Schema，
+    执行要的是可调用对象，两者必须绑在一起，否则迟早对不上。
 
-为什么要 ToolSpec 而不是裸函数：模型要的是 name/description/JSON Schema，
-执行要的是可调用对象，两者必须绑在一起，否则迟早对不上。
+二、目录结构
+    packages/harness/myagentflow/tools/
+    ├── __init__.py
+    └── registry.py  ← 本文件
+
+三、关键方法
+    ToolSpec
+    ToolRegistry
 """
 from __future__ import annotations
 

@@ -1,7 +1,18 @@
-"""沙箱策略：allow / ask / deny。
+"""一、文件说明
+    沙箱策略：allow / ask / deny。
+    判定顺序必须是 deny → ask → allow：
+    先判危险命令，避免「写操作批准了，但命令其实是 rm -rf /」。
 
-判定顺序必须是 deny → ask → allow：
-先判危险命令，避免「写操作批准了，但命令其实是 rm -rf /」。
+二、目录结构
+    packages/harness/myagentflow/sandbox/
+    ├── __init__.py
+    ├── approvals.py  审批单：一次危险调用一张单子。
+    └── policy.py  ← 本文件
+
+三、关键方法
+    Decision
+    PolicyResult
+    evaluate()
 """
 from __future__ import annotations
 

@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-18 17:59　源提交：`1e2a63c`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-18 18:28　源提交：`2aeb675`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -537,6 +537,31 @@ uv run python -c "from myagentflow.agents.checkpointer.provider import get_check
 #   postgres —— 多实例共享，需要 langgraph-checkpoint-postgres（本复刻未实现）
 CheckpointerType = Literal["memory", "sqlite", "postgres"]
 ```
+
+##### 3.2.1 模块头注释三段式
+
+每个 `.py` 顶部固定三段，读者不看代码也能知道这个文件里有什么：
+
+```python
+"""一、文件说明
+    这个文件负责什么、为什么这样切。
+
+二、目录结构
+    packages/harness/myagentflow/persistence/
+    ├── db.py                          ← 本文件
+    ├── session_repositories.py        sessions 表
+    └── chat_message_repositories.py   chat_messages 表
+
+三、关键方法
+    get_db()        取共享连接；首次调用建目录、开 WAL、建表
+    reset_db()      关闭并丢弃连接；测试换库用
+"""
+```
+
+- 一：职责 + 取舍，不复述代码；
+- 二：目录树 + 兄弟文件一句话，本文件标 `← 本文件`；
+- 三：每个公开函数/类一行；不写「对齐某某行」这类出处（出处归文档对照表）；
+- 批量维护：`backend/tools/file_headers.py`，`--force` 重建全部。
 
 ##### 3.3 注释写「为什么」，不写「做什么」的废话
 

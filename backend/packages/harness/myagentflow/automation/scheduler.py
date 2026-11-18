@@ -1,7 +1,20 @@
-"""调度器：最小 cron + 重启补偿。
+"""一、文件说明
+    调度器：最小 cron + 重启补偿。
+    为什么不用 croniter：只支持五段和 `*` 就够本章用，
+    自己写反而能讲清「每分钟对齐」这件事；要全语法再引库。
 
-为什么不用 croniter：只支持五段和 `*` 就够本章用，
-自己写反而能讲清「每分钟对齐」这件事；要全语法再引库。
+二、目录结构
+    packages/harness/myagentflow/automation/
+    ├── __init__.py
+    ├── heartbeat.py  心跳：状态没变就别叫模型。
+    ├── notify.py  通知投递：多渠道 + 去重 + 失败隔离。
+    ├── scheduler.py  ← 本文件
+    └── store.py  自动化：规则 + 执行历史。
+
+三、关键方法
+    _match()
+    matches()
+    Scheduler
 """
 from __future__ import annotations
 

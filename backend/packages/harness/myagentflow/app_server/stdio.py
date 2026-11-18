@@ -1,7 +1,16 @@
-"""stdio app server：一行请求、一行响应。
+"""一、文件说明
+    stdio app server：一行请求、一行响应。
+    为什么用 JSONL 而不是 HTTP：桌面端/编辑器插件拉起子进程时没有端口可用，
+    stdin/stdout 是最稳的通道。
 
-为什么用 JSONL 而不是 HTTP：桌面端/编辑器插件拉起子进程时没有端口可用，
-stdin/stdout 是最稳的通道。
+二、目录结构
+    packages/harness/myagentflow/app_server/
+    ├── __init__.py
+    └── stdio.py  ← 本文件
+
+三、关键方法
+    handle()
+    serve()
 """
 from __future__ import annotations
 

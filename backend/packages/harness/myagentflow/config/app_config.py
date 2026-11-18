@@ -1,20 +1,30 @@
-"""应用根配置：把各配置节拼起来，并负责加载与缓存。
+"""一、文件说明
+    应用根配置：把各配置节拼起来，并负责加载与缓存。
+    配置文件不是一个：`app_config.py` 只是根对象，子配置各在自己的文件里：
+    字段分区只保留 5 个：log_level / models / primary_model / checkpointer / storage；
+    沙箱、web、技能、可观测等分区等读到对应章节再加，字段名保持同一套。
+    缓存按文件 mtime 判断：配置改完不用重启，下一次 get_app_config() 自动重读。
 
-配置文件不是一个：`app_config.py` 只是根对象，子配置各在自己的文件里：
+二、目录结构
+    packages/harness/myagentflow/config/
+    ├── __init__.py
+    ├── app_config.py  ← 本文件
+    ├── checkpointer_config.py  LangGraph 检查点的配置节：存哪种后端、连到哪。
+    ├── model_config.py  单个模型的配置：连接信息 + 采样参数。
+    ├── models_yaml.py  YAML 里 `models` 的两种写法：嵌套 `providers` 与扁平
+    └── storage_config.py  应用 SQLite 存储配置：只回答「应用库放哪」。
 
-    config/app_config.py           ← 本文件：AppConfig + 加载/缓存
-    config/model_config.py         ← 一条模型的类型
-    config/checkpointer_config.py  ← 检查点后端 + 单例
-    config/storage_config.py       ← 应用库位置
-    config/models_yaml.py          ← models 的 providers 写法摊平
-
-字段分区只保留 5 个：log_level / models / primary_model / checkpointer / storage；
-沙箱、web、技能、可观测等分区等读到对应章节再加，字段名保持同一套。
-
-缓存按文件 mtime 判断：配置改完不用重启，下一次 get_app_config() 自动重读。
+三、关键方法
+    AppConfig                     应用根配置。
+    _get_config_mtime()           文件不存在返回 None——缺文件不是错误，用默认值照跑。
+    _read_config_data()           读 yaml/json。yaml 是可选依赖：没装就退化成「只有默认值」。
+    _models_from_env()            没有 config.yaml 时的兜底来源：环境变量（空字符串一律当「没配」）。
+    _load_and_cache_app_config()  解析一次并缓存；文件改了由 get_app_config() 触发重读。
+    get_app_config()              取配置；文件 mtime 变了就重读，否则返回缓存对象。
+    reload_app_config()           强制重读（改完配置立即生效用）。
+    reset_app_config()            清缓存，下次 get_app_config() 重新加载。
+    set_app_config()              直接注入配置对象（测试替身用）。
 """
-
-
 from __future__ import annotations
 
 import json

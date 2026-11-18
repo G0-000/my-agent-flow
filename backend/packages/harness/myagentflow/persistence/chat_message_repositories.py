@@ -1,10 +1,23 @@
-"""消息仓储：会话正文的追加、读取、计数、清理。
+"""一、文件说明
+    消息仓储：会话正文的追加、读取、计数、清理。
+    为什么只追加：消息是对话的「事实记录」，改写历史会让重放、审计、分叉全部失真；
+    需要修正时插入一条新消息，而不是改老行。
+    为什么 seq 由数据库算：应用层计数器在并发下会重号；用 `MAX(seq)+1`
+    并在同一把锁里插入，才能保证同一会话内严格递增。
 
-为什么只追加：消息是对话的「事实记录」，改写历史会让重放、审计、分叉全部失真；
-需要修正时插入一条新消息，而不是改老行。
+二、目录结构
+    packages/harness/myagentflow/persistence/
+    ├── __init__.py
+    ├── chat_message_repositories.py  ← 本文件
+    ├── db.py  应用 SQLite 的连接与事务：整个进程共用一条连接。
+    └── session_repositories.py  会话仓储：一条会话一行，负责标题与时间戳。
 
-为什么 seq 由数据库算：应用层计数器在并发下会重号；用
-`MAX(seq)+1` 并在同一把锁里插入，才能保证同一会话内严格递增。
+三、关键方法
+    _next_seq()                    同一会话的下一个序号；调用方必须已在锁内，否则并发插入会拿到同一个值。
+    append_message()               追加一条消息并返回它的 seq；role 只允许 user/assistant/tool（由调用方保证）。
+    list_messages()                按 seq 正序读回；limit 取「最近 N 条」而不是「最前 N 条」才有意义，故先倒序再翻转。
+    count_messages()
+    delete_messages_for_session()  整会话清空，返回删掉的行数；删会话时先调它，再删 sessions 行。
 """
 from __future__ import annotations
 

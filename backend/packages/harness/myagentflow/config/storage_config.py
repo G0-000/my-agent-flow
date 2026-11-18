@@ -1,10 +1,20 @@
-"""应用 SQLite 存储配置：只回答「应用库放哪」。
+"""一、文件说明
+    应用 SQLite 存储配置：只回答「应用库放哪」。
+    LangGraph 检查点不在这里——那是 checkpointer 的事，两者故意分开：
+    换检查点后端时不该动应用数据，反之亦然。
 
-LangGraph 检查点不在这里——那是 checkpointer 的事，两者故意分开：
-换检查点后端时不该动应用数据，反之亦然。
+二、目录结构
+    packages/harness/myagentflow/config/
+    ├── __init__.py
+    ├── app_config.py  应用根配置：把各配置节拼起来，并负责加载与缓存。
+    ├── checkpointer_config.py  LangGraph 检查点的配置节：存哪种后端、连到哪。
+    ├── model_config.py  单个模型的配置：连接信息 + 采样参数。
+    ├── models_yaml.py  YAML 里 `models` 的两种写法：嵌套 `providers` 与扁平
+    └── storage_config.py  ← 本文件
+
+三、关键方法
+    StorageConfig  单一应用库；LangGraph 检查点另存 `checkpointer.connection_string`（设计上分开）。
 """
-
-
 from __future__ import annotations
 
 from typing import Literal

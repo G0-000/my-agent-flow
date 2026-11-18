@@ -1,6 +1,18 @@
-"""计划解析：Markdown → 步骤 DAG。
+"""一、文件说明
+    计划解析：Markdown → 步骤 DAG。
+    为什么建图时就查环：跑到一半发现互相等待，前面的步骤全白做。
 
-为什么建图时就查环：跑到一半发现互相等待，前面的步骤全白做。
+二、目录结构
+    packages/harness/myagentflow/plans/
+    ├── __init__.py
+    ├── parser.py  ← 本文件
+    ├── router.py  探索预算：给「再试一次」一个硬上限。
+    └── workflow.py  流程（Workflow）：一组有序步骤 + 一次执行记录。
+
+三、关键方法
+    Step
+    parse()
+    check_cycles()  依赖写的是标题时，先映射成 id 再查环。
 """
 from __future__ import annotations
 

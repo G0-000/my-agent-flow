@@ -1,10 +1,18 @@
-"""模型工厂：条目名进，模型实例出。
+"""一、文件说明
+    模型工厂：条目名进，模型实例出。
+    只做「实例化 provider 类」，不发 HTTP；请求由 provider 自己在调用时才发。
+    目前只实现 openai 一家，其他 vendor 明确报错，不静默退化成假模型。
 
-只做「实例化 provider 类」，不发 HTTP；请求由 provider 自己在调用时才发。
-目前只实现 openai 一家，其他 vendor 明确报错，不静默退化成假模型。
+二、目录结构
+    packages/harness/myagentflow/models/
+    ├── __init__.py
+    ├── factory.py  ← 本文件
+    └── resolver.py  模型选择：算出「这一轮该用哪个模型」。
+
+三、关键方法
+    _entry_by_name()     按条目名在 config.yaml 的 models 里回查这一条。
+    create_chat_model()  按配置造一个 chat model。
 """
-
-
 from __future__ import annotations
 
 from typing import Any

@@ -1,7 +1,17 @@
-"""幂等：同一个请求只执行一次。
+"""一、文件说明
+    幂等：同一个请求只执行一次。
+    为什么不是「执行完再检查」：两个并发请求会同时通过检查，
+    所以必须在执行前就用「占用」把键钉住。
 
-为什么不是「执行完再检查」：两个并发请求会同时通过检查，
-所以必须在执行前就用「占用」把键钉住。
+二、目录结构
+    packages/harness/myagentflow/session_execution/
+    ├── __init__.py
+    ├── idempotency.py  ← 本文件
+    └── lifecycle.py  运行生命周期：登记、取消、收尾。
+
+三、关键方法
+    Entry
+    Idempotency
 """
 from __future__ import annotations
 

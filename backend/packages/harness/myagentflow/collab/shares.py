@@ -1,6 +1,17 @@
-"""分享链接：创建、解析、撤销。
+"""一、文件说明
+    分享链接：创建、解析、撤销。
+    为什么存 hash 不存 token：数据库泄露时明文 token 等于把所有人的会话送出去。
 
-为什么存 hash 不存 token：数据库泄露时明文 token 等于把所有人的会话送出去。
+二、目录结构
+    packages/harness/myagentflow/collab/
+    ├── __init__.py
+    ├── ledger.py  协作账本：任务认领与心跳。
+    └── shares.py  ← 本文件
+
+三、关键方法
+    ShareResult
+    _hash()
+    ShareStore
 """
 from __future__ import annotations
 

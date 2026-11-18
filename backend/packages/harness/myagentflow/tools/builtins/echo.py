@@ -1,4 +1,15 @@
-"""第一个内置工具：echo。它的价值是「证明通路」，不是功能。"""
+"""一、文件说明
+    第一个内置工具：echo。它的价值是「证明通路」，不是功能。
+
+二、目录结构
+    packages/harness/myagentflow/tools/builtins/
+    ├── __init__.py
+    └── echo.py  ← 本文件
+
+三、关键方法
+    _echo()
+    register_echo()
+"""
 from __future__ import annotations
 
 from myagentflow.tools.registry import ToolRegistry, ToolSpec

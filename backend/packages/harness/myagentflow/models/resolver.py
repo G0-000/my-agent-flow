@@ -1,13 +1,23 @@
-"""模型选择：算出「这一轮该用哪个模型」。
+"""一、文件说明
+    模型选择：算出「这一轮该用哪个模型」。
+    两层次序：运行时覆盖（cfg["model"] / cfg["model_name"]）→ 全局默认
+    （AppConfig.primary_model，没有就取 models[0].name）。都没有时抛
+    NoChatModelConfiguredError，而不是返回 None 让调用方猜。
+    agent 维度、按任务类型选模型等更细的分层，等做到相应章节再补。
 
-两层次序：运行时覆盖（cfg["model"] / cfg["model_name"]）→ 全局默认
-（AppConfig.primary_model，没有就取 models[0].name）。都没有时抛
-NoChatModelConfiguredError，而不是返回 None 让调用方猜。
+二、目录结构
+    packages/harness/myagentflow/models/
+    ├── __init__.py
+    ├── factory.py  模型工厂：条目名进，模型实例出。
+    └── resolver.py  ← 本文件
 
-agent 维度、按任务类型选模型等更细的分层，等做到相应章节再补。
+三、关键方法
+    NoChatModelConfiguredError  没有任何可用模型时抛出。
+    get_app_config_safe()       Best-effort :func:`get_app_config` access; returns ``None`` if unbuilt.
+    _global_default_model()     全局默认：primary_model 优先，退回 models[0].name。取不到返回空串。
+    _runtime_override()         运行时覆盖层：cfg 里显式传了 model/model_name 就用它。
+    resolve_run_model()         Resolve the model name that the next chat turn should use.
 """
-
-
 from __future__ import annotations
 
 from collections.abc import Mapping

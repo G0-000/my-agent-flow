@@ -1,7 +1,18 @@
-"""两层记忆：agent 级跨任务，thread 级随线程删。
+"""一、文件说明
+    两层记忆：agent 级跨任务，thread 级随线程删。
+    为什么读失败要返回默认值而不是抛异常：
+    记忆是增强项，不是主流程。一条记忆文件写坏了不该让整轮对话失败。
 
-为什么读失败要返回默认值而不是抛异常：
-记忆是增强项，不是主流程。一条记忆文件写坏了不该让整轮对话失败。
+二、目录结构
+    packages/harness/myagentflow/memory/
+    ├── __init__.py
+    ├── agent_memory.py  ← 本文件
+    └── assets.py  资产与反思：一张表管三类东西。
+
+三、关键方法
+    _empty()            每次返回全新对象：dict(DEFAULT) 是浅拷贝，facts 列表会被所有调用方共享。
+    _load()
+    AgentMemoryManager
 """
 from __future__ import annotations
 

@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-18 17:41　源提交：`ed3cc0e`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-18 17:44　源提交：`eaba694`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -1735,7 +1735,7 @@ sessions 1 ──< chat_messages     # 模型看到的历史（user / assistant�
 | `persistence/session_repositories.py`（1718 行） | `persistence/session_repositories.py` | `upsert_session_row` / `get_session_row_for_ui` / `list_sessions_for_ui` / `delete_sessions_by_thread_id` |
 | `persistence/chat_message_repositories.py`（2695 行） | `persistence/chat_message_repositories.py` | `append_message` / `list_messages` / `count_messages` / `delete_messages_for_session` |
 
-> **上一版错在哪**：我把这两个文件合成了一个 `persistence/messages.py` 里的 `MessageStore` 类。那是自造结构：EvoFlow 里会话和消息是两套仓储、函数式 API、共用一条 `get_db()` 连接。本轮已拆开，`messages.py` 删除。
+> **本章不做合并**：会话、消息、连接三者各占一个文件，函数式 API，共用 `get_db()` 单例连接。任何把两个仓储塞进一个类或一个文件的写法都不符合本书体例（见 `00/04` 的文件级对照要求）。
 
 ##### `persistence/db.py`（连接与锁）
 
@@ -2001,7 +2001,7 @@ uv run pytest tests/chapters/test_ch01_03_messages.py -q
 | `persistence/db.py` 的 `get_db()` / `db_connection_lock()` | 同名同义 | 简化：无 schema 版本表、无 preflight |
 | `session_repositories.py` 的 `upsert_session_row` / `get_session_row_for_ui` / `list_sessions_for_ui` / `delete_sessions_by_thread_id` | 同名同义 | 只保留标题与时间戳，模式/场景/工具授权未做 |
 | `chat_message_repositories.py` 的 `append_message` / `list_messages` / `count_messages` / `delete_messages_for_session` | 同名同义 | 只存 `role/content`，`content_json`、token 统计、`run_id` 未做 |
-| 合并成 `MessageStore` 类的写法 | **不存在** | 上一版自造，已删除 |
+| 多文件合并成一个聚合类 | **禁止** | 违反文件级映射：会话与消息必须各自成文件 |
 
 ##### 知识点
 

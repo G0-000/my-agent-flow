@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-18 17:44　源提交：`eaba694`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-18 17:56　源提交：`633ca17`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -571,6 +571,8 @@ CheckpointerType = Literal["memory", "sqlite", "postgres"]
 
 #### 5. 知识点从哪取
 
+> **不写过程交代**：正文只讲「是什么、为什么、怎么做」。禁止出现「上一版错在哪」「本轮已改为」「我之前把两个文件合并了」「自造结构」这类修订叙事；版本变化写进 `PROGRESS.md` 台账，不进章节。表格只留读者需要的列：EvoFlow 文件 → 本章实现的符号，不写源码行数、不写「我们/他们」的对照废话。
+
 | 站点 | 用途 | 举例 |
 |---|---|---|
 | [agent-book](https://g0-000.github.io/agent-book/) | 系统课：LangGraph 图、状态、持久化 | [LangGraph 课程](https://g0-000.github.io/agent-book/langgraph/)、[记忆章](https://g0-000.github.io/agent-book/agent-learning/chapter_memory/) |
@@ -812,7 +814,7 @@ class ModelConfig(BaseModel):
         return data
 ```
 
-> **`name` 与 `model` 是两个东西**：`name` 是条目名（`primary_model` 指向它），`model` 才是真正发给厂商的模型 ID。我上一版把两者并成一个 `name`，是错的。
+> **`name` 与 `model` 是两个东西**：`name` 是条目名（`primary_model` 指向它），`model` 才是真正发给厂商的模型 ID。两者混用会把条目名当成模型 ID 发给厂商，直接 404。
 
 ##### `config/checkpointer_config.py`（整份照抄，含单例）
 
@@ -1491,7 +1493,7 @@ async for chunk in stream_graph(
 
 #### 代码实现状态 / Code status
 
-> 直接回答「这一章的代码都实现了吗」：**手把手三步全部落地**，下面的「旧版示例」已清掉。
+> 本章手把手三步均已落地；未做的能力列在表内，并标注归属章节。
 
 | 内容 | 状态 | 证据 |
 |---|---|---|
@@ -1501,7 +1503,6 @@ async for chunk in stream_graph(
 | 系统提示 / 角色 prompt | ❌ 本章不做 | EvoFlow 由 `agents/middlewares/dynamic_system_prompt_middleware.py` 每轮注入，我们在 3/03 复刻 |
 | 工具循环 | ❌ 不做 | 1/04 才有 `ToolRegistry` 与工具节点 |
 | run 登记 / 事件流 / 取消 | ❌ 不做 | 1/05（事件）与 02/02（生命周期） |
-| 旧版示例里的 `Agent` 类与 `Redactor` | ❌ 从未存在于本仓库 | 上一版文档残留，本轮已删；EvoFlow 也没有 `Agent` 类，脱敏是 `models/credential_sanitize.py` 的函数，不是 `Redactor` |
 
 #### 业务规则 / Business rules
 1. **一张图只做一次模型调用**：没有工具时，图跑完就结束，不存在「循环直到模型停」。
@@ -1727,15 +1728,15 @@ sessions 1 ──< chat_messages     # 模型看到的历史（user / assistant�
 
 #### 示例代码 / Sample code
 
-##### 三个文件，对应 EvoFlow 的三个文件
+##### 文件映射
 
-| EvoFlow | 我们 | 职责 |
-|---|---|---|
-| `persistence/db.py`（共享连接 + 事务） | `persistence/db.py` | `get_db()` / `db_connection_lock()` / `reset_db()` |
-| `persistence/session_repositories.py`（1718 行） | `persistence/session_repositories.py` | `upsert_session_row` / `get_session_row_for_ui` / `list_sessions_for_ui` / `delete_sessions_by_thread_id` |
-| `persistence/chat_message_repositories.py`（2695 行） | `persistence/chat_message_repositories.py` | `append_message` / `list_messages` / `count_messages` / `delete_messages_for_session` |
+| EvoFlow 文件 | 本章实现的符号 |
+|---|---|
+| `persistence/db.py` | `get_db` / `db_connection_lock` / `reset_db` |
+| `persistence/session_repositories.py` | `upsert_session_row` / `get_session_row_for_ui` / `list_sessions_for_ui` / `delete_sessions_by_thread_id` |
+| `persistence/chat_message_repositories.py` | `append_message` / `list_messages` / `count_messages` / `delete_messages_for_session` |
 
-> **本章不做合并**：会话、消息、连接三者各占一个文件，函数式 API，共用 `get_db()` 单例连接。任何把两个仓储塞进一个类或一个文件的写法都不符合本书体例（见 `00/04` 的文件级对照要求）。
+本项目路径与上游同名：`packages/harness/myagentflow/persistence/`。
 
 ##### `persistence/db.py`（连接与锁）
 

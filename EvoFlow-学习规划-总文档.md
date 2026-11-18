@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-18 17:56　源提交：`633ca17`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-18 17:59　源提交：`1e2a63c`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -1667,11 +1667,10 @@ uv run pytest tests/chapters/test_ch01_02_graph.py -q
 
 > **EvoFlow 对照状态 / Alignment status：** 文件与函数名对齐 `persistence/{db,chat_message_repositories,session_repositories}.py`；表结构做了简化（只留 `role/content` 与标题），事务语义**不宣称**等同上游。
 >
-> ::: warning 与 EvoFlow 真实实现的差异
-> 本章把 `messages` 表当历史。EvoFlow 的事实源是 **`evoflow_chat_messages`**；检查点层故意**不存对话**——`omit_transcript.py` 在 put/aput 时摘掉 `messages` 与 `ui_messages`（`_TRANSCRIPT_CHANNELS`），唯一例外是存在未配对 tool_call。详见 02/01 检查点与线程恢复（../02-持久化与运行生命周期/01-检查点与线程恢复.md）。
+> ::: warning 与 EvoFlow 的差异
+> 表名：EvoFlow 是 `evoflow_chat_messages`，本章是 `chat_messages`；字段只留 `role/content`，`content_json`、token 统计、`run_id` 不实现。
+> 检查点层不存对话：`omit_transcript.py` 在 put/aput 时摘掉 `messages`（`_TRANSCRIPT_CHANNELS`），唯一例外是存在未配对 tool_call。详见 02/01 检查点与线程恢复（../02-持久化与运行生命周期/01-检查点与线程恢复.md）。
 > :::
-
-
 
 #### 本章目标 / Goals
 让对话在进程重启后仍能继续：`sessions`（目录）+ `chat_messages`（正文）两张表，读写走两个仓储文件。
@@ -1716,15 +1715,35 @@ sessions 1 ──< chat_messages     # 模型看到的历史（user / assistant�
 
 `runs` / `events` 是执行日志，1.5 单独建表，不放进本章。
 
-#### 3.1 会话与业务消息存储 / Session and business messages
-**核心概念**
-- **模型消息**必须保持 provider 要求的顺序：assistant 的 `tool_calls` 之后必须紧跟对应 `tool_call_id` 的 `tool` 消息。
-- **业务消息**（例如 UI 里的状态提示、审批卡片）不应混进模型历史；本阶段先用 `events` 承载，后续章节再扩展独立的业务消息表。
+#### 怎么用 / Usage
 
-**业务规则**
-1. 顺序靠 `(thread_id, seq)` 复合主键，**不用** `AUTOINCREMENT`——它只保证全局唯一，不能保证「每个会话从 1 开始连续」。
-2. 消息只追加、不回改；需要修正就再插一条。`tool_calls` / `tool_call_id` 的 JSON 列等 1.4 用到工具时再加。
-3. SQLite 用一把进程内 `RLock` 串行化写入（`check_same_thread=False` 的代价）。
+chat 路由拿到的 `thread_id` 就是 `session_key`。一次对话写三次库：进图前写 user、出图后写 assistant、重开页面读回。
+
+```python
+# app/gateway/routers/chat.py（节选）：路由层只做三件事
+from myagentflow.persistence.chat_message_repositories import append_message, list_messages
+from myagentflow.persistence.session_repositories import upsert_session_row
+
+def handle(thread_id: str, text: str) -> str:
+    upsert_session_row(thread_id, title=text[:20])      # 没有就建、有就刷时间
+    append_message(thread_id, "user", text)             # 先落 user，崩了也知道用户说过什么
+
+    out = build_graph(model).invoke({"messages": [{"role": "user", "content": text}]})
+    reply = out["messages"][-1].content
+    append_message(thread_id, "assistant", reply)       # 出图后落 assistant
+    return reply
+
+def render(thread_id: str):
+    return list_messages(thread_id, limit=30)           # 页面重开：最近 30 条，正序
+```
+
+三个调用点的约束：
+
+| 调用 | 必须保证 | 出错会怎样 |
+|---|---|---|
+| `upsert_session_row(thread_id, title=...)` | 同一 `thread_id` 重复调用不覆盖已有标题 | 标题被空串刷掉，侧边栏变空白
+| `append_message(...)` | 在 `db_connection_lock()` 内算 seq 并插入 | 并发时两条消息拿到同一个 seq，主键冲突
+| `list_messages(..., limit=N)` | 返回的是「最近 N 条」且正序 | 用 `LIMIT` 直接取正序会拿到最老的 N 条
 
 #### 示例代码 / Sample code
 
@@ -1737,6 +1756,34 @@ sessions 1 ──< chat_messages     # 模型看到的历史（user / assistant�
 | `persistence/chat_message_repositories.py` | `append_message` / `list_messages` / `count_messages` / `delete_messages_for_session` |
 
 本项目路径与上游同名：`packages/harness/myagentflow/persistence/`。
+
+##### 目录结构
+
+```text
+backend/
+├── app/gateway/routers/chat.py              # 唯一调用方：POST /chat → SSE
+├── packages/harness/myagentflow/
+│   ├── config/app_config.py                 # storage.sqlite_path：库文件位置
+│   └── persistence/
+│       ├── __init__.py
+│       ├── db.py                            # get_db / db_connection_lock / reset_db
+│       ├── session_repositories.py          # sessions 表：标题、时间戳
+│       └── chat_message_repositories.py     # chat_messages 表：追加、读回
+└── tests/chapters/
+    ├── test_ch01_03_messages.py             # 本章用例：顺序 / 删除 / 会话
+    ├── test_ch01_06_e2e.py                  # 复用 append_message 写回放
+    └── test_ch13_01_e2e.py                  # 全链路验收同样复用
+```
+
+导入方向（箭头表示 `import`）：
+
+```text
+chat.py ──→ session_repositories ─┐
+   └─────→ chat_message_repositories ─┼──→ db ──→ config/app_config
+                                      └──→ db（同一个 get_db 单例）
+```
+
+`db.py` 只认 `app_config.storage.sqlite_path` 和测试用的 `MYAF_DB_PATH`，不认任何业务参数；两个仓储只认 `thread_id`，不认路由或 HTTP 结构。这样换库、换调用方都不用改另一层。
 
 ##### `persistence/db.py`（连接与锁）
 
@@ -1813,7 +1860,6 @@ def delete_sessions_by_thread_id(thread_id, *, conn=None) -> int:
     """返回删除行数，0 表示本来没有。"""
 ```
 
-#### 常见坑 / Pitfalls
 #### 常见坑 / Pitfalls
 - 把 system prompt 存进 messages：以后改提示词会出现新旧混杂。
 - 只存最终 assistant 文本、丢掉 tool 消息：重放历史时模型会「忘记」自己调用过工具。
@@ -5359,7 +5405,7 @@ sequenceDiagram
 - **按线程的回放快照**：`memory/recall_snapshot.py`（90 行）提供 `record_thread_recall` / `get_thread_recall` / `clear_thread_recall`，说明「本轮召回了什么」是被记录、可回放的。
 
 #### 核心概念
-- **命名空间**：`user / agent / workspace / person` 四类（`memory/namespaces.py` 实际导出 `user_ns`、`agent_ns`、`workspace_ns`、`person_ns`）——**没有 `session` 这一类**，本仓库早期草稿写错，已按源码改正。
+- **命名空间**：`user / agent / workspace / person` 四类（`memory/namespaces.py` 导出 `user_ns`、`agent_ns`、`workspace_ns`、`person_ns`）——没有 `session` 这一类。
 - **recall snapshot**：每轮开始时冻结一份召回结果，保证同一轮内 prompt 稳定。
 - **两阶段写入**：候选提取（对话中）→ 巩固（会话结束/定时）→ 落库。
 

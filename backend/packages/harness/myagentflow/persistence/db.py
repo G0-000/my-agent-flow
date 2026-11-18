@@ -2,6 +2,14 @@
 
 为什么共用一条：应用库是单文件，多个写连接会互相抢锁；一条连接 + 一把进程内锁，
 把并发问题收在一个地方，SQLite 的 WAL 再兜住跨进程读写。
+
+模块位置（调用方向自上而下）:
+
+    app/gateway/routers/chat.py
+        └─ persistence/session_repositories.py      会话标题与时间戳
+        └─ persistence/chat_message_repositories.py 消息追加与读回
+              └─ persistence/db.py  ← 本文件          get_db / db_connection_lock
+                    └─ config/app_config.py            storage.sqlite_path
 """
 from __future__ import annotations
 

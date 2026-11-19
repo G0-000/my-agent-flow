@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-19 11:32　源提交：`3e52347`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-19 11:36　源提交：`192b3ee`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -488,7 +488,7 @@ EvoFlow 使用 PolyForm Noncommercial License 1.0.0：可读、可学习、非�
 ```text
 ### Step 1　新建 provider.py：把「哪个后端」收敛成一个函数
 
-**文件**：`packages/harness/myagentflow/agents/checkpointer/provider.py`（新建）
+**文件**：`backend/packages/harness/myagentflow/agents/checkpointer/provider.py`（新建）
 
 **要写的逻辑**：
 1. 读配置拿 backend
@@ -1300,7 +1300,7 @@ print(create_chat_model.__name__)
 
 ##### Step 5　写测试：5 个用例钉住真实行为
 
-**文件**：`tests/chapters/test_ch01_01_config.py`
+**文件**：`backend/tests/chapters/test_ch01_01_config.py`
 
 **逻辑要点**
 
@@ -1541,10 +1541,10 @@ cd backend && uv run pytest tests/chapters/test_ch01_02_graph.py -q
 
 #### 从零实现（手把手）
 > 读完这章你能编译出第一张 LangGraph 图：输入一条消息，返回一条回复——没有工具、没有循环，只有一条边。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 graph.py：一个节点、两条边
-**文件**：`packages/harness/myagentflow/agents/lead_agent/graph.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/agents/lead_agent/graph.py（新建）`
 **要写的逻辑**：用 `MessagesState` 做状态；节点只负责把历史消息交给模型；checkpointer 允许为空（先不接持久化）。
 
 **代码**
@@ -1584,7 +1584,7 @@ uv run python -c "from myagentflow.agents.lead_agent.graph import build_graph; p
 ```
 
 ##### Step 2　用假模型跑通一条消息
-**文件**：`tests/chapters/test_ch01_02_graph.py（新建）`
+**文件**：`backend/tests/chapters/test_ch01_02_graph.py（新建）`
 **要写的逻辑**：假模型只实现 `invoke`，这样测试不花 token、不依赖网络。
 
 **代码**
@@ -1618,7 +1618,7 @@ uv run pytest tests/chapters/test_ch01_02_graph.py -v
 ```
 
 ##### Step 3　接上 checkpointer，验证「同 thread 能续上」
-**文件**：`tests/chapters/test_ch01_02_graph.py（追加用例）`
+**文件**：`backend/tests/chapters/test_ch01_02_graph.py（追加用例）`
 **要写的逻辑**：两次 invoke 用同一个 thread_id；第二次的历史里应包含第一轮的两条消息。
 
 **代码**
@@ -1890,11 +1890,11 @@ def delete_sessions_by_thread_id(thread_id, *, conn=None) -> int:
 
 #### 从零实现（手把手）
 > 读完这章你会有两张表：`sessions`（目录）与 `chat_messages`（正文），共用 `get_db()` 连接。
-> 路径均相对 `backend/`。
+>  文件路径一律写仓库全路径（`backend/...`）。
 
 ##### Step 1　新建 `backend/packages/harness/myagentflow/persistence/db.py`：共享连接 + 锁 + 建表
 
-**文件**：`packages/harness/myagentflow/persistence/db.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/persistence/db.py（新建）`
 
 **要写的逻辑**
 
@@ -1944,7 +1944,7 @@ print(type(get_db()).__name__)
 
 ##### Step 2　新建 `backend/packages/harness/myagentflow/persistence/session_repositories.py`：会话四个函数
 
-**文件**：`packages/harness/myagentflow/persistence/session_repositories.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/persistence/session_repositories.py（新建）`
 
 **要写的逻辑**
 
@@ -1980,7 +1980,7 @@ print(get_session_row_for_ui('s1'))
 
 ##### Step 3　新建 `backend/packages/harness/myagentflow/persistence/chat_message_repositories.py`：追加 + 读回
 
-**文件**：`packages/harness/myagentflow/persistence/chat_message_repositories.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/persistence/chat_message_repositories.py（新建）`
 
 **要写的逻辑**
 
@@ -2023,7 +2023,7 @@ print([m['content'] for m in list_messages('t1')])
 
 ##### Step 4　写测试：顺序、最近 N 条、会话生命周期
 
-**文件**：`tests/chapters/test_ch01_03_messages.py（重写）`
+**文件**：`backend/tests/chapters/test_ch01_03_messages.py（重写）`
 
 **要写的逻辑**：每个用例先 `monkeypatch.setenv("MYAF_DB_PATH", ...)` + `reset_db()`，否则会连到仓库里的真实库、用例互相污染。
 
@@ -2136,10 +2136,10 @@ sequenceDiagram
 
 #### 从零实现（手把手）
 > 读完这章你有一个工具注册表：注册即有 schema，模型能看见，执行能落到函数。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 registry.py：ToolSpec + 注册表
-**文件**：`packages/harness/myagentflow/tools/registry.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/tools/registry.py（新建）`
 **要写的逻辑**：`ToolSpec` 冻结；`schemas()` 输出 OpenAI function calling 形状；`call()` 统一入口，未知工具给明确报错。
 
 **代码**
@@ -2202,7 +2202,7 @@ uv run python -c "from myagentflow.tools.registry import ToolRegistry, ToolSpec;
 ```
 
 ##### Step 2　加第一个工具：echo
-**文件**：`packages/harness/myagentflow/tools/builtins/echo.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/tools/builtins/echo.py（新建）`
 **要写的逻辑**：把「函数 + schema」一起定义，注册时一行搞定。
 
 **代码**
@@ -2245,7 +2245,7 @@ print(r.schemas()); print(r.call('echo', {'text': 'ok'}))
 ```
 
 ##### Step 3　写测试：schema 形状 + 未知工具报错
-**文件**：`tests/chapters/test_ch01_04_tools.py（新建）`
+**文件**：`backend/tests/chapters/test_ch01_04_tools.py（新建）`
 **要写的逻辑**：断言 `type == function`、必填字段、调用结果、重复注册报错。
 
 **代码**
@@ -2376,10 +2376,10 @@ sequenceDiagram
 
 #### 从零实现（手把手）
 > 读完这章你能把图的执行过程变成 SSE 事件流，并且知道断线后靠什么恢复。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 events.py：一个事件类型 + 一个序列化
-**文件**：`packages/harness/myagentflow/runtime/events.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/runtime/events.py（新建）`
 **要写的逻辑**：事件只保留 `type` + `data`；`to_sse()` 输出标准 SSE 帧；断线恢复靠 `Last-Event-ID`，所以每条事件带 `seq`。
 
 **代码**
@@ -2430,7 +2430,7 @@ print(repr(e.to_sse()))
 ```
 
 ##### Step 2　把图事件映射成 StreamEvent
-**文件**：`packages/harness/myagentflow/runtime/streaming.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/runtime/streaming.py（新建）`
 **要写的逻辑**：只挑 `on_chat_model_stream` 与 `on_tool_end` 两类，其余忽略——事件太多会把前端淹没。
 
 **代码**
@@ -2551,10 +2551,10 @@ python3 demo.py                            # 打印一次完整 SSE 流和一次
 
 #### 从零实现（手把手）
 > 读完这章你有一条完整链路：配置 → 图 → 消息表 → 工具 → 事件流，并且有一个集成测试兜底。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　写集成测试：一次调用串起四个模块
-**文件**：`tests/chapters/test_ch01_06_e2e.py（新建）`
+**文件**：`backend/tests/chapters/test_ch01_06_e2e.py（新建）`
 **要写的逻辑**：假模型 + 注册表 + 消息表 + 事件流；断言消息落库、schema 可枚举、SSE 帧合法。
 
 **代码**
@@ -3396,10 +3396,10 @@ sweeper: 每 30s 扫 heartbeat 超时行 → failed(reason=stale)
 
 #### 从零实现（手把手）
 > 读完这章你能管住「谁在跑」：每次运行有 id、状态、取消信号，取消后不再写检查点。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 lifecycle.py：运行登记表
-**文件**：`packages/harness/myagentflow/session_execution/lifecycle.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/session_execution/lifecycle.py（新建）`
 **要写的逻辑**：用 `threading.Event` 做取消信号（跨线程安全）；`active_for_thread` 保证一条线程只有一个活跃 run；状态机只允许 `running → finished/cancelled/error`。
 
 **代码**
@@ -3483,7 +3483,7 @@ uv run python -c "from myagentflow.session_execution.lifecycle import RunRegistr
 ```
 
 ##### Step 2　写测试：单活跃 run + 取消优先
-**文件**：`tests/chapters/test_ch02_02_lifecycle.py（新建）`
+**文件**：`backend/tests/chapters/test_ch02_02_lifecycle.py（新建）`
 **要写的逻辑**：同一线程第二个 run 应被拒；取消后 `finish('finished')` 必须被改写成 cancelled。
 
 **代码**
@@ -3644,10 +3644,10 @@ HTTP  → Gateway（Part 10）
 
 #### 从零实现（手把手）
 > 读完这章你有两个入口：一个命令行，一个 JSON-Lines 的 stdio 服务，共用同一套图。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 CLI：两个子命令
-**文件**：`packages/harness/myagentflow/cli/main.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/cli/main.py（新建）`
 **要写的逻辑**：`chat` 跑一轮并打印回复；`state` 用 02/01 的 `read_thread_state` 直接读，不编译图。
 
 **代码**
@@ -3719,7 +3719,7 @@ uv run python -m myagentflow.cli.main state --thread demo
 ```
 
 ##### Step 2　新建 stdio 服务：一行一请求
-**文件**：`packages/harness/myagentflow/app_server/stdio.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/app_server/stdio.py（新建）`
 **要写的逻辑**：从 stdin 读 JSON 行，回一行 JSON；异常也回一行（带 error 字段），绝不静默退出。
 
 **代码**
@@ -3871,10 +3871,10 @@ shares(share_id, session_id, token_hash, scope, created_at, expires_at, revoked_
 
 #### 从零实现（手把手）
 > 读完这章你能把自己的会话分享出去，并且分享链接会过期、可撤销。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 shares.py：三分支状态
-**文件**：`packages/harness/myagentflow/collab/shares.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/collab/shares.py（新建）`
 **要写的逻辑**：只存 sha256(token) 不存明文；`resolve()` 三态：有效 / 过期 / 撤销；过期用时间戳比较，避免定时任务。
 
 **代码**
@@ -3964,7 +3964,7 @@ print(s.resolve(t, now=10**12))   # 过期
 ```
 
 ##### Step 2　写测试：三态齐全
-**文件**：`tests/chapters/test_ch02_04_shares.py（新建）`
+**文件**：`backend/tests/chapters/test_ch02_04_shares.py（新建）`
 **要写的逻辑**：有效、过期、撤销、缺失各一条断言。
 
 **代码**
@@ -4168,10 +4168,10 @@ execute(name, args, ctx):
 
 #### 从零实现（手把手）
 > 读完这章你能写一个「路径策略可切换」的守卫：既能全放开、也能把路径锁在 workspace 内。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 workspace_path_guard.py：解析 + 策略
-**文件**：`packages/harness/myagentflow/tools/host_direct/workspace_path_guard.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/tools/host_direct/workspace_path_guard.py（新建）`
 **要写的逻辑**：先 `realpath` 解析（消掉 `..` 与软链），再按策略判断：`disabled` 全放行、`confine` 必须在 root 下。EvoFlow 默认是 `disabled`，我们把它做成显式开关。
 
 **代码**
@@ -4223,7 +4223,7 @@ print(resolve('/tmp/ws/../x', '/tmp/ws', Policy.confine).decision)  # escaped
 ```
 
 ##### Step 2　写测试：软链与 .. 都要被测
-**文件**：`tests/chapters/test_ch03_01_guard.py（新建）`
+**文件**：`backend/tests/chapters/test_ch03_01_guard.py（新建）`
 **要写的逻辑**：`confine` 下 `/tmp/ws/a` 允许、`/tmp/ws/../x` 拒绝；`disabled` 下两者都允许。
 
 **代码**
@@ -4403,10 +4403,10 @@ sequenceDiagram
 
 #### 从零实现（手把手）
 > 读完这章你能把「长时间运行的命令」和「需要鉴权的桥接调用」做出来：进程可查、token 不对就 403。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建后台命令管理：三入口 + 404/409
-**文件**：`packages/harness/myagentflow/tools/host_direct/background_bash.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/tools/host_direct/background_bash.py（新建）`
 **要写的逻辑**：`start` 起子进程并登记；`poll` 不存在给 404、未在运行给 409；`kill` 幂等。
 
 **代码**
@@ -4471,7 +4471,7 @@ print(m.poll(rid)['status'])
 ```
 
 ##### Step 2　新建桥接鉴权：token 比对 + 常量时间
-**文件**：`packages/harness/myagentflow/tools/host_direct/bridge_auth.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/tools/host_direct/bridge_auth.py（新建）`
 **要写的逻辑**：token 从环境变量注入；比较用 `secrets.compare_digest`，防止时序侧信道。
 
 **代码**
@@ -4702,10 +4702,10 @@ class Chain:
 
 #### 从零实现（手把手）
 > 读完这章你知道中间件「谁先谁后」为什么重要，并写出一个能记录每次工具调用的审计中间件。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 chain.py：顺序 + 反向收尾
-**文件**：`packages/harness/myagentflow/agents/middlewares/chain.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/agents/middlewares/chain.py（新建）`
 **要写的逻辑**：`before` 正序、`after` 逆序（洋葱模型）；任何一层抛异常都要保证已进入的层能收尾。
 
 **代码**
@@ -4754,7 +4754,7 @@ uv run python -c "from myagentflow.agents.middlewares.chain import Middleware, r
 ```
 
 ##### Step 2　加审计中间件：记录谁调了什么
-**文件**：`packages/harness/myagentflow/agents/middlewares/audit.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/agents/middlewares/audit.py（新建）`
 **要写的逻辑**：只记录工具名、参数摘要、耗时、成功与否；参数要截断，避免把密钥写进日志。
 
 **代码**
@@ -4971,10 +4971,10 @@ sequenceDiagram
 
 #### 从零实现（手把手）
 > 读完这章你能算出「这轮还剩多少 token」，并在超阈值时触发压缩、压缩后回填。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 budget.py：估算 + 阈值 + 硬上限
-**文件**：`packages/harness/myagentflow/context/budget.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/context/budget.py（新建）`
 **要写的逻辑**：按字符估 token；阈值 = 上下文 * 0.9；但再乘一个绝对上限 150K（EvoFlow 的实测取舍），取两者更小。
 
 **代码**
@@ -5029,7 +5029,7 @@ print(should_compact(160_000))              # True
 ```
 
 ##### Step 2　写测试：绝对上限必须压过比例
-**文件**：`tests/chapters/test_ch03_04_budget.py（新建）`
+**文件**：`backend/tests/chapters/test_ch03_04_budget.py（新建）`
 **要写的逻辑**：256K 上下文下阈值是 150K 而不是 230K；同轮回填比值更大（回填更少）。
 
 **代码**
@@ -5258,10 +5258,10 @@ recall(ns, query, k) → 关键词+向量混合 → 去重 → 时间衰减 → 
 
 #### 从零实现（手把手）
 > 读完这章你能落盘两层记忆：agent 级（跨任务）与 thread 级（随线程），并且读不到时不会炸。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 agent_memory.py：两个路径 + fail-soft
-**文件**：`packages/harness/myagentflow/memory/agent_memory.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/memory/agent_memory.py（新建）`
 **要写的逻辑**：agent 级存 `agents/{name}/memory.json`，thread 级存 `threads/{tid}/agent_memory/{name}.json`；解析失败返回默认结构，绝不抛异常。
 
 **代码**
@@ -5344,7 +5344,7 @@ m.remember('t1', '用户偏好中文'); print(m.load_thread('t1'))
 ```
 
 ##### Step 2　写测试：坏 JSON 不抛异常
-**文件**：`tests/chapters/test_ch04_01_memory.py（新建）`
+**文件**：`backend/tests/chapters/test_ch04_01_memory.py（新建）`
 **要写的逻辑**：写一个 `{bad json` 文件，读取必须回默认值；两条记忆路径互不影响。
 
 **代码**
@@ -5529,10 +5529,10 @@ sequenceDiagram
 
 #### 从零实现（手把手）
 > 读完这章你能写一个「命中即阻断」的扫描器：12 类正则 + 不可见字符，返回降级文本而不是抛异常。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 content_scanner.py：规则表 + 扫描函数
-**文件**：`packages/harness/myagentflow/agents/content_scanner.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/agents/content_scanner.py（新建）`
 **要写的逻辑**：规则 `(威胁id, 正则)` 顺序匹配，命中即返回 `[BLOCKED: ...]`；同时检测零宽/双向控制字符。
 
 **代码**
@@ -5604,7 +5604,7 @@ print(scan('今天天气不错'))
 ```
 
 ##### Step 2　写测试：每条规则至少打一次
-**文件**：`tests/chapters/test_ch04_02_scanner.py（新建）`
+**文件**：`backend/tests/chapters/test_ch04_02_scanner.py（新建）`
 **要写的逻辑**：参数化跑 12 条规则 + 一个不可见字符 + 一个正常文本；断言正常文本原样返回。
 
 **代码**
@@ -5761,10 +5761,10 @@ reflections(id, run_id, what_failed, root_cause, fix_hint, tags)
 
 #### 从零实现（手把手）
 > 读完这章你能把「产出物、待办事项、反思记录」落成一张资产表，并支持按类型检索。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 assets.py：一张表三列核心
-**文件**：`packages/harness/myagentflow/memory/assets.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/memory/assets.py（新建）`
 **要写的逻辑**：`kind` 区分 artifact / todo / reflection；`ref` 指向文件或消息；列表按 kind 过滤。
 
 **代码**
@@ -5847,7 +5847,7 @@ print(s.list('t1', kind='todo'))
 ```
 
 ##### Step 2　写测试：类型校验与过滤
-**文件**：`tests/chapters/test_ch04_03_assets.py（新建）`
+**文件**：`backend/tests/chapters/test_ch04_03_assets.py（新建）`
 **要写的逻辑**：非法 kind 报错；按 kind 过滤只返回该类型。
 
 **代码**
@@ -6045,10 +6045,10 @@ chunks(id, doc_id, source_path, section_path, seq, text, tokens, hash)
 
 #### 从零实现（手把手）
 > 读完这章你能把一份长文档切成带标题路径、带重叠的块，块之间不丢上下文。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 chunker.py：按标题切段 + 窗口滑动
-**文件**：`packages/harness/myagentflow/knowledge/chunker.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/knowledge/chunker.py（新建）`
 **要写的逻辑**：先按 Markdown 标题切成段并保留标题路径；段太长再按窗口切，窗口之间留 overlap，避免边界处的句子被切断。
 
 **代码**
@@ -6120,7 +6120,7 @@ print(len(cs), cs[0].heading, len(cs[0].text))
 ```
 
 ##### Step 2　写测试：重叠不丢内容 + 标题继承
-**文件**：`tests/chapters/test_ch05_01_chunker.py（新建）`
+**文件**：`backend/tests/chapters/test_ch05_01_chunker.py（新建）`
 **要写的逻辑**：长段落切出的块要能覆盖原文（拼起来包含所有字符）；第二块的 heading 应为 `B`。
 
 **代码**
@@ -6258,10 +6258,10 @@ retrieve(q): vec_top20 + fts_top20 → 去重 → rerank → 取 5 → 附 chunk
 
 #### 从零实现（手把手）
 > 读完这章你能把块向量化存进 SQLite，并按余弦相似度召回 top-k。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 vector_store.py：存 + 查
-**文件**：`packages/harness/myagentflow/knowledge/vector_store.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/knowledge/vector_store.py（新建）`
 **要写的逻辑**：向量以 JSON 存 TEXT 列（先不引向量库）；检索在 Python 里算余弦。数据量大再换 FAISS。
 
 **代码**
@@ -6331,7 +6331,7 @@ print(s.search([1,0], 1))
 ```
 
 ##### Step 2　写测试：同一向量排第一
-**文件**：`tests/chapters/test_ch05_02_vector.py（新建）`
+**文件**：`backend/tests/chapters/test_ch05_02_vector.py（新建）`
 **要写的逻辑**：查询向量与某块完全一致时，该块 score≈1 且排第一。
 
 **代码**
@@ -6460,10 +6460,10 @@ kb_doc(kb_id, doc_id); kb_node(node_id, kb_id, parent_id, title, ref_chunk_ids)
 
 #### 从零实现（手把手）
 > 读完这章你能把「自己的知识库」组织成一张地图：文档 → 标题树 → 块 id。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 map.py：文档树 + 块索引
-**文件**：`packages/harness/myagentflow/knowledge/map.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/knowledge/map.py（新建）`
 **要写的逻辑**：`build_map()` 输出 `{doc_id: {heading: [chunk_id...]}}`；`describe()` 给模型看的概览，限制条数避免爆上下文。
 
 **代码**
@@ -6508,7 +6508,7 @@ print(describe(tree))
 ```
 
 ##### Step 2　写测试：结构正确 + 截断
-**文件**：`tests/chapters/test_ch05_03_map.py（新建）`
+**文件**：`backend/tests/chapters/test_ch05_03_map.py（新建）`
 **要写的逻辑**：两篇文档各自独立；`max_docs=1` 只输出一篇。
 
 **代码**
@@ -6671,10 +6671,10 @@ query: name = "run" → 精确 → 前缀 → FTS
 
 #### 从零实现（手把手）
 > 读完这章你能用 `ast` 扫出自己的代码地图：模块、类、函数、行号，供 Agent 精确跳转。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 store.py：ast 遍历 + 落表
-**文件**：`packages/harness/myagentflow/code_index/store.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/code_index/store.py（新建）`
 **要写的逻辑**：只索引定义（模块/类/函数/方法），不索引语句；存 `path, kind, name, line`，供「跳到哪一行」用。
 
 **代码**
@@ -6745,7 +6745,7 @@ print(i.find('index_file'))
 ```
 
 ##### Step 2　写测试：类与函数都能找到，行号对得上
-**文件**：`tests/chapters/test_ch05_04_code_index.py（新建）`
+**文件**：`backend/tests/chapters/test_ch05_04_code_index.py（新建）`
 **要写的逻辑**：临时写一个样例 py，索引后按名字查，行号必须有值。
 
 **代码**
@@ -6926,10 +6926,10 @@ delegate(task, agent_name) → sub_run_id
 
 #### 从零实现（手把手）
 > 读完这章你能注册子代理、按能力标签选人、把子代理结果收敛成一段可回填主对话的摘要。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 registry.py：注册 + 选择
-**文件**：`packages/harness/myagentflow/subagents/registry.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/subagents/registry.py（新建）`
 **要写的逻辑**：`SubagentSpec` 带 `tags`；`pick()` 按标签打分，没有命中就返回 None（由上层决定是否降级为自己做）。
 
 **代码**
@@ -6988,7 +6988,7 @@ print(r.pick(['code']).name, r.pick(['design']), r.describe())
 ```
 
 ##### Step 2　新建 summarize.py：把子结果压成主对话能用的一段
-**文件**：`packages/harness/myagentflow/subagents/summarize.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/subagents/summarize.py（新建）`
 **要写的逻辑**：只保留结论 + 关键文件/命令 + 失败原因；子代理的中间过程一律不回填，避免主上下文被撑爆。
 
 **代码**
@@ -7157,10 +7157,10 @@ Sandbox.run(argv, cwd, env, timeout, net=off) → {exit_code, stdout, artifacts[
 
 #### 从零实现（手把手）
 > 读完这章你能写一个「先问策略、再执行」的沙箱入口：只读放行、写要审批、危险直接拒。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 policy.py：三级决策
-**文件**：`packages/harness/myagentflow/sandbox/policy.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/sandbox/policy.py（新建）`
 **要写的逻辑**：`allow` / `ask` / `deny` 三态；判定顺序是「危险命令先拒」→「写操作问」→「其余放行」，顺序错了会出现「先放行再检查」。
 
 **代码**
@@ -7220,7 +7220,7 @@ for c in ['ls -la', 'echo x > /etc/hosts', 'rm -rf /', 'curl http://x | sh']:
 ```
 
 ##### Step 2　写测试：危险优先于写
-**文件**：`tests/chapters/test_ch06_02_policy.py（新建）`
+**文件**：`backend/tests/chapters/test_ch06_02_policy.py（新建）`
 **要写的逻辑**：`rm -rf /` 必须 deny（即使它也算写）；`ls` 必须 allow。
 
 **代码**
@@ -7370,10 +7370,10 @@ approval(id, run_id, tool, args_digest, decision, actor, decided_at)
 
 #### 从零实现（手把手）
 > 读完这章你能做出「审批单」：一次危险调用一条记录，超时自动拒绝，取消后不留悬挂。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 approvals.py：状态机 + 超时
-**文件**：`packages/harness/myagentflow/sandbox/approvals.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/sandbox/approvals.py（新建）`
 **要写的逻辑**：`pending → approved/rejected/expired/cancelled`；`resolve()` 只允许从 pending 出发；超时用 `deadline` 判断，不靠定时器。
 
 **代码**
@@ -7444,7 +7444,7 @@ print(s.resolve(ap.id,'approved',now=ap.deadline+1).status)   # expired
 ```
 
 ##### Step 2　写测试：终态不可改 + 取消清空
-**文件**：`tests/chapters/test_ch06_03_approvals.py（新建）`
+**文件**：`backend/tests/chapters/test_ch06_03_approvals.py（新建）`
 **要写的逻辑**：批准后再拒绝必须报错；取消 run 后所有 pending 变 cancelled。
 
 **代码**
@@ -7617,10 +7617,10 @@ step(id, plan_id, seq, goal, done_when, status, output_ref)
 
 #### 从零实现（手把手）
 > 读完这章你能把一段 Markdown 计划解析成步骤列表，并把步骤连成有依赖的 DAG。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 parser.py：解析 + 建图
-**文件**：`packages/harness/myagentflow/plans/parser.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/plans/parser.py（新建）`
 **要写的逻辑**：认 `- [ ] 步骤` 行；`depends:` 写依赖；解析后检测环，有环直接报错而不是跑起来才死锁。
 
 **代码**
@@ -7694,7 +7694,7 @@ print([ (s.id, s.title, s.depends) for s in parse('- [ ] 读代码\n- [ ] 写实
 ```
 
 ##### Step 2　写测试：正常依赖 + 环报错
-**文件**：`tests/chapters/test_ch07_01_plan.py（新建）`
+**文件**：`backend/tests/chapters/test_ch07_01_plan.py（新建）`
 **要写的逻辑**：两步依赖解析正确；`A depends: B` 且 `B depends: A` 必须抛 ValueError。
 
 **代码**
@@ -7846,10 +7846,10 @@ task_state = fold(events)                 -- 可重建，不双写
 
 #### 从零实现（手把手）
 > 读完这章你能写出一个任务中心：谁领了什么、状态如何、超时怎么收回。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 ledger.py：认领 + 状态流转
-**文件**：`packages/harness/myagentflow/collab/ledger.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/collab/ledger.py（新建）`
 **要写的逻辑**：`claim()` 用「版本号 + 条件更新」防双领；心跳更新 `last_seen`；超时任务可被回收。
 
 **代码**
@@ -7924,7 +7924,7 @@ print(l.reclaim_stale(timeout=1, now=l._tasks['t1'].last_seen + 5))
 ```
 
 ##### Step 2　写测试：双领被拒 + 超时回收
-**文件**：`tests/chapters/test_ch07_02_ledger.py（新建）`
+**文件**：`backend/tests/chapters/test_ch07_02_ledger.py（新建）`
 **要写的逻辑**：用旧版本号第二次认领必须报错；超时后状态回到 open。
 
 **代码**
@@ -8083,10 +8083,10 @@ run(workflow_id, inputs) → run_id → 每步产物带 stage
 
 #### 从零实现（手把手）
 > 读完这章你能把「多步骤流程」定义成可复用对象，并按步骤顺序执行、记录每步产物。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 workflow.py：定义 + 顺序执行
-**文件**：`packages/harness/myagentflow/plans/workflow.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/plans/workflow.py（新建）`
 **要写的逻辑**：`Workflow` 持有步骤列表；`run()` 逐步执行，任一步失败即停，并把已完成步骤的产物保留下来。
 
 **代码**
@@ -8151,7 +8151,7 @@ print('resume:', w.resume_from(1)[-1].name)
 ```
 
 ##### Step 2　写测试：失败即停 + 可续跑
-**文件**：`tests/chapters/test_ch07_03_workflow.py（新建）`
+**文件**：`backend/tests/chapters/test_ch07_03_workflow.py（新建）`
 **要写的逻辑**：第二步失败时第三步不执行；`resume_from(1)` 从第二步重试。
 
 **代码**
@@ -8298,10 +8298,10 @@ Budget(deadline, max_calls, max_tokens)
 
 #### 从零实现（手把手）
 > 读完这章你能给「多试几次」设上限，并根据剩余预算切换策略：穷举 → 启发式 → 直接放弃。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 router.py：预算 + 三档策略
-**文件**：`packages/harness/myagentflow/plans/router.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/plans/router.py（新建）`
 **要写的逻辑**：按「剩余步数 / 剩余时间」两维判断；预算耗尽直接给 `stop`，不要靠模型自己觉得够了。
 
 **代码**
@@ -8358,7 +8358,7 @@ print(choose(b)); b = spend(b, steps=9); print(choose(b)); b = spend(b, steps=1)
 ```
 
 ##### Step 2　写测试：三档都覆盖
-**文件**：`tests/chapters/test_ch07_04_budget.py（新建）`
+**文件**：`backend/tests/chapters/test_ch07_04_budget.py（新建）`
 **要写的逻辑**：满预算 exhaustive、八成用掉 heuristic、用尽 stop。
 
 **代码**
@@ -8488,10 +8488,10 @@ effects(key, status, result_ref, created_at)  -- 唯一索引 key
 
 #### 从零实现（手把手）
 > 读完这章你能让「同一次请求重复到达」只执行一次：用幂等键 + 结果缓存。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 idempotency.py：键 + 缓存 + 占用
-**文件**：`packages/harness/myagentflow/session_execution/idempotency.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/session_execution/idempotency.py（新建）`
 **要写的逻辑**：`begin(key)` 返回 `fresh / running / cached`；running 时不要重复执行，cached 直接返回旧结果。
 
 **代码**
@@ -8552,7 +8552,7 @@ i.finish('k1', 'done!'); print(i.begin('k1'))
 ```
 
 ##### Step 2　写测试：并发只放一个进去
-**文件**：`tests/chapters/test_ch07_05_idempotency.py（新建）`
+**文件**：`backend/tests/chapters/test_ch07_05_idempotency.py（新建）`
 **要写的逻辑**：第二次 begin 返回 running；finish 后返回 cached 且结果一致。
 
 **代码**
@@ -8739,10 +8739,10 @@ run(run_id, session_id, started_at, status, artifact_refs)
 
 #### 从零实现（手把手）
 > 读完这章你能定义一条自动化规则（何时、做什么），并留下每次执行的记录。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 store.py：定义表 + 历史表
-**文件**：`packages/harness/myagentflow/automation/store.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/automation/store.py（新建）`
 **要写的逻辑**：`automations(id, cron, prompt, enabled)` 存规则；`runs(automation_id, status, started_at)` 存每次执行；执行前先写 `running`，避免崩溃后无法判断是否跑过。
 
 **代码**
@@ -8813,7 +8813,7 @@ r = s.begin_run(a); s.finish_run(r, 'ok'); print(s.enabled())
 ```
 
 ##### Step 2　写测试：历史可查 + 禁用不返回
-**文件**：`tests/chapters/test_ch08_01_automation.py（新建）`
+**文件**：`backend/tests/chapters/test_ch08_01_automation.py（新建）`
 **要写的逻辑**：执行一条后 runs 里有记录；把 enabled 置 0 后不再出现在列表。
 
 **代码**
@@ -8959,10 +8959,10 @@ loop: 每 15s 扫描 next_fire_at <= now → 抢锁 → 建 occurrence → 推 n
 
 #### 从零实现（手把手）
 > 读完这章你能算出「下一次该跑的时刻」，并在重启后把错过的任务补上。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 scheduler.py：最小 cron 匹配 + 补偿
-**文件**：`packages/harness/myagentflow/automation/scheduler.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/automation/scheduler.py（新建）`
 **要写的逻辑**：只支持 `分 时 日 月 周` 五段与 `*`；`due()` 判断某分钟是否命中；`catch_up()` 找出上次执行之后错过的次数上限。
 
 **代码**
@@ -9043,7 +9043,7 @@ s = Scheduler(last_run={}); print(s.catch_up('a','*/5 * * * *', now=now, limit=3
 ```
 
 ##### Step 2　写测试：每分钟命中 + 补跑有上限
-**文件**：`tests/chapters/test_ch08_02_scheduler.py（新建）`
+**文件**：`backend/tests/chapters/test_ch08_02_scheduler.py（新建）`
 **要写的逻辑**：`* * * * *` 恒命中；`*/5` 一小时内最多补 3 次。
 
 **代码**
@@ -9195,10 +9195,10 @@ gate: 判断 result 是否有新信息 + 是否超频 → send or record
 
 #### 从零实现（手把手）
 > 读完这章你能让 Agent 每隔一段时间「自己看一眼」，但空闲时不烧 token。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 heartbeat.py：变化检测 + 节流
-**文件**：`packages/harness/myagentflow/automation/heartbeat.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/automation/heartbeat.py（新建）`
 **要写的逻辑**：每轮只算「世界状态指纹」；指纹没变就跳过（不调模型）；变了才触发任务，并限制每小时最多 N 次。
 
 **代码**
@@ -9252,7 +9252,7 @@ print(h.should_run({'ci':'green'}), h.should_run({'ci':'green'}), h.should_run({
 ```
 
 ##### Step 2　写测试：不变不跑 + 超频被拦
-**文件**：`tests/chapters/test_ch08_03_heartbeat.py（新建）`
+**文件**：`backend/tests/chapters/test_ch08_03_heartbeat.py（新建）`
 **要写的逻辑**：同状态第二次 False；连续 7 次变化只有 6 次通过。
 
 **代码**
@@ -9400,10 +9400,10 @@ push(id, ref_id, channel, target, status, attempts, last_error, sent_at)
 
 #### 从零实现（手把手）
 > 读完这章你能把「跑完了」这件事投递到多个渠道，并且失败可重试、不重复轰炸。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 notify.py：投递 + 去重
-**文件**：`packages/harness/myagentflow/automation/notify.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/automation/notify.py（新建）`
 **要写的逻辑**：每个渠道一个 sender；用 `dedup_key` 去重（同一事件只发一次）；单个渠道失败不影响其他渠道。
 
 **代码**
@@ -9456,7 +9456,7 @@ print(n.send('all', '完成', dedup_key='run-1'))
 ```
 
 ##### Step 2　写测试：去重 + 失败隔离
-**文件**：`tests/chapters/test_ch08_04_notify.py（新建）`
+**文件**：`backend/tests/chapters/test_ch08_04_notify.py（新建）`
 **要写的逻辑**：第二次同 key 返回 skipped；webhook 抛异常时 desktop 仍是 sent。
 
 **代码**
@@ -9670,10 +9670,10 @@ call: 取连接（池化）→ 序列化请求 → 超时 → 结果整形 → �
 
 #### 从零实现（手把手）
 > 读完这章你能连上一个 stdio MCP 服务：发 initialize、列工具、调工具，并处理 OAuth 缺失。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 client.py：JSON-RPC 三步
-**文件**：`packages/harness/myagentflow/mcp/client.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/mcp/client.py（新建）`
 **要写的逻辑**：一行 JSON 一个请求；`initialize` → `tools/list` → `tools/call`；错误码统一翻译成异常。
 
 **代码**
@@ -9875,10 +9875,10 @@ bridge(plugin_id, port, token_hash, pid, last_heartbeat)
 
 #### 从零实现（手把手）
 > 读完这章你能写一个插件壳：插件只声明「名字 + 入口」，由宿主负责加载与隔离失败。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 loader.py：声明式加载
-**文件**：`packages/harness/myagentflow/skills/loader.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/skills/loader.py（新建）`
 **要写的逻辑**：插件用 `entry` 字符串（`module:func`）；加载失败只记录不抛出，避免一个坏插件拖垮启动。
 
 **代码**
@@ -10073,10 +10073,10 @@ match(query): 描述关键词 + 语义 → top1 → 读正文 → 注入
 
 #### 从零实现（手把手）
 > 读完这章你能把「技能包」做成可安装的目录：manifest + 入口 + 版本，安装时校验。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 registry.py：manifest 校验 + 安装
-**文件**：`packages/harness/myagentflow/skills/registry.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/skills/registry.py（新建）`
 **要写的逻辑**：`manifest.json` 至少要有 name/version/entry；安装时检查重名与版本格式，缺字段直接拒绝。
 
 **代码**
@@ -10268,10 +10268,10 @@ tasks(task_id, peer_id, state, artifacts[], updated_at)
 
 #### 从零实现（手把手）
 > 读完这章你能把「外部 Agent」包装成内部可调用的子代理：输入转协议、输出转摘要。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 adapter.py：协议转换 + 超时
-**文件**：`packages/harness/myagentflow/subagents/adapter.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/subagents/adapter.py（新建）`
 **要写的逻辑**：`adapter` 只负责三件事：拼请求、发请求（带超时）、把响应转成 `summarize()` 能吃的文本。
 
 **代码**
@@ -10506,10 +10506,10 @@ middleware: trace_id → auth → rate_limit → route
 
 #### 从零实现（手把手）
 > 读完这章你能起一个真正的 HTTP 网关：一个聊天接口，返回 SSE 流。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 main.py：装配路由与健康检查
-**文件**：`app/gateway/main.py（新建，路径相对 `backend/`）`
+**文件**：`backend/app/gateway/main.py（新建）`
 **要写的逻辑**：`create_app()` 只做装配；健康检查要能反映「检查点能否打开」，否则重启后挂的是别的东西。
 
 **代码**
@@ -10558,7 +10558,7 @@ uv run uvicorn app.gateway.main:app --port 8070
 ```
 
 ##### Step 2　新建 chat.py：SSE 流式接口
-**文件**：`app/gateway/routers/chat.py（新建）`
+**文件**：`backend/app/gateway/routers/chat.py（新建）`
 **要写的逻辑**：`POST /api/chat` 收 `{thread_id, text}`；用 `StreamingResponse` 吐 SSE；`event_stream` 里必须处理客户端断开。
 
 **代码**
@@ -10762,10 +10762,10 @@ Hydrator: (run_id, last_seq) → 补发 frames
 
 #### 从零实现（手把手）
 > 读完这章你能同时对外提供两套协议：自己的 `/api/chat` 与兼容层 `/v1/chat/completions`，并转发到同一内核。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 compat.py：把 OpenAI 形状转成内部形状
-**文件**：`app/gateway/routers/compat.py（新建）`
+**文件**：`backend/app/gateway/routers/compat.py（新建）`
 **要写的逻辑**：兼容层只做「字段映射」，不复制业务；`model` 字段忽略，`messages` 取最后一条用户消息。
 
 **代码**
@@ -10976,10 +10976,10 @@ adapter: receive() / send(chunk) / status()
 
 #### 从零实现（手把手）
 > 读完这章你能加一个新渠道（比如飞书/Telegram），只需实现「收消息、发消息」两个方法。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 base.py：渠道协议 + 总线
-**文件**：`app/channels/base.py（新建）`
+**文件**：`backend/app/channels/base.py（新建）`
 **要写的逻辑**：`Channel` 抽象两个方法；`Bus` 负责把入站消息转成统一事件，出站按 `channel` 路由回去；未知渠道直接报错。
 
 **代码**
@@ -11225,10 +11225,10 @@ visible(principal, path) -> bool; can_write(principal, path) -> bool
 
 #### 从零实现（手把手）
 > 读完这章你能判断「这个人能不能看这个 workspace」：角色 → 权限 → 资源。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 acl.py：角色映射 + 判定
-**文件**：`packages/harness/myagentflow/authz/acl.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/authz/acl.py（新建）`
 **要写的逻辑**：`role → permissions` 用集合；`can()` 先查 owner（资源所有者永远有权），再查权限集。
 
 **代码**
@@ -11275,7 +11275,7 @@ print(can('alice', {}, r, 'delete'), can('bob', {'bob':'viewer'}, r, 'write'), c
 ```
 
 ##### Step 2　写测试：owner / 角色 / 无角色
-**文件**：`tests/chapters/test_ch11_01_acl.py（新建）`
+**文件**：`backend/tests/chapters/test_ch11_01_acl.py（新建）`
 **要写的逻辑**：owner 能删；viewer 不能写；无角色全拒。
 
 **代码**
@@ -11428,10 +11428,10 @@ guard(input|output|tool, ctx) → pass | block(reason, rule_id) | redact
 
 #### 从零实现（手把手）
 > 读完这章你能自己校验 JWT（不引库）：验签、验过期、验 issuer，任何一项不过就拒。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 jwt.py：HS256 验签 + 声明校验
-**文件**：`packages/harness/myagentflow/authz/jwt.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/authz/jwt.py（新建）`
 **要写的逻辑**：base64url 解码 → `hmac.compare_digest` 验签 → 校验 `exp` / `iss` / `aud`；顺序不能反，先验签再读声明。
 
 **代码**
@@ -11492,7 +11492,7 @@ print(verify(f'{h}.{b}.{sig}', 'k', 'myaf', 'myaf')['sub'])
 ```
 
 ##### Step 2　新建测试辅助：helpers_jwt.py
-**文件**：`tests/chapters/helpers_jwt.py（新建）`
+**文件**：`backend/tests/chapters/helpers_jwt.py（新建）`
 **要写的逻辑**：测试里造合法 token 不能靠复制粘贴 Step 1 的 bash 片段，抽成一个可复用的 `make_token()`；**辅助代码不是被测代码**，所以放 `tests/` 而不是 `myagentflow/authz/`。
 
 **代码**
@@ -11538,7 +11538,7 @@ print(make_token()[:24], '...')
 ```
 
 ##### Step 3　写测试：篡改 payload 必失败
-**文件**：`tests/chapters/test_ch11_02_jwt.py（新建）`
+**文件**：`backend/tests/chapters/test_ch11_02_jwt.py（新建）`
 **要写的逻辑**：改一位 payload 后验签失败；过期 token 报错。
 
 **代码**
@@ -11698,10 +11698,10 @@ license(codec, machine_fp, issued_at, revoked)
 
 #### 从零实现（手把手）
 > 读完这章你能做一份「离线许可」：内容 + 签名，校验不过就不开功能。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 license.py：签发 + 验签 + 功能位
-**文件**：`packages/harness/myagentflow/authz/license.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/authz/license.py（新建）`
 **要写的逻辑**：payload 里放 `features` 与 `expires`；验签用 HMAC；`has_feature()` 同时查有效期，过期一律 False。
 
 **代码**
@@ -11906,10 +11906,10 @@ usage(run_id, model, prompt_tokens, completion_tokens, cost, ts)
 
 #### 从零实现（手把手）
 > 读完这章你能给每次运行记一条 trace：耗时、token、工具调用数，出问题能按 id 查。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 trace.py：span + 汇总
-**文件**：`packages/harness/myagentflow/observability/trace.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/observability/trace.py（新建）`
 **要写的逻辑**：`Span` 记录开始/结束；`Trace` 聚合子 span，输出一条 JSON；关键字段固定，方便日志检索。
 
 **代码**
@@ -12111,10 +12111,10 @@ baseline.json 对比 → delta
 
 #### 从零实现（手把手）
 > 读完这章你能写一个最小 eval：固定用例 + 关键词断言 + 通过率，改动后一跑就知道有没有退化。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 runner.py：用例 + 打分
-**文件**：`packages/harness/myagentflow/eval/runner.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/eval/runner.py（新建）`
 **要写的逻辑**：用例是 `(输入, 必须包含的关键词)`；打分只判「包含/不包含」，不做主观评分——主观评分不稳定，回归时会误导。
 
 **代码**
@@ -12168,7 +12168,7 @@ print(run(cases, lambda p: '你好'))
 ```
 
 ##### Step 2　写测试：通过率与异常隔离
-**文件**：`tests/chapters/test_ch11_05_eval.py（新建）`
+**文件**：`backend/tests/chapters/test_ch11_05_eval.py（新建）`
 **要写的逻辑**：一条命中一条不命中，rate=0.5；抛异常的用例被记为失败而不是中断整轮。
 
 **代码**
@@ -12306,10 +12306,10 @@ reflect(run_id) → {what_worked, what_failed, preference_delta}
 
 #### 从零实现（手把手）
 > 读完这章你能把「人格」做成可组合的提示片段，并保证总长度不超预算。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 persona.py：片段拼装 + 截断
-**文件**：`packages/harness/myagentflow/agents/persona.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/agents/persona.py（新建）`
 **要写的逻辑**：人格由多个片段组成（身份、语气、禁令）；拼装时按优先级保序，超预算从低优先级裁。
 
 **代码**
@@ -12491,10 +12491,10 @@ send(): optimistic(msg) → ensureThread() → POST runs/stream → onEvent(seq)
 
 #### 从零实现（手把手）
 > 读完这章你能用一个 HTML 页面把网关跑起来：发消息、看流式回复、切会话。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 index.html：一个页面三件事
-**文件**：`app/webui/static/index.html（新建，路径相对 `backend/`）`
+**文件**：`backend/app/webui/static/index.html（新建）`
 **要写的逻辑**：用原生 `fetch` + `ReadableStream` 读 SSE，不引前端框架；会话切换就是换 `thread_id`。
 
 **代码**
@@ -12700,10 +12700,10 @@ PUT /settings → 校验 → 落库 → 发布变更事件
 
 #### 从零实现（手把手）
 > 读完这章你能做设置页：改模型、开关记忆、看任务历史，改动立刻生效（不重启）。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 settings.py 路由：读 + 写 + 热生效
-**文件**：`app/gateway/routers/settings.py（新建）`
+**文件**：`backend/app/gateway/routers/settings.py（新建）`
 **要写的逻辑**：`GET` 返回脱敏配置（不返回 api_key）；`PUT` 只允许改白名单字段；改完清一次 checkpointer 单例，让新配置生效。
 
 **代码**
@@ -12870,10 +12870,10 @@ RpcClient: http | tauri | stdio 三种 transport，同一 method 表
 
 #### 从零实现（手把手）
 > 读完这章你能给桌面端做一层 JSON-RPC：一个入口、一组方法、统一错误码。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 rpc.py：方法表 + 统一错误
-**文件**：`packages/harness/myagentflow/webui/rpc.py（新建）`
+**文件**：`backend/packages/harness/myagentflow/webui/rpc.py（新建）`
 **要写的逻辑**：`{id, method, params}` → `{id, result}` 或 `{id, error:{code,message}}`；方法不存在返回 `-32601`（照 JSON-RPC 规范，别自创）。
 
 **代码**
@@ -13027,7 +13027,7 @@ sidecar: spawn backend → 等 health ready（超时 30s）→ 连接
 
 #### 从零实现（手把手）
 > 读完这章你知道 Tauri 外壳要配什么，以及为什么它属于「仅解释、不复刻」。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 tauri.conf.json：只配最小字段
 **文件**：`src-tauri/tauri.conf.json（新建，示例配置，不在本章实现）`
@@ -13207,10 +13207,10 @@ cd <EvoFlow 仓库> && uv run --project backend pytest -q backend/tests/test_v4_
 
 #### 从零实现（手把手）
 > 读完这章你有一条端到端验收：一句话任务 → 计划 → 工具 → 记忆 → 事件流 → 落库。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　写端到端测试：五个域各断言一次
-**文件**：`tests/chapters/test_ch13_01_e2e.py（新建）`
+**文件**：`backend/tests/chapters/test_ch13_01_e2e.py（新建）`
 **要写的逻辑**：不调真模型（用假模型），但把计划解析、工具注册、记忆写入、事件流、消息落库都走一遍。
 
 **代码**
@@ -13356,10 +13356,10 @@ sequenceDiagram
 
 #### 从零实现（手把手）
 > 读完这章你能自动生成一份「模块对照表」：哪些有、哪些缺、哪些只解释。
-> 路径均相对 `backend/`，代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
 
 ##### Step 1　新建 diff_ledger.py：扫两棵树对比
-**文件**：`tools/diff_ledger.py（新建，路径相对 `backend/`）`
+**文件**：`backend/tools/diff_ledger.py（新建）`
 **要写的逻辑**：扫 EvoFlow 与 myagentflow 的包目录，输出「已有 / 空壳 / 缺失」三态表；空壳判断用「目录存在但只有 __init__.py」。
 
 **代码**

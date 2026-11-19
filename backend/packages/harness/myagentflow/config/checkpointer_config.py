@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 # 检查点的存放方式：
 #   memory   —— 进程内字典，重启即丢，只适合测试
 #   sqlite   —— 单文件库，本地开发默认；需要 langgraph-checkpoint-sqlite
-#   postgres —— 多实例共享，需要 langgraph-checkpoint-postgres（本复刻未实现）
+#   postgres —— 多实例共享，需要 langgraph-checkpoint-postgres + DSN
 CheckpointerType = Literal["memory", "sqlite", "postgres"]
 
 
@@ -37,7 +37,7 @@ class CheckpointerConfig(BaseModel):
         default="memory",
         description=(
             "后端类型。memory 只在进程内；sqlite 落文件（需要 langgraph-checkpoint-sqlite）；"
-            "postgres 需要 langgraph-checkpoint-postgres（本复刻暂未实现）"
+            "postgres 需要 langgraph-checkpoint-postgres 与 MYAF_CHECKPOINT_PG_DSN"
         ),
     )
     connection_string: str | None = Field(

@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-19 11:38　源提交：`8cb5db4`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-19 11:50　源提交：`a7f844a`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -636,7 +636,7 @@ CheckpointerType = Literal["memory", "sqlite", "postgres"]
 | 第 3 章（03-会话与消息存储.md） | 会话与消息存储 | `persistence/`, `agents/` |
 | 第 4 章（04-工具协议与首批工具.md） | 工具协议与首批工具 | `tools/`, `agents/` |
 | 第 5 章（05-流式事件与断线恢复.md） | 流式事件与断线恢复 | `runtime/`, `persistence/` |
-| 第 6 章（06-本部分综合验收.md） | 综合验收 | `tests/`, `demo.py` |
+| 第 6 章（06-本部分综合验收.md） | 综合验收 | `backend/tests/chapters/` |
 
 #### 依赖关系 / Dependencies
 ```text
@@ -665,395 +665,80 @@ store ───────────┘
 > :::
 
 #### 本章目标 / Goals
-- 用 **YAML + `$ENV` 替换 + 类型化配置节** 描述应用配置，并在启动时 **fail fast**。
-- 本项目当前阶段将模型条目放在配置中，由 resolver 选择、factory 构造；EvoFlow 模型持久化方式属于后续差异说明，不在此伪造 ModelStore。
-- 建立 **credential boundary**：密钥只来自环境变量或模型库，且不会出现在 repr、日志、API 列表中。
-- 通过 `create_chat_model()` 取得「主模型」；没有模型时抛 `NoChatModelConfiguredError`，测试用 `EchoModel` 替代。
+- 用 YAML 描述 5 个配置分区：`log_level` / `models` / `primary_model` / `checkpointer` / `storage`，字段名对齐 EvoFlow。
+- 配置类用 Pydantic 建，加载结果按文件 mtime 缓存：改完 yaml 不用重启进程。
+- 模型解析走 `resolve_run_model()`（primary_model → models[0]），构造走 `create_chat_model()`；一个模型都没配就抛 `NoChatModelConfiguredError`，不静默开跑。
+- 明确不做：`$ENV` 展开、`use:` 动态加载、`config_version` 迁移、SQLite 模型库。这四项在 EvoFlow 里存在，本章只记录事实，不实现。
 
-#### 1. 已核对的事实 / Verified facts
-| # | 事实（EvoFlow 源码 / `config.example.yaml`） | 本章状态 |
-|---|---|---|
-| 1 | 默认读工作目录下 `config.yaml`；可用环境变量改路径 | ✅ `AppConfig.resolve_config_path()`（本项目变量名 `MYAGENTFLOW_CONFIG_PATH`） |
-| 2 | 字段值可写 `$ENV_VAR` | ❌ 未实现：`api_key` 原样读，不做替换 |
-| 3 | `use:` 是 `"package.module:class"` 字符串 | ❌ 未实现：`create_chat_model()` 只认 `openai` 一家 |
-| 4 | `config_version` 变化时 `make config-upgrade` 合并字段 | ❌ 未实现 |
-| 5 | EvoFlow 的模型与 `primary_model` 存在 SQLite（`evoflow_models` / `evoflow_app_settings`），YAML 里的 `models:` 启动时被忽略 | 不复刻：本项目 `models` 直接从 YAML 读（`config/models_yaml.py`） |
-| 6 | 联网搜索偏好存 DB 键 `web.search` | ❌ 未实现 |
-| 7 | `token_usage.pricing` 支持通配符、最长匹配优先 | ❌ 未实现 |
-| 8 | `summarization.trigger` 支持 tokens/messages/fraction，任一满足即触发 | ❌ 未实现（第 3 部分） |
-| 9 | `checkpointer.type` ∈ memory / sqlite / postgres | ✅ `CheckpointerConfig`：只实现 memory / sqlite，postgres 明确报错 |
-| 10 | 应用库默认 `data/app/evoflow.db` | ✅ `StorageConfig`：`backend` + `sqlite_path`，默认 `data/app/myagentflow.db` |
-| 11 | `execution_security.profile` / `approval`，会话档位可覆盖全局 | ❌ 未实现（第 6 部分） |
-| 12 | `guardrails.enabled` / `fail_closed` / provider | ❌ 未实现（第 6 部分） |
-| 13 | `agent_orchestration.default` ∈ react / hybrid / local_scheduler | ❌ 未实现 |
-| 14 | `subagents.timeout_seconds` 默认 900 | ❌ 未实现 |
-| 15 | `skills.container_path` / `repo_skills_dir` / `extra_roots` | ❌ 未实现 |
-| 16 | `tool_search.enabled`：MCP 工具延迟发现 | ❌ 未实现（第 9 部分） |
-| 17 | `tool_results`：超大输出落盘，prompt 只留摘要 | ❌ 未实现（第 3 部分） |
-| 18 | `data_retention`：日志 7 天、每线程留 5 个 checkpoint | ❌ 未实现 |
-| 19 | `observability.enabled: false` 默认关闭 | ❌ 未实现 |
-| 20 | 部署形态：LangGraph Server + Gateway 两个服务 | 第 10、11 部分 |
-| 21 | 注释里出现 `TokenUsageMiddleware`、`SessionIntentMiddleware`，运行时确实是 middleware 链 | 仅事实，供后续章节对照 |
+#### 1.1 配置文件怎么读 / File and loading
+**真实行为**（`backend/packages/harness/myagentflow/config/app_config.py`）：
 
-#### 2. 取舍说明 / What we replicate, simplify, or skip
-| 类别 | 内容 |
-|---|---|
-| **本章已实现** | #1 的路径解析与 mtime 缓存、#9 检查点类型、#10 存储路径；加上 `models` / `primary_model` 的 YAML 读取与摊平 |
-| **只记录事实、不实现** | #2–#8、#11–#19；每节都写了「未实现」，读到对应章节再补 |
-| **不复刻** | EvoFlow 的 SQLite 模型库与设置页 API（`POST /api/models` 等）、`config-upgrade`、旧 YAML 导入 |
-| **不校验** | 未建模的分区放 `extra`：`channels`、`web`、`code_index`、`skills`、`guardrails` 等 |
+1. 路径优先级：`resolve_config_path()` 的显式参数 → 环境变量 `MYAGENTFLOW_CONFIG_PATH` → 当前目录 `config.yaml`。
+2. 文件不存在**不是错误**：`_read_config_data()` 返回 `{}`，所有字段走默认值。
+3. 后缀是 `.json` 就 `json.loads`，其余走 `yaml.safe_load`；没装 PyYAML 时退化成 `{}`。YAML 语法错误会直接抛异常，没有被包装成自定义错误类型。
+4. 缓存：模块级 `_config` / `_config_path` / `_config_mtime`。`get_app_config()` 每次 `stat` 文件，mtime 变了就重读；`reload_app_config()` 强制重读，`reset_app_config()` 清缓存，`set_app_config()` 直接注入（测试替身）。
+5. 兜底来源：yaml 里 `models` 为空时，`_models_from_env()` 用 `MYAF_MODEL_NAME` / `MYAF_MODEL_ID` / `MYAF_MODEL_VENDOR` / `MYAF_MODEL_BASE_URL` / `MYAF_MODEL_API_KEY` 造一条，并把 `primary_model` 默认设成它。空字符串一律当「没配」。
+6. 未知顶层键不报错：`AppConfig.model_config = ConfigDict(extra="allow")`，多余分区原样保留。
 
-#### 最小闭环 / Minimal closed loop
-```python
-cfg   = get_app_config()      # ① 读 YAML → 类型化（字段对齐 EvoFlow）
-name  = resolve_run_model()   # ② 运行时覆盖 → primary_model → models[0]
-model = create_chat_model(name)  # ③ 按条目造 provider；一个模型都没配会抛 NoChatModelConfiguredError
-```
+**不做 `$ENV` 展开**：`api_key: $LOCAL_API_KEY` 会被当成字面量，请求时原样发出去。要放密钥就直接写值，或用上面的 `MYAF_MODEL_API_KEY` 环境变量兜底（那条是整条模型从 env 造，不是字段级替换）。
 
-#### 调用逻辑 / Invocation logic
-```mermaid
-sequenceDiagram
-    participant App
-    participant C as config/app_config.py
-    participant R as models/resolver.py
-    participant F as models/factory.py
-    App->>C: get_app_config()
-    C->>C: 解析路径 → safe_load → 校验各节 → mtime 缓存
-    C-->>App: AppConfig(models, checkpointer, storage)
-    App->>R: resolve_run_model()
-    R->>C: primary_model → 对应 ModelConfig
-    R-->>App: 条目名
-    App->>F: create_chat_model(name)
-    F->>C: 回查该条目
-    F-->>App: ChatOpenAI（目前只实现 openai 一家）
-```
+#### 1.2 五个配置节 / Typed sections
+| 配置节 | 类（文件） | 字段 | 本章行为 |
+|---|---|---|---|
+| 根 | `AppConfig`（`config/app_config.py`） | `log_level`、`models`、`primary_model`、`checkpointer`、`storage` | 5 个分区；`extra="allow"` |
+| 模型 | `ModelConfig`（`config/model_config.py`） | `name`、`model`、`use`、`vendor`、`base_url`、`api_key`、`request_timeout`、`max_retries`、`max_tokens`、`context_length`、`temperature`、`display_name`、`description` | 13 列；`name` 是条目名，`model` 才是模型 ID |
+| 检查点 | `CheckpointerConfig`（`config/checkpointer_config.py`） | `type`、`connection_string` | `type` ∈ `memory` / `sqlite` / `postgres` |
+| 存储 | `StorageConfig`（`config/storage_config.py`） | `backend`、`sqlite_path` | `backend` 只允许 `sqlite` |
+| 模型写法 | `config/models_yaml.py` | — | 把 `models.providers` 摊平成一条一模型 |
 
-#### 1.1 配置文件与加载 / File and loading
-**核心概念**
-- **整值 `$VAR`**：只有整个值是 `$NAME` 或 `${NAME}` 才替换；`"prefix-$NAME"` 不会替换。（🟡 上游示例只展示整值形式，是否支持内嵌未知。）
-- **缺失的环境变量不致命**：字段变成 `None` → 使用默认值，并记入 `unresolved_env` 与 `warnings`。这与上游注释一致（飞书的 `push_secret`：环境变量未设置时「该行被忽略，Gateway 仍能启动」）。是否对 **所有** 字段都如此，🟡 未核对。
-- **未知顶层键不拒绝**：放进 `extra`，保证向前兼容。
+**`use` 字段目前只是记录**：`create_chat_model()` 按 `vendor` 分支（只认 `openai`），不解析 `use` 里的类路径。字段保留是为了对齐 EvoFlow 的列结构，等做 provider 动态加载时再接。
 
-**业务规则**
-1. 路径优先级：显式参数 > `EVOFLOW_CONFIG_PATH` > `DEER_FLOW_CONFIG_PATH` > `./config.yaml`。
-2. 文件不存在、YAML 语法错误、顶层不是映射 → `ConfigError`，带文件路径或原因。
-3. `config_version` 缺失/过旧/过新 → 告警，不阻止启动；类型不是整数 → 报错。
-4. 空文件等于 `{}`，全部走默认值。
+**检查点三种后端都实现了**（`backend/packages/harness/myagentflow/agents/checkpointer/provider.py`）：`memory` 用 `InMemorySaver`；`sqlite` 用 `SqliteSaver`（WAL + `busy_timeout=5000`）；`postgres` 需要 `MYAF_CHECKPOINT_PG_DSN` 与 `langgraph-checkpoint-postgres`，缺一个就抛带安装提示的 `RuntimeError`。
 
-#### 1.2 类型化配置节与行为 / Typed sections and behaviour
-每个配置节是一个 `frozen dataclass`，字段名与上游示例一致。几个值得讲的 **行为**：
+**models 的两种写法**（`flatten_providers_dict()`）：
 
-**① 定价通配符（#7）**
-```python
-pricing = {"glm-*": (0.6, 2.2), "glm-4-flash*": (0, 0)}
-# "glm-4.5"        -> 命中 "glm-*"
-# "glm-4-flash-x"  -> 两个都命中，取 **更长** 的 pattern -> 免费
-# "other"          -> 未配置 -> 费用 0（界面显示 —）
-```
+1. `provider` 层的 `base_url` / `api_key` / `use` 是共享值，下传给组内每条模型；
+2. 每条模型自己的字段覆盖共享值（`{**shared, **entry}`）；
+3. `display_name` / `vendor_label` 是分组标签，不往下传，否则同组模型全叫一个名字；
+4. 摊平结果交给 `AppConfig.models`，根对象只调一次 `coerce_models_field_for_appconfig`。
 
-**② 压缩触发（#8）**：`trigger` 是列表，**任一** 条件满足就触发（OR）：
-`tokens >= value`、`messages >= value`、`tokens >= fraction × 模型最大输入`。`enabled: false` 时永不触发。
+#### 1.3 模型存在 SQLite（EvoFlow 事实，本项目不复刻）
+EvoFlow 把模型存在 SQLite 的 `evoflow_models` 表，`primary_model` 等偏好存在 `evoflow_app_settings`（key/value）。yaml 里的 `models:` / `primary_model:` 启动时会被忽略。本章**没有**实现模型库与设置页 API；下面的 API 对照只是事实清单，代码不在本仓库。
 
-**③ 校验（🟡 我们的设计）**：枚举值（profile、approval、orchestration、checkpointer.type）、范围（ratio ∈ (0,1]，`aggressive_ratio ≥ threshold_ratio`）、`bool` 不能用 `1` 代替、`sqlite/postgres` 必须带 `connection_string`、启用 guardrails 必须有 provider、工具名不可重复。
-
-#### 1.3 模型存放在 SQLite / Models live in SQLite
-**为什么不放 YAML（推断 🟡）：** 模型由界面管理、需要运行时增删改、带 API Key；放进数据库后可以热更新，也不必把密钥写进可能被提交的文本文件。（上游文件只说明「模型只在 SQLite」，没有说明原因。）
-
-**API 对照（方法 ↔ 上游路由）**
 | 方法 | 上游路由 | 说明 |
 |---|---|---|
 | `add` | `POST /api/models` | 校验 kind、`openai_compatible` 必须有 `base_url`、名称唯一 |
-| `list` / `get` | `GET /api/models` | **列表里密钥只返回掩码** `***abcd`，另给 `has_api_key` |
+| `list` / `get` | `GET /api/models` | 列表里密钥只返回掩码 `***abcd`，另给 `has_api_key` |
 | `update` | `PUT /api/models/{name}` | 只改传入的字段；不传 `api_key` 表示保持不变 |
 | `delete` | `DELETE /api/models/{name}` | 删除主模型时同时清除 `primary_model` |
 | `set_primary` / `primary` | 设置页「设为主模型」 | 停用的模型不能做主模型 |
 | `get/set_setting` | `evoflow_app_settings` 键值 | 如 `web.search` |
 
-> 表名 `evoflow_models` / `evoflow_app_settings` 与键名 `primary_model`、`web.search` 是 ✅；**列结构、返回字段是 🟡**。
+> 表名 `evoflow_models` / `evoflow_app_settings` 与键名 `primary_model`、`web.search` 是 ✅；列结构与返回字段是 🟡。
 
 #### 1.4 凭证边界 / Credential boundary
-1. **来源**：密钥来自环境变量（`$VAR`）或模型库，不写在 YAML 明文里。
-2. **表示**：EvoFlow **没有 `ModelRecord` 这个类**，也没有统一的 `__repr__` 掩码；掩码是各出口自己做的。
-3. **输出（按源码重写）**：真实存在的三处脱敏是——
-   - `models/vendor_roundtrip.py:124` `_redact_secrets()`：模型配置回传时把敏感键替换成 `<redacted>`；
-   - `admin/platform_handlers.py:3650` `_redact_channel_secrets()`：渠道配置下发前脱敏；
-   - `plans/service.py:161-172`：`redact_key=True` 时把 `api_key` 抹掉。
-   **不存在** `AppConfig.redactor()` 与 `RedactingFilter`——原文这两处是按想象写的，已删。EvoFlow 没有全局日志脱敏过滤器，所以「日志里带出密钥」是真实风险。
-4. **本复刻现状**：`backend/packages/harness/myagentflow/config/app_config.py` 里**目前没有**做任何密钥掩码（如实标注为缺口）；要补就在 `ModelConfig.__repr__` 与日志出口两处加。
+**本项目现状（如实标注缺口）**：`api_key` 从 `config.yaml` 明文读，不做 `$ENV` 展开，也没有任何掩码——`ModelConfig` 被 `repr` 时会带出密钥。日志出口同样没有统一过滤器。换句话说，本章只做到「密钥不写进代码仓库的示例文件」，没做到「密钥不出现在任何输出」。
 
-**常见坑**：只在日志里脱敏，却把密钥带进异常消息或 URL。EvoFlow 没有 `Redactor` 类，它用 `models/credential_sanitize.py` 的 `sanitize_api_key` / `sanitize_base_url` 清洗连接字段；我们这边更简单——错误信息里只放字段名，不拼 `api_key` 的值。
+**EvoFlow 的三处脱敏（源码事实）**：
 
-#### 1.5 模型工厂 / Factory
-- `resolve_run_model()`：先把运行时覆盖（`configurable.model`）取出来，没有就用 `primary_model`，再没有就退回 `models[0].name`。
-- 一个模型都没配 → `NoChatModelConfiguredError`，不静默跑。
-- `create_chat_model(name=None)`：按条目名回查 `ModelConfig`，目前只实现 `openai` 一家，其他 vendor 明确报错。
-- 测试不联网：`tests/chapters/test_ch01_02_graph.py` 用 `EchoModel` 顶替，回显输入。
+- `models/vendor_roundtrip.py:124` `_redact_secrets()`：模型配置回传时把敏感键替换成 `<redacted>`；
+- `admin/platform_handlers.py:3650` `_redact_channel_secrets()`：渠道配置下发前脱敏；
+- `plans/service.py:161-172`：`redact_key=True` 时把 `api_key` 抹掉。
 
-#### 1.6 `use:` 动态加载 / Dynamic loading
-`resolve_variable("package.module:attr.sub")` 把字符串变成对象，沙箱 provider、工具、护栏 provider 都靠它。**安全提醒：** 它会 `import` 任意模块，等于执行配置里指定的代码，所以 **配置文件必须被当作可信输入**；不要把来自用户的字符串直接喂给它。
+EvoFlow 没有 `AppConfig.redactor()`，也没有全局 `RedactingFilter`；它用 `models/credential_sanitize.py` 的 `sanitize_api_key` / `sanitize_base_url` 清洗连接字段。
 
-#### 示例代码 / Sample code
+**常见坑**：只在日志里脱敏，却把密钥带进异常消息或 URL。本项目后续要补，位置是 `ModelConfig.__repr__` 与日志出口。
 
-##### 代码实现：`backend/packages/harness/myagentflow/config/` 四个文件
+#### 1.5 模型解析与工厂 / Resolver and factory
+- `resolve_run_model()`：运行时覆盖（`cfg["model"]` / `cfg["model_name"]`）→ 全局默认（`primary_model`，没有就 `models[0].name`）。都没有且 `require_configured=True` → `NoChatModelConfiguredError`。
+- `create_chat_model(name=None, thinking_enabled=False, **kwargs)`：先解析条目名，再按 `name` 回查 `ModelConfig`，目前只实现 `openai` 一家；其他 vendor 明确抛 `RuntimeError`。
+- `thinking_enabled` 目前不参与构造，参数保留以固定签名。
+- 测试不联网：`backend/tests/chapters/test_ch01_02_graph.py` 用 `EchoModel` 顶替，回显输入。
 
-EvoFlow 的配置不是一个文件，所以我们也**不合并**：
+#### 1.6 `use:` 动态加载（EvoFlow 事实，本章未实现）
+EvoFlow 用 `resolve_variable("package.module:attr.sub")` 把 `use:` 字符串 import 成对象，沙箱 provider、工具、护栏 provider 都靠它。**安全提醒**：它会 import 任意模块，等于执行配置里指定的代码，配置文件必须当可信输入，不能把用户输入直接拼进去。
 
-| EvoFlow 文件 | 本项目文件 | 抄了什么 | 裁了什么 |
-|---|---|---|---|
-| `backend/packages/harness/myagentflow/config/app_config.py`（1005 行） | `backend/packages/harness/myagentflow/config/app_config.py` | `AppConfig` 类、`get_app_config()` / `reload_app_config()` / `reset_app_config()` / `set_app_config()` / `resolve_config_path()`、mtime 缓存（`:486`/`:494`） | 14 个字段分区 → 5 个 |
-| `backend/packages/harness/myagentflow/config/model_config.py`（183 行，`ModelConfig:78`） | `backend/packages/harness/myagentflow/config/model_config.py` | `ModelConfig` 全部**核心字段**（`name`/`model`/`use`/`vendor`/`base_url`/`api_key`/`request_timeout`/`max_retries`/`max_tokens`/`context_length`/`temperature`）、`_drop_reserved_model_config_key` 校验器、`DEFAULT_MODEL_MAX_OUTPUT_TOKENS` + `resolve_model_max_output_tokens()` | 30 列 → 13 列（thinking/availability/web_search/credentials 等留空待补） |
-| `backend/packages/harness/myagentflow/config/checkpointer_config.py`（40 行） | `backend/packages/harness/myagentflow/config/checkpointer_config.py` | `CheckpointerType`、`CheckpointerConfig(type, connection_string)`、模块单例 `_checkpointer_config` + `get/set_checkpointer_config()` | 无（整份照抄） |
-| `backend/packages/harness/myagentflow/config/storage_config.py` | `backend/packages/harness/myagentflow/config/storage_config.py` | `StorageConfig(backend, sqlite_path)` | 默认路径常量先内联，等 data_paths 章节再抽走 |
-| `backend/packages/harness/myagentflow/config/models_yaml.py:116`（`flatten_providers_dict`） | `backend/packages/harness/myagentflow/config/models_yaml.py` | `infer_vendor_from_connection`、`_coerce_model_entry`、`flatten_providers_dict`、`coerce_models_field_for_appconfig`——把 `models.providers` 摊平成一条一模型 | 未抄反方向 `unflatten_models_to_providers_dict`（要把库里的模型写回 yaml，我们没有模型库） |
-| `backend/packages/harness/myagentflow/models/resolver.py`（`NoChatModelConfiguredError:38`、`resolve_run_model:63`） | `backend/packages/harness/myagentflow/models/resolver.py` | 同名异常 + `resolve_run_model()` + `get_app_config_safe()` + `_global_default_model()` | 只保留「运行时覆盖 → 全局默认」两层，agent 维度待补 |
-| `models/factory.py:879 create_chat_model()` | `backend/packages/harness/myagentflow/models/factory.py` | 同函数名同参数形状（`name=None, thinking_enabled=False, **kwargs`） | 只实现 openai 一家 |
-
-##### `backend/packages/harness/myagentflow/config/model_config.py`（字段名照 EvoFlow，注意 `name` ≠ `model`）
-
-```python
-class ModelConfig(BaseModel):
-    # name 是条目名（primary_model 指向它），model 才是发给厂商的模型 ID，两者别混
-    vendor: str | None = Field(default=None, description="英文厂商 id")
-    name: str = Field(..., description="这条配置的唯一名称，primary_model 引用它")
-    display_name: str | None = Field(default=None)
-    description: str | None = Field(default=None)
-    use: str = Field(..., description="provider 类路径，如 langchain_openai:ChatOpenAI")
-    model: str = Field(..., description="真实模型 ID")
-    base_url: str | None = Field(default=None)
-    api_key: str | None = Field(default=None)
-    request_timeout: float | None = Field(default=None)
-    max_retries: int | None = Field(default=None)
-    max_tokens: int | None = Field(default=None)
-    context_length: int | None = Field(default=None)
-    temperature: float | None = Field(default=None)
-    model_config = ConfigDict(extra="allow")
-
-    @model_validator(mode="before")
-    @classmethod
-    def _drop_reserved_model_config_key(cls, data):
-        """数据里混进 'model_config' 键要剔掉（Pydantic 类级配置重名）。"""
-        if isinstance(data, dict) and "model_config" in data:
-            data = dict(data); data.pop("model_config", None)
-        return data
-```
-
-> **`name` 与 `model` 是两个东西**：`name` 是条目名（`primary_model` 指向它），`model` 才是真正发给厂商的模型 ID。两者混用会把条目名当成模型 ID 发给厂商，直接 404。
-
-##### `backend/packages/harness/myagentflow/config/checkpointer_config.py`（整份照抄，含单例）
-
-```python
-# 检查点的存放方式：每个取值都要在注释里交代清楚，读者不用去猜
-#   memory   —— 进程内字典，重启即丢，只适合测试
-#   sqlite   —— 单文件库，本地开发默认；需要 langgraph-checkpoint-sqlite
-#   postgres —— 多实例共享，需要 langgraph-checkpoint-postgres（本复刻未实现）
-CheckpointerType = Literal["memory", "sqlite", "postgres"]
-
-
-class CheckpointerConfig(BaseModel):
-    type: CheckpointerType = Field(default="memory")
-    connection_string: str | None = Field(
-        default=None,
-        description="sqlite 时是文件路径，postgres 时是 DSN",
-    )
-
-_checkpointer_config: CheckpointerConfig | None = None   # 模块级单例，EvoFlow 也这么放
-
-def get_checkpointer_config() -> CheckpointerConfig | None:
-    return _checkpointer_config
-
-def set_checkpointer_config(config: CheckpointerConfig | None) -> None:
-    global _checkpointer_config
-    _checkpointer_config = config
-```
-
-##### `backend/packages/harness/myagentflow/config/models_yaml.py`（providers 结构摊平）
-
-yaml 里 `models` 有两种合法写法，两种都要能读：
-
-```yaml
-# 写法一：扁平列表（本手册默认）
-models:
-  - name: fast
-    model: gpt-4o-mini
-    use: langchain_openai:ChatOpenAI
-    base_url: http://127.0.0.1:1234/v1
-
-# 写法二：按网关分组（同一组共享连接配置）
-models:
-  providers:
-    local-gateway:
-      vendor: openai
-      use: langchain_openai:ChatOpenAI
-      base_url: http://127.0.0.1:1234/v1
-      api_key: sk-local
-      models:
-        - { name: fast, model: gpt-4o-mini }
-        - { name: slow, model: gpt-4o }
-```
-
-摊平规则（`flatten_providers_dict`，EvoFlow `models_yaml.py:116`）：
-
-1. `provider` 层的 `base_url`/`api_key`/`use` 是**共享值**，下传给组内每条模型；
-2. 每条模型自己的字段**覆盖**共享值（`{**shared, **entry}`）；
-3. `display_name` / `vendor_label` 是分组标签，**不往下传**——否则同组模型全叫一个名字；
-4. 摊平结果交给 `AppConfig.models`，根对象只调一次 `coerce_models_field_for_appconfig`。
-
-##### `backend/packages/harness/myagentflow/config/storage_config.py`
-
-```python
-DEFAULT_APP_DB_REL = "data/app/myagentflow.db"   # EvoFlow 值在 data_paths.DEFAULT_APP_DB_REL
-
-class StorageConfig(BaseModel):
-    backend: Literal["sqlite"] = Field(default="sqlite")
-    sqlite_path: str = Field(default=DEFAULT_APP_DB_REL)
-```
-
-##### `backend/packages/harness/myagentflow/config/app_config.py`（根对象 + 加载，只留 5 个分区）
-
-```python
-from myagentflow.config.checkpointer_config import CheckpointerConfig
-from myagentflow.config.model_config import ModelConfig
-from myagentflow.config.storage_config import StorageConfig
-
-class AppConfig(BaseModel):
-    log_level: str = "info"
-    models: list[ModelConfig] = Field(default_factory=list)
-    primary_model: str | None = None      # 字符串条目名，不是模型对象
-    checkpointer: CheckpointerConfig = Field(default_factory=CheckpointerConfig)
-    storage: StorageConfig = Field(default_factory=StorageConfig)
-    model_config = ConfigDict(extra="allow")
-```
-
-加载与缓存（`_get_config_mtime` / `_load_and_cache_app_config` / `get_app_config` / `reload` / `reset` / `set`）照 EvoFlow 名字，不再重复贴。
-
-##### `backend/packages/harness/myagentflow/models/resolver.py` 与 `backend/packages/harness/myagentflow/models/factory.py`
-
-```python
-# resolver.py
-class NoChatModelConfiguredError(RuntimeError): ...
-
-def resolve_run_model(*, agent_code=None, cfg=None, require_configured=True) -> str:
-    runtime_name = _runtime_override(cfg)          # cfg["model"] / cfg["model_name"]
-    name = runtime_name or _global_default_model() # primary_model → models[0].name
-    if not name and require_configured:
-        raise NoChatModelConfiguredError("未配置任何模型")
-    return name
-
-# factory.py
-def create_chat_model(name=None, thinking_enabled=False, **kwargs):
-    entry = _entry_by_name(name or resolve_run_model())
-    ...
-    return ChatOpenAI(model=entry.model, base_url=entry.base_url, api_key=entry.api_key)
-```
-
-**验证**
-
-```bash
-cd /Users/main/my-agent-flow/backend
-uv run python -m pytest tests/chapters/test_ch01_01_config.py -q     # 5 passed
-```
-
-##### 不复刻：模型存 SQLite（EvoFlow `persistence/schema.py:1031`）
-
-EvoFlow 把模型**存在 SQLite**，不是 yaml。下面是真实建表语句（摘前 12 列，完整 30 列见源码）：
-
-```sql
-CREATE TABLE IF NOT EXISTS "evoflow_models" (
-    name TEXT PRIMARY KEY,
-    vendor TEXT,
-    display_name TEXT,
-    description TEXT,
-    use TEXT NOT NULL,
-    model TEXT NOT NULL,
-    base_url TEXT,
-    api_key TEXT,
-    request_timeout REAL,
-    max_retries INTEGER,
-    max_tokens INTEGER,
-    temperature REAL,
-    -- 其余列：use_responses_api / output_version / supports_thinking /
-    -- supports_reasoning_effort / supports_vision / *_json / context_length /
-    -- availability_status / unavailable_* / plan_type / plan_config / updated_at
-);
-```
-
-配套链路（每条都能指到源码）：
-
-| EvoFlow 位置 | 做什么 |
-|---|---|
-| `backend/packages/harness/myagentflow/config/models_yaml.py:116` | `flatten_providers_dict()`：把 providers 结构摊平成模型条目 |
-| `backend/packages/harness/myagentflow/config/model_config.py:78` | `ModelConfig` 定义 + `resolve_model_max_output_tokens()` 等默认值推导 |
-| `backend/packages/harness/myagentflow/models/resolver.py:63` | `resolve_run_model()`：按 run/agent 选择用哪个模型 |
-| `backend/packages/harness/myagentflow/models/factory.py` | 真正构造 provider 客户端（含 thinking / reasoning 适配） |
-| `persistence/schema.py:222` | `evoflow_app_settings`（key/value），主模型等偏好是这里的行 |
-
-**本复刻不做这件事**：模型写在 `config.yaml` 的 `models:` 段，由 `models/resolver.py:resolve_run_model()` 选名、`models/factory.py:create_chat_model()` 构造（第 1 章即已实现；`AppConfig` 本身不带 `get_model()`，EvoFlow 也没有这个方法）。理由：学习目标是链路与状态管理，不是 30 列模型库的 CRUD；差异已列在文末「与 EvoFlow 对照」表里。
-
-##### `backend/config.example.yaml`（示例配置）
-
-> EvoFlow 的 `config.example.yaml` 是 **796 行、几十个分区**；我们只保留第 1 章用到的 5 个键。没有的键不是「省略」，是**我们还没有对应实现**——读到哪章再加。EvoFlow 那边 `models` / `primary_model` 写在 yaml 里也会被忽略（原文注释：「Any ``models:`` / ``primary_model:`` keys left in config.yaml are ignored at startup」），模型真正的家是 SQLite；我们的简化版没有模型库，所以先从 yaml 读。
-
-```yaml
-# config.yaml —— 复制一份到 backend/ 下即可
-log_level: info
-primary_model: local
-
-models:
-  - name: local                    # 条目名，primary_model 指向它
-    model: gpt-4o-mini             # 真实模型 ID（EvoFlow 的 name 与 model 是两列）
-    vendor: openai                 # 对应 EvoFlow ModelConfig.vendor
-    use: langchain_openai:ChatOpenAI
-    base_url: http://127.0.0.1:1234/v1
-    api_key: $LOCAL_API_KEY        # 也支持直接写值；本复刻目前不做 $ENV 展开
-    temperature: 0.0
-
-checkpointer:
-  type: sqlite                     # memory | sqlite
-  connection_string: data/checkpoints.db
-
-storage:
-  backend: sqlite
-  sqlite_path: data/app/myagentflow.db
-```
-
-**验证**：仓库里已有 `backend/config.example.yaml`，先复制一份成 `config.yaml`（`config.yaml` 被 `.gitignore` 忽略，不会误传密钥），然后
-
-```bash
-cd /Users/main/my-agent-flow/backend
-cp config.example.yaml config.yaml      # 没有 config.yaml 时：models 会是空列表，下面的 next() 会抛 StopIteration
-uv run python -c "
-from myagentflow.config.app_config import get_app_config
-cfg = get_app_config()
-print('primary_model =', cfg.primary_model)
-print('models =', [(m.name, m.model, m.vendor) for m in cfg.models])
-print('checkpointer =', cfg.checkpointer.type, cfg.checkpointer.connection_string)
-"
-# 有 config.yaml 时期望：
-# primary_model = local
-# models = [('local', 'gpt-4o-mini', 'openai')]
-# checkpointer = sqlite data/checkpoints.db
-```
-
-#### 验收 / Acceptance（6 个本章测试，全部离线）
-| 检查项 | 测试 |
-|---|---|
-| 空配置走默认值；示例文件可加载且无告警 | `Defaults` |
-| `$VAR` / `${VAR}`、嵌套、缺失容忍；路径优先级；加载错误；数据目录 | `EnvAndPaths` |
-| 19 类非法配置被拒绝；版本告警；`models:` 被忽略并告警 | `Validation` |
-| 定价最长匹配；压缩触发 OR；单个触发器；`use:` 解析 | `Behaviour` |
-| 日志与配置密钥脱敏；`sk-` 兜底 | `Credentials` |
-| 模型 CRUD、主模型、掩码、停用、持久化、`web.search` 设置 | `Models` |
-| 无主模型给出可读错误；返回 Fake 或真实适配器；脚本透传 | `Factory` |
-
-运行：`cd code && python3 -m unittest discover -s tests -v`（合计 35 个测试）。
-
-#### 待核对清单 / Still to verify against EvoFlow source
-- [ ] `backend/packages/harness/myagentflow/config/app_config.py`：真实的校验与默认值（尤其是示例里没写出的字段）
-- [ ] 对缺失环境变量的统一处理方式
-- [ ] `persistence/model_connections.py`、`backend/packages/harness/myagentflow/config/models_yaml.py`：模型表的真实列、API 返回格式、密钥是否加密存储（`persistence/secret_store.py`）
-- [ ] `backend/packages/harness/myagentflow/models/factory.py`、`resolver.py`：模型解析（含按会话覆盖）与厂商适配（`patched_*`）
-- [ ] 默认 `base_dir`（我们暂定 `.evoflow`；示例注释提到 `$EVOFLOW_HOME` 与 `backend/.evo-flow/`）
-- [ ] Gateway `/api/models` 的请求与响应字段、「测试连接」流程
+本章的 `ModelConfig.use` 只是必填字段记录，`models/factory.py` 不解析它；要动态加载，等做到 provider 扩展那一章再补。
 
 #### 对后续章节的影响 / Impact on later chapters
 | 配置节 | 用在 |
@@ -1069,60 +754,106 @@ print('checkpointer =', cfg.checkpointer.type, cfg.checkpointer.connection_strin
 
 > **Step 0　环境准备**：`.venv` 不进仓库，被删掉很正常。在 `backend/` 下执行一次 `uv sync` 就能重建并装齐依赖（`uv.lock` 锁版本）。下文所有命令都在 `backend/` 目录下跑；用 `uv run` 时它会自动检查环境，缺了会先同步。
 
-##### Step 1　建 `backend/packages/harness/myagentflow/config/model_config.py`：一条模型的类型（照 `model_config.py:78`）
+##### Step 1　建 `backend/packages/harness/myagentflow/config/model_config.py`：只抄本章用得到的 13 列
 
 **文件**：`backend/packages/harness/myagentflow/config/model_config.py`
 
-**要做什么**：把「一条模型配置」定义成一个 Pydantic 类。EvoFlow 这份文件有 183 行、30 个字段，本章只要 13 个——但**名字一个都不改**。
-
 **逻辑要点**
 
-1. `name`（条目名，必填）、`use`（provider 类路径，必填）、`model`（真实模型 ID，必填）——三个必填，少一个就配不起来。
-2. 其余可选字段：`vendor`、`display_name`、`description`、`base_url`、`api_key`、`request_timeout`、`max_retries`、`max_tokens`、`context_length`、`temperature`。
-3. 加 `model_config = ConfigDict(extra="allow")`，将来章节补字段不用改这里。
-4. 抄 `_drop_reserved_model_config_key` 校验器：Pydantic 的类级配置也叫 `model_config`，数据里混进同名键会炸，EvoFlow 就是为此写的。
+1. 字段名照 EvoFlow `config/model_config.py:78` 的 `ModelConfig`。最容易错的是 `name` 与 `model`：`name` 是条目名（`primary_model` 指向它），`model` 才是发给厂商的模型 ID。
+2. 只抄 13 列；余下 19 列（thinking、vision、web_search、credentials、fallback 等）写在文末注释里，读到对应章节再补，**不改名、不合并**。
+3. `_drop_reserved_model_config_key` 是必须的：Pydantic 的类级配置本身就叫 `model_config`，yaml 里混进同名键会把类建崩。
+4. `resolve_model_max_output_tokens()` 处理历史默认值 8192 → 65536，避免老配置把输出限死。
 
-**代码**
+**代码（全文，86 行）**
 
 ```python
+"""一、文件说明
+    单个模型的配置：连接信息 + 采样参数。
+    两个最容易混的字段：
+    name  —— 配置条目名（唯一），primary_model 引用它，也用来在列表里回查
+    model —— 真正发给厂商的模型 ID（如 gpt-4o-mini）
+    本文件只保留第 1 章用得到的 13 列；其余列名列在文末注释里，读到对应章节再加。
+
+二、目录结构
+    packages/harness/myagentflow/config/
+    ├── __init__.py
+    ├── app_config.py  应用根配置：把各配置节拼起来，并负责加载与缓存。
+    ├── checkpointer_config.py  LangGraph 检查点的配置节：存哪种后端、连到哪。
+    ├── model_config.py  ← 本文件
+    ├── models_yaml.py  YAML 里 `models` 的两种写法：嵌套 `providers` 与扁平
+    └── storage_config.py  应用 SQLite 存储配置：只回答「应用库放哪」。
+
+三、关键方法
+    resolve_model_max_output_tokens()  把 DB/API 里的 max_tokens 归一：未设或历史 8192 → 64k。
+    ModelConfig                        一条模型的配置。
+"""
+from __future__ import annotations
+
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-class ModelConfig(BaseModel):
-    @model_validator(mode="before")
-    @classmethod
-    def _drop_reserved_model_config_key(cls, data):
-        if isinstance(data, dict) and "model_config" in data:
-            data = dict(data); data.pop("model_config", None)
-        return data
-
-    vendor: str | None = None
-    name: str = Field(..., description="这条配置的唯一名称，primary_model 引用它")
-    display_name: str | None = None
-    description: str | None = None
-    use: str = Field(..., description="provider 类路径，如 langchain_openai:ChatOpenAI")
-    model: str = Field(..., description="真实模型 ID")
-    base_url: str | None = None
-    api_key: str | None = None
-    request_timeout: float | None = None
-    max_retries: int | None = None
-    max_tokens: int | None = None
-    context_length: int | None = None
-    temperature: float | None = None
-    model_config = ConfigDict(extra="allow")
-```
-
-同时抄常量与归一函数（EvoFlow `model_config.py:6` / `:10`）：
-
-```python
+# 单轮输出预算默认值：多数 OpenAI 兼容网关按这个上限截断一次输出
 DEFAULT_MODEL_MAX_OUTPUT_TOKENS = 65536
+# 历史默认值：早期面板统一写 8192。现在读到这个值要当成「没配」升级到 65536，
+# 否则老配置文件会把输出硬卡在 8K。
 _LEGACY_DEFAULT_MAX_OUTPUT_TOKENS = 8192
 
+
 def resolve_model_max_output_tokens(raw: int | None) -> int:
+    """把 DB/API 里的 max_tokens 归一：未设或历史 8192 → 64k。
+
+    含 8192 这个历史值特判：老配置把它当默认写死，读到就该升级，而不是照用。
+    """
     if raw is None or raw <= 0:
         return DEFAULT_MODEL_MAX_OUTPUT_TOKENS
-    if raw == _LEGACY_DEFAULT_MAX_OUTPUT_TOKENS:   # 历史 8192 视为「没配」
+    if raw == _LEGACY_DEFAULT_MAX_OUTPUT_TOKENS:
         return DEFAULT_MODEL_MAX_OUTPUT_TOKENS
     return int(raw)
+
+
+class ModelConfig(BaseModel):
+    """一条模型的配置。"""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _drop_reserved_model_config_key(cls, data: Any) -> Any:
+        """Pydantic 的类级配置叫 model_config，数据里混进来同名键要剔掉。
+
+        不剔掉就会和 Pydantic 的类级配置撞名，建类直接失败。
+        """
+        if isinstance(data, dict) and "model_config" in data:
+            data = dict(data)
+            data.pop("model_config", None)
+        return data
+
+    vendor: str | None = Field(default=None, description="英文厂商 id（openai/aliyun/...）")
+    name: str = Field(..., description="这条配置的唯一名称，primary_model 引用它")
+    display_name: str | None = Field(default=None, description="界面上显示的名字")
+    description: str | None = Field(default=None, description="说明")
+    use: str = Field(..., description="provider 类路径，如 langchain_openai:ChatOpenAI")
+    model: str = Field(..., description="真实模型 ID")
+
+    # 连接
+    base_url: str | None = Field(default=None, description="自建网关地址")
+    api_key: str | None = Field(default=None, description="密钥")
+
+    # 参数
+    request_timeout: float | None = Field(default=None, description="请求超时（秒）")
+    max_retries: int | None = Field(default=None, description="重试次数")
+    max_tokens: int | None = Field(default=None, description="单轮输出上限，未设按 65536")
+    context_length: int | None = Field(default=None, description="输入上下文窗口")
+    temperature: float | None = Field(default=None, description="采样温度")
+
+    model_config = ConfigDict(extra="allow")
+
+    # 余下未加的列（读到相应章节再补，命名保持同一套）：
+    # supports_thinking / supports_reasoning_effort / when_thinking_enabled /
+    # supports_vision / enable_web_search / web_search_options / credentials /
+    # credential_strategy / fallback_models / availability_status /
+    # unavailable_reason / unavailable_code / unavailable_at / thinking /
+    # input_context_length / output_context_length / use_responses_api / output_version
 ```
 
 **验证**
@@ -1131,10 +862,10 @@ def resolve_model_max_output_tokens(raw: int | None) -> int:
 cd /Users/main/my-agent-flow/backend
 uv run python -c "
 from myagentflow.config.model_config import ModelConfig
-m = ModelConfig(name='local', model='gpt-4o-mini', use='langchain_openai:ChatOpenAI')
-print(m.name, '->', m.model)
+m = ModelConfig(name='local', use='langchain_openai:ChatOpenAI', model='gpt-4o-mini')
+print(m.name, '->', m.model, m.vendor)
 "
-# 期望：local -> gpt-4o-mini
+# 期望：local -> gpt-4o-mini None
 ```
 
 ---
@@ -1145,42 +876,111 @@ print(m.name, '->', m.model)
 
 **逻辑要点**
 
-- `checkpointer_config.py` 除了类，还带**模块级单例**与 `get/set` 两个函数——EvoFlow 的 checkpointer provider 就是靠 `get_checkpointer_config()` 取值的，单例不能省。
-- `storage_config.py` 只有两个字段：`backend`（本章只允许 `"sqlite"`）和 `sqlite_path`。默认路径常量 EvoFlow 放在 `config/data_paths.py` 的 `DEFAULT_APP_DB_REL`，我们还没有那个模块，先内联同名常量。
+- `checkpointer_config.py` 除了类，还带**模块级单例**与 `get/set` 两个函数：provider 每次建图都要取「当前生效配置」，不能自己 new。
+- 三种 backend 都允许写进配置：`memory` / `sqlite` / `postgres`。能不能连上由 `backend/packages/harness/myagentflow/agents/checkpointer/provider.py` 决定（postgres 需要 DSN 与依赖）。
+- `storage_config.py` 只有两个字段：`backend`（只允许 `"sqlite"`）和 `sqlite_path`。默认路径常量先内联，等做 data_paths 章节再抽走。
 
-**代码**
+**代码（全文）**
 
 ```python
-# checkpointer_config.py
+# backend/packages/harness/myagentflow/config/checkpointer_config.py
+"""一、文件说明
+    LangGraph 检查点的配置节：存哪种后端、连到哪。
+    为什么带模块级单例：provider 每次建图都要取「当前生效的配置」，
+    让它自己 new 对象会重复开连接；运行中切换后端也由 set_checkpointer_config() 统一改。
+
+二、目录结构
+    packages/harness/myagentflow/config/
+    ├── __init__.py
+    ├── app_config.py  应用根配置：把各配置节拼起来，并负责加载与缓存。
+    ├── checkpointer_config.py  ← 本文件
+    ├── model_config.py  单个模型的配置：连接信息 + 采样参数。
+    ├── models_yaml.py  YAML 里 `models` 的两种写法：嵌套 `providers` 与扁平
+    └── storage_config.py  应用 SQLite 存储配置：只回答「应用库放哪」。
+
+三、关键方法
+    CheckpointerConfig         Configuration for LangGraph state persistence checkpointer.
+    get_checkpointer_config()  Get the current checkpointer configuration, or None if not configured.
+    set_checkpointer_config()  Set the checkpointer configuration.
+"""
+from __future__ import annotations
+
 from typing import Literal
+
 from pydantic import BaseModel, Field
 
+# 检查点的存放方式：
+#   memory   —— 进程内字典，重启即丢，只适合测试
+#   sqlite   —— 单文件库，本地开发默认；需要 langgraph-checkpoint-sqlite
+#   postgres —— 多实例共享，需要 langgraph-checkpoint-postgres + DSN
 CheckpointerType = Literal["memory", "sqlite", "postgres"]
 
-class CheckpointerConfig(BaseModel):
-    type: CheckpointerType = Field(default="memory")
-    connection_string: str | None = Field(default=None)
 
+class CheckpointerConfig(BaseModel):
+    """Configuration for LangGraph state persistence checkpointer."""
+
+    type: CheckpointerType = Field(
+        default="memory",
+        description=(
+            "后端类型。memory 只在进程内；sqlite 落文件（需要 langgraph-checkpoint-sqlite）；"
+            "postgres 需要 langgraph-checkpoint-postgres 与 MYAF_CHECKPOINT_PG_DSN"
+        ),
+    )
+    connection_string: str | None = Field(
+        default=None,
+        description="sqlite 时为文件路径，如 `.myagentflow/checkpoints.db`；postgres 时为 DSN",
+    )
+
+
+# 全局单例：None 表示没配。provider 从这里取配置，不自己 new 对象
 _checkpointer_config: CheckpointerConfig | None = None
 
+
 def get_checkpointer_config() -> CheckpointerConfig | None:
+    """Get the current checkpointer configuration, or None if not configured."""
     return _checkpointer_config
 
+
 def set_checkpointer_config(config: CheckpointerConfig | None) -> None:
+    """Set the checkpointer configuration."""
     global _checkpointer_config
     _checkpointer_config = config
 ```
 
 ```python
-# storage_config.py
+# backend/packages/harness/myagentflow/config/storage_config.py
+"""一、文件说明
+    应用 SQLite 存储配置：只回答「应用库放哪」。
+    LangGraph 检查点不在这里——那是 checkpointer 的事，两者故意分开：
+    换检查点后端时不该动应用数据，反之亦然。
+
+二、目录结构
+    packages/harness/myagentflow/config/
+    ├── __init__.py
+    ├── app_config.py  应用根配置：把各配置节拼起来，并负责加载与缓存。
+    ├── checkpointer_config.py  LangGraph 检查点的配置节：存哪种后端、连到哪。
+    ├── model_config.py  单个模型的配置：连接信息 + 采样参数。
+    ├── models_yaml.py  YAML 里 `models` 的两种写法：嵌套 `providers` 与扁平
+    └── storage_config.py  ← 本文件
+
+三、关键方法
+    StorageConfig  单一应用库；LangGraph 检查点另存 `checkpointer.connection_string`（设计上分开）。
+"""
+from __future__ import annotations
+
 from typing import Literal
+
 from pydantic import BaseModel, Field
 
+# 应用库默认路径：相对数据目录；换成统一的数据目录模块后由它提供。
 DEFAULT_APP_DB_REL = "data/app/myagentflow.db"
 
+
 class StorageConfig(BaseModel):
-    backend: Literal["sqlite"] = Field(default="sqlite")
-    sqlite_path: str = Field(default=DEFAULT_APP_DB_REL)
+    """单一应用库；LangGraph 检查点另存 `checkpointer.connection_string`（设计上分开）。"""
+
+    backend: Literal["sqlite"] = Field(default="sqlite", description="应用持久化后端，只支持 sqlite")
+    sqlite_path: str = Field(default=DEFAULT_APP_DB_REL, description="应用库路径；相对路径按数据目录解析")
 ```
 
 **验证**
@@ -1201,36 +1001,55 @@ print(CheckpointerConfig().type, get_checkpointer_config())
 
 **逻辑要点**
 
-1. **只放根对象**：`AppConfig` 里 5 个字段，三个子配置从 Step 1/2 的模块 import 进来，不在这里重复定义。
-2. `primary_model` 类型是 `str | None`——它是**条目名**，不是模型对象。
-3. `resolve_config_path()` 做路径优先级：显式参数 → `MYAGENTFLOW_CONFIG_PATH` → `./config.yaml`。
-4. 加载链路四段，名字从 EvoFlow 抄：`_get_config_mtime`（文件不存在返回 None，不是错误）→ `_read_config_data`（yaml/json）→ `_load_and_cache_app_config` → `get_app_config`（mtime 变了重读）。
-5. 再补 `reload_app_config` / `reset_app_config` / `set_app_config` 三个口子，测试和热更新都靠它们。
-6. `models` 字段加一个 `field_validator(mode="before")`，调用 `backend/packages/harness/myagentflow/config/models_yaml.py` 的 `coerce_models_field_for_appconfig`——这样「扁平列表」和「providers 分组」两种 yaml 都能吃。
+1. **只放根对象**：`AppConfig` 5 个字段，三个子配置从 Step 1/2 的模块 import，不在这里重复定义。
+2. `primary_model` 是 `str | None`，存的是**条目名**，不是模型对象。
+3. `resolve_config_path()` 是类方法，优先级：显式参数 → `MYAGENTFLOW_CONFIG_PATH` → `./config.yaml`。
+4. 加载链路：`_get_config_mtime`（文件不存在返回 None，不是错误）→ `_read_config_data`（json / yaml，yaml 缺失退化成 `{}`）→ `_load_and_cache_app_config` → `get_app_config`（mtime 变了重读）。
+5. `models` 的 `field_validator(mode="before")` 调 `config/models_yaml.py` 的 `coerce_models_field_for_appconfig`，扁平列表与 `providers` 分组两种写法都能吃。
+6. 再补 `reload_app_config` / `reset_app_config` / `set_app_config` 三个口子，测试与热更新都靠它们。
 
-**代码**
+**代码（节选：省略三段式头注释与文件尾 `__all__`）**
 
 ```python
-from myagentflow.config.checkpointer_config import CheckpointerConfig
-from myagentflow.config.model_config import ModelConfig
-from myagentflow.config.storage_config import StorageConfig
+CONFIG_PATH_ENV = "MYAGENTFLOW_CONFIG_PATH"
 
-CONFIG_PATH_ENV = "MYAGENTFLOW_CONFIG_PATH"    # EvoFlow 叫 EVOFLOW_CONFIG_PATH
 
 class AppConfig(BaseModel):
-    log_level: str = Field(default="info")
-    models: list[ModelConfig] = Field(default_factory=list)
-    primary_model: str | None = Field(default=None)
+    """应用根配置。"""
+
+    log_level: str = Field(default="info", description="debug/info/warning/error")
+    models: list[ModelConfig] = Field(default_factory=list, description="可用模型列表")
+    primary_model: str | None = Field(default=None, description="主模型条目名（字符串，不是对象）")
     checkpointer: CheckpointerConfig = Field(default_factory=CheckpointerConfig)
     storage: StorageConfig = Field(default_factory=StorageConfig)
+
     model_config = ConfigDict(extra="allow")
+
+    @field_validator("models", mode="before")
+    @classmethod
+    def _coerce_models(cls, raw: Any) -> Any:
+        """models 允许两种写法：扁平列表，或 `{providers: {网关: {..., models: [...]}}}`。"""
+        return coerce_models_field_for_appconfig(raw)
+
+    @classmethod
+    def resolve_config_path(cls, config_path: str | None = None) -> Path:
+        """配置路径优先级：显式参数 → MYAGENTFLOW_CONFIG_PATH → 当前目录 config.yaml。"""
+        if config_path:
+            return Path(config_path).expanduser()
+        env_path = os.getenv(CONFIG_PATH_ENV, "").strip()
+        if env_path:
+            return Path(env_path).expanduser()
+        return Path.cwd() / "config.yaml"
+
 
 _config: AppConfig | None = None
 _config_path: Path | None = None
 _config_mtime: float | None = None
 _lock = threading.RLock()
 
+
 def get_app_config() -> AppConfig:
+    """取配置；文件 mtime 变了就重读，否则返回缓存对象。"""
     with _lock:
         if _config is None or _config_path is None:
             return _load_and_cache_app_config()
@@ -1259,13 +1078,15 @@ print(list(AppConfig.model_fields))
 
 1. 异常放在 `backend/packages/harness/myagentflow/models/resolver.py`，名字 `NoChatModelConfiguredError`——EvoFlow 就在这儿，不是放 `app_config.py`。
 2. `resolve_run_model()` 返回**条目名字符串**；两层来源：运行时覆盖（`cfg["model"]` / `cfg["model_name"]`）→ 全局默认（`primary_model` → `models[0].name`）；都没有就抛异常。
-3. 工厂函数改名 `create_chat_model(name=None, thinking_enabled=False, **kwargs)`，签名与 EvoFlow `factory.py:879` 对齐；内部先解析名字，再按 `name` 回查配置条目，最后 `ChatOpenAI(model=entry.model, ...)`——**请求用 `model`，不是 `name`**。
+3. 工厂函数 `create_chat_model(name=None, thinking_enabled=False, **kwargs)`，签名与 EvoFlow `factory.py:879` 对齐；内部先解析名字，再按 `name` 回查配置条目，最后 `ChatOpenAI(model=entry.model, ...)`——**请求用 `model`，不是 `name`**。
+4. `request_timeout` / `max_retries` 只在配了才传给 `ChatOpenAI`：显式传 `None` 会被 provider 拒绝。
 
-**代码**
+**代码（节选）**
 
 ```python
-# resolver.py
+# backend/packages/harness/myagentflow/models/resolver.py
 class NoChatModelConfiguredError(RuntimeError): ...
+
 
 def resolve_run_model(*, agent_code=None, cfg=None, require_configured=True) -> str:
     runtime_name = _runtime_override(cfg)
@@ -1276,14 +1097,31 @@ def resolve_run_model(*, agent_code=None, cfg=None, require_configured=True) -> 
 ```
 
 ```python
-# factory.py
-def create_chat_model(name=None, thinking_enabled=False, **kwargs):
+# backend/packages/harness/myagentflow/models/factory.py
+def create_chat_model(
+    name: str | None = None,
+    thinking_enabled: bool | None = False,
+    **kwargs: Any,
+) -> Any:
     resolved = (name or "").strip() or resolve_run_model()
     entry = _entry_by_name(resolved)
-    model_kwargs = {"model": entry.model, "base_url": entry.base_url, "api_key": entry.api_key}
-    if entry.temperature is not None:
-        model_kwargs["temperature"] = entry.temperature
-    return ChatOpenAI(**model_kwargs)
+
+    if entry.vendor == "openai":
+        model_kwargs: dict[str, Any] = {
+            "model": entry.model,          # 请求用模型 ID，不是条目名
+            "base_url": entry.base_url,
+            "api_key": entry.api_key,
+        }
+        if entry.temperature is not None:
+            model_kwargs["temperature"] = entry.temperature
+        if entry.request_timeout is not None:
+            model_kwargs["timeout"] = entry.request_timeout
+        if entry.max_retries is not None:
+            model_kwargs["max_retries"] = entry.max_retries
+        model_kwargs.update(kwargs)
+        return ChatOpenAI(**model_kwargs)
+
+    raise RuntimeError(f"暂不支持的 vendor：{entry.vendor}（已实现 openai）")
 ```
 
 **验证**
@@ -1298,37 +1136,53 @@ print(create_chat_model.__name__)
 
 ---
 
-##### Step 5　写测试：5 个用例钉住真实行为
+##### Step 5　写测试：6 个用例钉住真实行为
 
 **文件**：`backend/tests/chapters/test_ch01_01_config.py`
 
 **逻辑要点**
 
 1. 每个用例先 `_isolate`：`chdir(tmp_path)` + 清掉 6 个 env，避免读到仓库里的真实 `config.yaml`。
-2. 覆盖点：env 造模型 / 空串当没配 / 缺模型抛 `NoChatModelConfiguredError` / yaml 生效（含 `checkpointer`）/ `MYAGENTFLOW_CONFIG_PATH` 覆盖。
-3. 断言里同时钉 `name` 与 `model` 两个值，防止再把两者混掉。
+2. 覆盖点：env 造模型 / 空串当没配 / 缺模型抛 `NoChatModelConfiguredError` / yaml 生效（含 `checkpointer`）/ `MYAGENTFLOW_CONFIG_PATH` 覆盖 / `providers` 摊平。
+3. 断言同时钉 `name` 与 `model` 两个值，防止再把两者混掉。
 
-**代码**
+**代码（节选：`_isolate` 与第一个用例，其余见文件）**
 
 ```python
+def _isolate(monkeypatch, tmp_path):
+    """把 cwd 挪到 tmp，避免读到仓库里真实的 config.yaml；清掉相关 env。"""
+    for k in (
+        "MYAGENTFLOW_CONFIG_PATH",
+        "MYAF_MODEL_NAME",
+        "MYAF_MODEL_ID",
+        "MYAF_MODEL_VENDOR",
+        "MYAF_MODEL_BASE_URL",
+        "MYAF_MODEL_API_KEY",
+    ):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.chdir(tmp_path)
+
+
 def test_env_model_becomes_primary(monkeypatch, tmp_path):
+    """只配环境变量也能建模型，且第一个模型被选为 primary。"""
     from myagentflow.config.app_config import get_app_config, reset_app_config
 
-    _isolate(monkeypatch, tmp_path); reset_app_config()
+    _isolate(monkeypatch, tmp_path)
+    reset_app_config()
     monkeypatch.setenv("MYAF_MODEL_NAME", "local")
     monkeypatch.setenv("MYAF_MODEL_ID", "gpt-4o-mini")
 
     cfg = get_app_config()
     assert cfg.primary_model == "local"
-    assert cfg.models[0].model == "gpt-4o-mini"
-    assert cfg.checkpointer.type == "memory"
+    assert cfg.models[0].vendor == "openai"
+    assert cfg.models[0].model == "gpt-4o-mini"    # model 是模型 ID，name 是条目名
 ```
 
 **验证**
 
 ```bash
 uv run python -m pytest tests/chapters/test_ch01_01_config.py -q
-# 期望：5 passed
+# 期望：6 passed
 
 uv run python -m ruff check packages tests --output-format=concise
 # 期望：All checks passed!
@@ -1340,26 +1194,110 @@ uv run python -m ruff check packages tests --output-format=concise
 
 | EvoFlow | 我们 | 差异 |
 |---|---|---|
-| `config/app_config.py:94 AppConfig`（14 个分区） | `config/app_config.py AppConfig` | 5 个分区 |
-| `config/model_config.py:78 ModelConfig`（30 列） | `config/model_config.py ModelConfig` | 13 列，其余列名写在注释里 |
-| `config/checkpointer_config.py:10 CheckpointerConfig` + 单例 | 同名同文件 | 无 |
-| `config/storage_config.py:10 StorageConfig` | 同名同文件 | 默认路径常量内联 |
-| `models/resolver.py:38 NoChatModelConfiguredError` | 同名同文件 | 无 |
-| `models/factory.py:879 create_chat_model` | 同名同参数 | 只支持 openai |
-| 模型存 `evoflow_models` 表（SQLite） | `config.yaml` 的 `models` 列表 | 明确不复刻，见 1.4 |
+| `config/app_config.py:94 AppConfig`（14 个分区） | `backend/packages/harness/myagentflow/config/app_config.py` `AppConfig` | 5 个分区 |
+| `config/model_config.py:78 ModelConfig`（30 列） | `backend/packages/harness/myagentflow/config/model_config.py` `ModelConfig` | 13 列，余下列名写在注释里 |
+| `config/checkpointer_config.py:10 CheckpointerConfig` + 单例 | `backend/packages/harness/myagentflow/config/checkpointer_config.py` | 无 |
+| `config/storage_config.py:10 StorageConfig` | `backend/packages/harness/myagentflow/config/storage_config.py` | 默认路径常量内联 |
+| `models/resolver.py:38 NoChatModelConfiguredError` | `backend/packages/harness/myagentflow/models/resolver.py` | 无 |
+| `models/factory.py:879 create_chat_model` | `backend/packages/harness/myagentflow/models/factory.py` | 只支持 openai |
+| 模型存 `evoflow_models` 表（SQLite） | `config.yaml` 的 `models` 列表 | 不复刻，见 1.3 |
 
 ##### 知识点
 
 - [agent-book · LangChain 课程](https://g0-000.github.io/agent-book/langchain/)：模型调用与配置注入
 - 本章只用 `langchain_openai`，别的 provider 等后面章节再扩
 
-##### 验收
+#### 示例配置 / Example config
+
+`backend/config.example.yaml` 是可直接复制的样例，只有本章用到的 5 个键。EvoFlow 的 `config.example.yaml` 是 796 行、几十个分区；没有的键不是「省略」，是我们**还没有对应实现**——读到哪章再加。
+
+```yaml
+# my-agent-flow 配置样例
+# 用法：cp config.example.yaml config.yaml（config.yaml 已被 .gitignore 忽略）
+# 字段名严格对齐 EvoFlow：models 里每条是 ModelConfig，name 是条目名，model 是模型 ID。
+
+log_level: info
+
+models:
+  # name  —— 条目名，primary_model 指向它（唯一）
+  # model —— 真正发给厂商的模型 ID
+  # use   —— provider 类路径（目前只实现 langchain_openai:ChatOpenAI）
+  - name: local
+    vendor: openai
+    use: langchain_openai:ChatOpenAI
+    model: gpt-4o-mini
+    base_url: http://127.0.0.1:1234/v1     # 本地 LM Studio / Ollama / 自建网关，按需改
+    api_key: ""                            # 本地可留空；云端填 key（本复刻暂不做 $ENV 展开）
+    temperature: 0.0
+    request_timeout: 120
+    max_retries: 1
+
+primary_model: local
+
+checkpointer:
+  type: sqlite                             # memory | sqlite | postgres（postgres 需 MYAF_CHECKPOINT_PG_DSN）
+  connection_string: data/checkpoints.db
+
+storage:
+  backend: sqlite
+  sqlite_path: data/app/myagentflow.db
+
+# 另一种写法：按网关分组（同一组共享连接配置），由 config/models_yaml.py 摊平
+# 想用就删掉上面的 models 列表，改用下面这段（两者只能留一个）
+# models:
+#   providers:
+#     local-gateway:
+#       vendor: openai
+#       use: langchain_openai:ChatOpenAI
+#       base_url: http://127.0.0.1:1234/v1
+#       api_key: ""
+#       models:
+#         - { name: local, model: gpt-4o-mini }
+```
+
+**验证**
 
 ```bash
-uv run pytest tests/chapters/test_ch01_01_config.py -q \
-  && MYAF_MODEL_NAME=local MYAF_MODEL_ID=gpt-4o-mini uv run python -c "from myagentflow.models.resolver import resolve_run_model; print(resolve_run_model())"
-# 期望：5 passed 之后打印 local
+cd /Users/main/my-agent-flow/backend
+cp config.example.yaml config.yaml       # config.yaml 已被 .gitignore 忽略
+uv run python -c "
+from myagentflow.config.app_config import get_app_config
+cfg = get_app_config()
+print('primary_model =', cfg.primary_model)
+print('models =', [(m.name, m.model, m.vendor) for m in cfg.models])
+print('checkpointer =', cfg.checkpointer.type, cfg.checkpointer.connection_string)
+"
+# 期望：
+# primary_model = local
+# models = [('local', 'gpt-4o-mini', 'openai')]
+# checkpointer = sqlite data/checkpoints.db
 ```
+
+没有 `config.yaml` 也不会崩：`models` 先看 `MYAF_MODEL_*` 环境变量，再没有就是空列表；此时 `resolve_run_model()` 抛 `NoChatModelConfiguredError`，不会静默跑。
+
+#### 验收 / Acceptance（6 个本章测试，全部离线）
+| # | 检查项 | 测试 |
+|---|---|---|
+| 1 | 只配环境变量也能建模型，`primary_model` 取第一条 | `test_env_model_becomes_primary` |
+| 2 | 空字符串 `base_url` 归一成 `None` | `test_blank_base_url_is_none` |
+| 3 | 一个模型都没配 → 抛 `NoChatModelConfiguredError` | `test_no_model_raises` |
+| 4 | YAML 的 `log_level` / `primary_model` / 模型条目 / `checkpointer` 都被读进来 | `test_yaml_config_defines_models` |
+| 5 | `MYAGENTFLOW_CONFIG_PATH` 改路径后结果跟着变（没走旧缓存） | `test_config_path_env_override` |
+| 6 | `models.providers` 嵌套写法摊平成扁平列表，共享值下传 | `test_providers_layout_is_flattened` |
+
+```bash
+cd /Users/main/my-agent-flow/backend
+uv run pytest tests/chapters/test_ch01_01_config.py -q
+# 期望：6 passed
+```
+
+#### 待核对清单 / Still to verify against EvoFlow source
+- [x] `ModelConfig` 的列名与必填项：13 列已对齐，余下 19 列列名记录在文件尾注释里
+- [x] `base_url` / `api_key` 空字符串的处理：`config/models_yaml.py` 归一成 `None`，用例 2 钉住
+- [ ] EvoFlow 模型表的完整列、API 返回格式、密钥是否加密存储（`persistence/secret_store.py`）
+- [ ] EvoFlow `POST/PUT /api/models` 的请求与响应字段、「测试连接」流程
+- [ ] EvoFlow 按会话/agent 覆盖模型的解析链（我们只做了全局两层）
+- [ ] 数据目录约定：本项目 `storage.sqlite_path` 默认 `data/app/myagentflow.db`，checkpoint 默认 `.myaf/checkpoints.sqlite`；EvoFlow 用 `$EVOFLOW_HOME` 与 `backend/.evo-flow/`
 
 
 <!-- ===== 01-最小闭环/02-Agent与单轮执行.md ===== -->
@@ -1441,12 +1379,20 @@ chat router → create_chat_model() → build_graph(model) → graph.invoke(
 
 #### 示例代码 / Sample code
 
-##### `backend/packages/harness/myagentflow/agents/lead_agent/graph.py`（全文，35 行）
+##### `backend/packages/harness/myagentflow/agents/lead_agent/graph.py`（全文，34 行）
 
 ```python
-"""最小 Agent：一个节点 + 两条边。
+"""一、文件说明
+    最小 Agent：一个节点 + 两条边。
+    刻意不做工具循环：先把「单轮」跑通，后面每章只在这张图上加节点/加边。
 
-刻意不做工具循环：先把「单轮」跑通，后面每章只在这张图上加节点/加边。
+二、目录结构
+    packages/harness/myagentflow/agents/lead_agent/
+    ├── __init__.py
+    └── graph.py  ← 本文件
+
+三、关键方法
+    build_graph()  建单节点图：一次 invoke 调一次模型；可选挂 checkpointer 保留同线程历史。
 """
 from __future__ import annotations
 
@@ -1456,6 +1402,7 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 
 
 def build_graph(model: Any, checkpointer: Any = None):
+    """建单节点图：一次 invoke 调一次模型；可选挂 checkpointer 保留同线程历史。"""
     graph = StateGraph(MessagesState)
 
     def call_model(state: MessagesState):
@@ -1479,21 +1426,25 @@ def build_graph(model: Any, checkpointer: Any = None):
 | `checkpointer` 默认 `None` | 本章先证明「一条消息进、一条回复出」；持久化留给 02/01，不在这里耦合 |
 | 节点只做 `model.invoke` | 把「调模型」和「图」分开：换模型（真模型/假模型）不影响图结构，测试才能不联网 |
 
-##### 调用方：`app/gateway/routers/chat.py`（节选）
+##### 调用方：`backend/app/gateway/routers/chat.py`（节选）
 
 ```python
-from myagentflow.agents.lead_agent.graph import build_graph
-from myagentflow.models.factory import create_chat_model
-from myagentflow.runtime.streaming import stream_graph
+async def chat(body: ChatIn) -> StreamingResponse:
+    from myagentflow.agents.lead_agent.graph import build_graph
+    from myagentflow.models.factory import create_chat_model
+    from myagentflow.runtime.streaming import stream_graph
 
-graph = build_graph(create_chat_model())     # 模型由 1.1 的配置层解析
+    graph = build_graph(create_chat_model())     # 模型由 1.1 的配置层解析
 
-async for chunk in stream_graph(
-    graph,
-    {"messages": [HumanMessage(content=body.text)]},
-    {"configurable": {"thread_id": body.thread_id}},
-):
-    yield chunk
+    async def gen():
+        async for chunk in stream_graph(
+            graph,
+            {"messages": [HumanMessage(content=body.text)]},
+            {"configurable": {"thread_id": body.thread_id}},
+        ):
+            yield chunk
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
 ```
 
 > 注意：这条路由目前**没传 checkpointer**，所以同一 `thread_id` 也不会累积历史——接持久化是 02/01 的事。本章测试里显式传了 `InMemorySaver()`，验证的是「checkpointer 挂上就累积」这一点。
@@ -1505,8 +1456,8 @@ async for chunk in stream_graph(
 | 内容 | 状态 | 证据 |
 |---|---|---|
 | `backend/packages/harness/myagentflow/agents/lead_agent/graph.py` 的 `build_graph(model, checkpointer=None)` | ✅ 已实现 | 全文见上；`uv run python -c "from ... import build_graph"` 通过 |
-| `tests/chapters/test_ch01_02_graph.py` 两个用例 | ✅ 已实现 | `uv run pytest ... -q` → **2 passed** |
-| chat 路由调用图 | 🟡 半接 | `app/gateway/routers/chat.py:20` 已 `build_graph(create_chat_model())`，但**未传 checkpointer**，同 thread 不累积；接持久化在 02/01 |
+| `backend/tests/chapters/test_ch01_02_graph.py` 两个用例 | ✅ 已实现 | `uv run pytest ... -q` → **2 passed** |
+| chat 路由调用图 | 🟡 半接 | `backend/app/gateway/routers/chat.py:23` 已 `build_graph(create_chat_model())`，但**未传 checkpointer**，同 thread 不累积；接持久化在 02/01 |
 | 系统提示 / 角色 prompt | ❌ 本章不做 | EvoFlow 由 `agents/middlewares/dynamic_system_prompt_middleware.py` 每轮注入，我们在 3/03 复刻 |
 | 工具循环 | ❌ 不做 | 1/04 才有 `ToolRegistry` 与工具节点 |
 | run 登记 / 事件流 / 取消 | ❌ 不做 | 1/05（事件）与 02/02（生命周期） |
@@ -1515,7 +1466,7 @@ async for chunk in stream_graph(
 1. **一张图只做一次模型调用**：没有工具时，图跑完就结束，不存在「循环直到模型停」。
 2. **history 由 `MessagesState` 通道维护**：节点只返回新消息，追加由 reducer 完成，不手工 `messages + [reply]`。
 3. **checkpointer 可为空**：不传时图无状态，每次 `invoke` 各自独立；传了才按 `thread_id` 累积。
-4. **异常不吞**：`model.invoke` 抛什么就传什么，本周不做错误分类/脱敏。
+4. **异常不吞**：`model.invoke` 抛什么就传什么，本章不做错误分类/脱敏。
 
 #### 验收 / Acceptance
 - [x] 单轮：一条消息进、`echo: 你好` 出（`test_single_turn`）
@@ -1550,9 +1501,17 @@ cd backend && uv run pytest tests/chapters/test_ch01_02_graph.py -q
 **代码**
 
 ```python
-"""最小 Agent：一个节点 + 两条边。
+"""一、文件说明
+    最小 Agent：一个节点 + 两条边。
+    刻意不做工具循环：先把「单轮」跑通，后面每章只在这张图上加节点/加边。
 
-刻意不做工具循环：先把「单轮」跑通，后面每章只在这张图上加节点/加边。
+二、目录结构
+    packages/harness/myagentflow/agents/lead_agent/
+    ├── __init__.py
+    └── graph.py  ← 本文件
+
+三、关键方法
+    build_graph()  建单节点图：一次 invoke 调一次模型；可选挂 checkpointer 保留同线程历史。
 """
 from __future__ import annotations
 
@@ -1562,6 +1521,7 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 
 
 def build_graph(model: Any, checkpointer: Any = None):
+    """建单节点图：一次 invoke 调一次模型；可选挂 checkpointer 保留同线程历史。"""
     graph = StateGraph(MessagesState)
 
     def call_model(state: MessagesState):
@@ -1590,6 +1550,18 @@ uv run python -c "from myagentflow.agents.lead_agent.graph import build_graph; p
 **代码**
 
 ```python
+"""一、文件说明
+    第 2 章图结构：单轮执行与同一 thread 的历史累积。
+
+二、覆盖
+    EchoModel                      假模型：不联网，只回显。
+    test_single_turn()             一张「START → call_model → END」的图能把一条消息跑出回复。
+    test_same_thread_keeps_history() 同一 thread 第二次调用能看到第一轮的两条消息。
+
+三、运行
+    uv run pytest tests/chapters/test_ch01_02_graph.py -q
+"""
+
 from __future__ import annotations
 
 from langchain_core.messages import AIMessage, HumanMessage
@@ -1603,6 +1575,7 @@ class EchoModel:
 
 
 def test_single_turn():
+    """一张「START → call_model → END」的图能把一条消息跑出回复。"""
     from myagentflow.agents.lead_agent.graph import build_graph
 
     graph = build_graph(EchoModel())
@@ -1625,6 +1598,7 @@ uv run pytest tests/chapters/test_ch01_02_graph.py -v
 
 ```python
 def test_same_thread_keeps_history():
+    """同一 thread 第二次调用能看到第一轮的两条消息（4 条 = 两问两答）。"""
     from langgraph.checkpoint.memory import InMemorySaver
     from langchain_core.messages import HumanMessage
 
@@ -1681,7 +1655,7 @@ uv run pytest tests/chapters/test_ch01_02_graph.py -q
 
 #### 本章目标 / Goals
 让对话在进程重启后仍能继续：`sessions`（目录）+ `chat_messages`（正文）两张表，读写走两个仓储文件。
-`runs` / `events` 属于执行日志，1.5 再建，本章不碰。
+`runs` / `events` 属于执行日志，等做运行记录那一章再建，本章不碰。
 
 #### 最小闭环 / Minimal closed loop
 `upsert_session_row(s) → append_message(s,"user","你好") → 关进程 → append_message(s,"assistant","在") → list_messages(s)` 两条都在、顺序不变
@@ -1720,14 +1694,16 @@ sessions 1 ──< chat_messages     # 模型看到的历史（user / assistant�
 | `sessions` | 会话目录：标题、创建/更新时间 | ❌ |
 | `chat_messages` | 对话正文，主键 `(thread_id, seq)` | ✅ |
 
-`runs` / `events` 是执行日志，1.5 单独建表，不放进本章。
+`runs` / `events` 是执行日志，单独建表留给运行记录章节，不放进本章。
 
 #### 怎么用 / Usage
 
-chat 路由拿到的 `thread_id` 就是 `session_key`。一次对话写三次库：进图前写 user、出图后写 assistant、重开页面读回。
+`thread_id` 就是 `session_key`。一次对话写三次库：进图前写 user、出图后写 assistant、重开页面读回。
+
+**现状**：`backend/app/gateway/routers/chat.py` 目前只做「建图 → 流式返回」，**还没有**接持久化。下面这段是接线示意，不是现有代码；接上之后才谈「刷新页面历史还在」。
 
 ```python
-# app/gateway/routers/chat.py（节选）：路由层只做三件事
+# 接线示意（尚未提交到 backend/app/gateway/routers/chat.py）
 from myagentflow.persistence.chat_message_repositories import append_message, list_messages
 from myagentflow.persistence.session_repositories import upsert_session_row
 
@@ -1756,19 +1732,19 @@ def render(thread_id: str):
 
 ##### 文件映射
 
-| EvoFlow 文件 | 本章实现的符号 |
-|---|---|
-| `backend/packages/harness/myagentflow/persistence/db.py` | `get_db` / `db_connection_lock` / `reset_db` |
-| `backend/packages/harness/myagentflow/persistence/session_repositories.py` | `upsert_session_row` / `get_session_row_for_ui` / `list_sessions_for_ui` / `delete_sessions_by_thread_id` |
-| `backend/packages/harness/myagentflow/persistence/chat_message_repositories.py` | `append_message` / `list_messages` / `count_messages` / `delete_messages_for_session` |
+| EvoFlow 同名文件 | 本项目文件（`backend/packages/harness/myagentflow/persistence/`） | 本章实现的符号 |
+|---|---|---|
+| `persistence/db.py` | `db.py` | `get_db` / `db_connection_lock` / `reset_db` |
+| `persistence/session_repositories.py` | `session_repositories.py` | `upsert_session_row` / `get_session_row_for_ui` / `list_sessions_for_ui` / `delete_sessions_by_thread_id` |
+| `persistence/chat_message_repositories.py` | `chat_message_repositories.py` | `append_message` / `list_messages` / `count_messages` / `delete_messages_for_session` |
 
-本项目路径与上游同名：`packages/harness/myagentflow/persistence/`。
+文件级对齐：一个 EvoFlow 源文件对应一个同名文件，没有聚合层；三个文件共用 `db.py` 的同一个 `get_db()` 连接。
 
 ##### 目录结构
 
 ```text
 backend/
-├── app/gateway/routers/chat.py              # 唯一调用方：POST /chat → SSE
+├── app/gateway/routers/chat.py              # POST /chat → SSE（尚未接本章仓储）
 ├── packages/harness/myagentflow/
 │   ├── config/app_config.py                 # storage.sqlite_path：库文件位置
 │   └── persistence/
@@ -1776,7 +1752,7 @@ backend/
 │       ├── db.py                            # get_db / db_connection_lock / reset_db
 │       ├── session_repositories.py          # sessions 表：标题、时间戳
 │       └── chat_message_repositories.py     # chat_messages 表：追加、读回
-└── tests/chapters/
+└── tests/chapters/                                    # 路径为 backend/tests/chapters/
     ├── test_ch01_03_messages.py             # 本章用例：顺序 / 删除 / 会话
     ├── test_ch01_06_e2e.py                  # 复用 append_message 写回放
     └── test_ch13_01_e2e.py                  # 全链路验收同样复用
@@ -1785,9 +1761,9 @@ backend/
 导入方向（箭头表示 `import`）：
 
 ```text
-chat.py ──→ session_repositories ─┐
-   └─────→ chat_message_repositories ─┼──→ db ──→ config/app_config
-                                      └──→ db（同一个 get_db 单例）
+session_repositories ─────┐
+chat_message_repositories ─┼──→ db ──→ config/app_config（storage.sqlite_path）
+                          └──→ 同一个 get_db() 单例，不各开各的连接
 ```
 
 `db.py` 只认 `app_config.storage.sqlite_path` 和测试用的 `MYAF_DB_PATH`，不认任何业务参数；两个仓储只认 `thread_id`，不认路由或 HTTP 结构。这样换库、换调用方都不用改另一层。
@@ -2050,12 +2026,13 @@ uv run pytest tests/chapters/test_ch01_03_messages.py -q
 
 ##### 与 EvoFlow 对照
 
-| EvoFlow | 我们 | 差异 |
+| EvoFlow 文件 | 本项目文件 | 差异 |
 |---|---|---|
-| `backend/packages/harness/myagentflow/persistence/db.py` 的 `get_db()` / `db_connection_lock()` | 同名同义 | 简化：无 schema 版本表、无 preflight |
-| `session_repositories.py` 的 `upsert_session_row` / `get_session_row_for_ui` / `list_sessions_for_ui` / `delete_sessions_by_thread_id` | 同名同义 | 只保留标题与时间戳，模式/场景/工具授权未做 |
-| `chat_message_repositories.py` 的 `append_message` / `list_messages` / `count_messages` / `delete_messages_for_session` | 同名同义 | 只存 `role/content`，`content_json`、token 统计、`run_id` 未做 |
-| 多文件合并成一个聚合类 | **禁止** | 违反文件级映射：会话与消息必须各自成文件 |
+| `persistence/db.py` 的 `get_db()` / `db_connection_lock()` | `backend/packages/harness/myagentflow/persistence/db.py` | 简化：无 schema 版本表、无 preflight |
+| `persistence/session_repositories.py` 的 `upsert_session_row` / `get_session_row_for_ui` / `list_sessions_for_ui` / `delete_sessions_by_thread_id` | `backend/packages/harness/myagentflow/persistence/session_repositories.py` | 只保留标题与时间戳，模式/场景/工具授权未做 |
+| `persistence/chat_message_repositories.py` 的 `append_message` / `list_messages` / `count_messages` / `delete_messages_for_session` | `backend/packages/harness/myagentflow/persistence/chat_message_repositories.py` | 只存 `role/content`，`content_json`、token 统计、`run_id` 未做 |
+
+**文件级映射**：会话与消息各占一个文件，禁止合并成 `MessageStore` 这类聚合类；三者共用 `db.py` 的连接与锁。
 
 ##### 知识点
 
@@ -2140,15 +2117,24 @@ sequenceDiagram
 
 ##### Step 1　新建 registry.py：ToolSpec + 注册表
 **文件**：`backend/packages/harness/myagentflow/tools/registry.py（新建）`
-**要写的逻辑**：`ToolSpec` 冻结；`schemas()` 输出 OpenAI function calling 形状；`call()` 统一入口，未知工具给明确报错。
+**要写的逻辑**：`ToolSpec` 冻结；`schemas()` 输出 OpenAI function calling 形状；`call()` 统一入口，未知工具给明确报错；`register()` 重名也报错（本章测试只覆盖前两项）。
 
 **代码**
 
 ```python
-"""工具注册表：一个数据结构 + 三个方法。
+"""一、文件说明
+    工具注册表：一个数据结构 + 三个方法。
+    为什么要 ToolSpec 而不是裸函数：模型要的是 name/description/JSON Schema，
+    执行要的是可调用对象，两者必须绑在一起，否则迟早对不上。
 
-为什么要 ToolSpec 而不是裸函数：模型要的是 name/description/JSON Schema，
-执行要的是可调用对象，两者必须绑在一起，否则迟早对不上。
+二、目录结构
+    packages/harness/myagentflow/tools/
+    ├── __init__.py
+    └── registry.py  ← 本文件
+
+三、关键方法
+    ToolSpec      一个工具的完整声明：名字、描述、JSON Schema、可调用对象。
+    ToolRegistry  工具注册表：注册、查找、调用；重名直接拒绝。
 """
 from __future__ import annotations
 
@@ -2159,6 +2145,7 @@ from typing import Any
 
 @dataclass(frozen=True)
 class ToolSpec:
+    """一个工具的完整声明：名字、描述、JSON Schema、可调用对象。"""
     name: str
     description: str
     input_schema: dict[str, Any]
@@ -2166,6 +2153,7 @@ class ToolSpec:
 
 
 class ToolRegistry:
+    """工具注册表：注册、查找、调用；重名直接拒绝。"""
     def __init__(self) -> None:
         self._tools: dict[str, ToolSpec] = {}
 
@@ -2208,17 +2196,30 @@ uv run python -c "from myagentflow.tools.registry import ToolRegistry, ToolSpec;
 **代码**
 
 ```python
-"""第一个内置工具：echo。它的价值是「证明通路」，不是功能。"""
+"""一、文件说明
+    第一个内置工具：echo。它的价值是「证明通路」，不是功能。
+
+二、目录结构
+    packages/harness/myagentflow/tools/builtins/
+    ├── __init__.py
+    └── echo.py  ← 本文件
+
+三、关键方法
+    _echo()          原样返回输入，用于验证工具通路。
+    register_echo()  把 echo 工具连同 schema 注册进注册表。
+"""
 from __future__ import annotations
 
 from myagentflow.tools.registry import ToolRegistry, ToolSpec
 
 
 def _echo(text: str) -> str:
+    """原样返回输入，用于验证工具通路。"""
     return text
 
 
 def register_echo(registry: ToolRegistry) -> None:
+    """把 echo 工具连同 schema 注册进注册表。"""
     registry.register(
         ToolSpec(
             name="echo",
@@ -2246,17 +2247,29 @@ print(r.schemas()); print(r.call('echo', {'text': 'ok'}))
 
 ##### Step 3　写测试：schema 形状 + 未知工具报错
 **文件**：`backend/tests/chapters/test_ch01_04_tools.py（新建）`
-**要写的逻辑**：断言 `type == function`、必填字段、调用结果、重复注册报错。
+**要写的逻辑**：断言 `type == function`、必填字段、调用结果、未知工具报错。
 
 **代码**
 
 ```python
+"""一、文件说明
+    第 4 章工具协议：schema 生成、调用与未知工具报错。
+
+二、覆盖
+    test_schema_and_call()  echo 生成 function schema，required 正确，调用返回输入。
+    test_unknown_tool()     调不存在的工具抛 KeyError。
+
+三、运行
+    uv run pytest tests/chapters/test_ch01_04_tools.py -q
+"""
+
 from __future__ import annotations
 
 import pytest
 
 
 def test_schema_and_call():
+    """echo 生成 function schema，required 正确，调用返回输入。"""
     from myagentflow.tools.builtins.echo import register_echo
     from myagentflow.tools.registry import ToolRegistry
 
@@ -2270,6 +2283,7 @@ def test_schema_and_call():
 
 
 def test_unknown_tool():
+    """调不存在的工具抛 KeyError。"""
     from myagentflow.tools.registry import ToolRegistry
 
     with pytest.raises(KeyError):
@@ -2380,15 +2394,25 @@ sequenceDiagram
 
 ##### Step 1　新建 events.py：一个事件类型 + 一个序列化
 **文件**：`backend/packages/harness/myagentflow/runtime/events.py（新建）`
-**要写的逻辑**：事件只保留 `type` + `data`；`to_sse()` 输出标准 SSE 帧；断线恢复靠 `Last-Event-ID`，所以每条事件带 `seq`。
+**要写的逻辑**：事件只保留 `type` + `data`；`to_sse()` 输出标准 SSE 帧；每条事件带 `seq`，供客户端排序与去重。服务端不做重放，断线重连等于开新流。
 
 **代码**
 
 ```python
-"""流式事件：统一形状 + SSE 序列化。
+"""一、文件说明
+    流式事件：统一形状 + SSE 序列化。
+    为什么事件要带 seq：前端按 seq 排序、去重；服务端重放（Last-Event-ID 续传）不在本章，
+    那需要 run 状态与事件缓冲，先把事件形状固定下来。
 
-为什么事件要带 seq：前端断线重连时用 Last-Event-ID 续传，
-没有 seq 就只能整段重放，用户会看到重复内容。
+二、目录结构
+    packages/harness/myagentflow/runtime/
+    ├── __init__.py
+    ├── events.py  ← 本文件
+    └── streaming.py  把 LangGraph 的 astream_events 收敛成我们自己的事件。
+
+三、关键方法
+    StreamEvent  一条流事件：类型、数据、序号，可转成 SSE 帧。
+    EventStream  把「生成事件」和「排 seq」分开，调用方只管产出业务数据。
 """
 from __future__ import annotations
 
@@ -2400,6 +2424,7 @@ from typing import Any
 
 @dataclass
 class StreamEvent:
+    """一条流事件：类型、数据、序号，可转成 SSE 帧。"""
     type: str                      # token | tool | done | error
     data: dict[str, Any] = field(default_factory=dict)
     seq: int = 0
@@ -2442,7 +2467,18 @@ print(repr(e.to_sse()))
 **代码**
 
 ```python
-"""把 LangGraph 的 astream_events 收敛成我们自己的事件。"""
+"""一、文件说明
+    把 LangGraph 的 astream_events 收敛成我们自己的事件。
+
+二、目录结构
+    packages/harness/myagentflow/runtime/
+    ├── __init__.py
+    ├── events.py  流式事件：统一形状 + SSE 序列化。
+    └── streaming.py  ← 本文件
+
+三、关键方法
+    stream_graph()  把 LangGraph 事件流转成 SSE 文本块，异常收敛成 error 事件。
+"""
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
@@ -2452,6 +2488,7 @@ from myagentflow.runtime.events import EventStream
 
 
 async def stream_graph(graph: Any, payload: dict, config: dict) -> AsyncIterator[str]:
+    """把 LangGraph 事件流转成 SSE 文本块，异常收敛成 error 事件。"""
     stream = EventStream()
     try:
         async for raw in graph.astream_events(payload, config=config, version="v2"):
@@ -2478,8 +2515,8 @@ uv run python -c "from myagentflow.runtime.streaming import stream_graph; print(
 
 | 我们的做法 | EvoFlow | 为什么 |
 |---|---|---|
-| `event/type/data` 三元组 | AG-UI 事件的最外层字段 | 前端按 type 分派，不看内容猜 |
-| `Last-Event-ID` 续传 | Gateway 的 SSE 实现 | 没有 seq 就无法断点续传 |
+| `type` + `data` + `seq` | AG-UI 事件的最外层字段 | 前端按 type 分派，不看内容猜 |
+| `seq` 只用于排序/去重 | Gateway 的 SSE 实现 | 本章不做服务端重放；要续传得先有 run 状态与事件缓冲，属于后面的章节 |
 
 ##### 知识点
 
@@ -2490,6 +2527,7 @@ uv run python -c "from myagentflow.runtime.streaming import stream_graph; print(
 
 ```bash
 uv run python -c "from myagentflow.runtime.events import EventStream; print(EventStream().emit('done').to_sse())"
+# 期望：id: 1 / event: done / data: {"seq": 1} / 空行
 ```
 
 
@@ -2504,92 +2542,126 @@ uv run python -c "from myagentflow.runtime.events import EventStream; print(Even
 ```mermaid
 sequenceDiagram
     participant T as test_end_to_end
-    participant G as graph · 第 2 章
+    participant G as agents/lead_agent/graph.py
     participant M as EchoModel
-    participant S as chat_message_repositories
-    participant E as events
-    T->>G: start_run(session) / execute()
+    participant S as persistence/chat_message_repositories.py
+    participant E as runtime/events.py
+    T->>G: build_graph(EchoModel) / invoke({{messages}})
     G->>M: invoke(messages)
-    M-->>G: 固定回复（无网络）
-    G->>S: append(user) / append(assistant)
-    G->>E: emit run_start → token → done
-    T->>E: 断言事件序列与顺序
+    M-->>G: echo: 你好
+    T->>S: append_message(user) / append_message(assistant)
+    S-->>T: list_messages → 两条，角色顺序正确
+    T->>E: EventStream().emit("done").to_sse()
+    E-->>T: id: 1 / event: done / 空行
+    T->>T: registry.call("echo", {{text: x}}) == "x"
 ```
 
-- **入口**：`tests/chapters/test_ch01_06_e2e.py::test_end_to_end`，它不启动 HTTP，直接驱动 Part 1 的四个模块。
-- **关键节点**：模型换成 `EchoModel`（离线），数据库用临时文件，事件用内存列表收集——三处都可在测试里替换，才叫「可验收」。
-- **出口**：断言三件事：消息落库条数、事件首尾类型、`done` 只出现一次。
-- **最容易断的地方**：为了跑通去改生产代码；验收测试只准换依赖，不准改逻辑。
+- **入口**：`backend/tests/chapters/test_ch01_06_e2e.py::test_end_to_end`，不启动 HTTP，直接驱动 Part 1 的模块。
+- **关键节点**：模型换成 `EchoModel`（离线），数据库用临时文件（`MYAF_DB_PATH` + `db.reset_db()`），事件用 `EventStream` 直接产出。
+- **出口**：断言三件事——消息按 `user/assistant` 顺序读回、SSE 首帧以 `id: 1` 开头且以空行结尾、工具注册表能调到 `echo`。
+- **最容易断的地方**：为了跑通去改生产代码。验收测试只准换依赖（假模型、临时库），不准改逻辑。
 
 #### 验收场景 / Scenario
-发送一条需要计算的消息 → 观察流式事件（token、tool_start/tool_end、done）→ 重启服务 → 历史与结果完整。
+
+一条消息进图 → 假模型回显 → 回复写进 `chat_messages` → 按角色读回 → 同一套事件序列化产出合法 SSE 帧。重启后会话仍在，靠第 3 章的 SQLite 仓储；流式断线恢复不在本部分（见第 5 章的限制）。
 
 #### 运行 / How to run
+
 ```bash
-cd code
-python3 -m unittest discover -s tests -v   # 35 个测试，全部离线
-python3 demo.py                            # 打印一次完整 SSE 流和一次断线重连
+cd /Users/main/my-agent-flow/backend
+uv run pytest tests/chapters -q          # 全部章节测试，离线
+uv run ruff check packages app tools tests
 ```
 
+Part 1 的五个测试文件合计 14 个用例：`test_ch01_01_config.py`（6）、`test_ch01_02_graph.py`（2）、`test_ch01_03_messages.py`（3）、`test_ch01_04_tools.py`（2）、`test_ch01_06_e2e.py`（1）。
+
 #### 通过标准 / Pass criteria
+
 | # | 检查项 | 对应测试 |
 |---|---|---|
-| 1 | 配置加载/校验、模型库、密钥不泄露 | `tests/test_ch1_config.py`（24 个） |
-| 2 | 单轮执行、Agent 无状态串扰 | `test_part1.py::Ch2Agent` |
-| 3 | 重启后会话仍在 | `test_part1.py::Ch3Store`, `Part1Acceptance` |
-| 4 | 工具循环、安全求值、截断、max_steps | `test_part1.py::Ch4Tools` |
-| 5 | SSE 顺序、重放、错误路径 | `test_part1.py::Ch5Stream` |
+| 1 | 配置加载、env 兜底、providers 摊平、无模型报错 | `test_ch01_01_config.py`（6 个） |
+| 2 | 单轮执行：一节点两边界；同 thread 历史累积 | `test_ch01_02_graph.py`（2 个） |
+| 3 | 消息 seq 连续、limit 取最近 N 条、会话标题不被覆盖 | `test_ch01_03_messages.py`（3 个） |
+| 4 | 工具 schema 形状、调用、未知工具报错 | `test_ch01_04_tools.py`（2 个） |
+| 5 | 配置 → 图 → 消息表 → SSE 串成一条链 | `test_ch01_06_e2e.py`（1 个） |
 
 #### 已知限制 / Known limitations（诚实清单）
-- 真实模型适配器 `OpenAICompatModel` **未经联网验证**，且不是流式解析。
-- SSE 使用轮询，未做并发压测。
-- 存储用 SQLite + 全局锁，不适合高并发。
-- 没有取消、检查点、鉴权 —— 分别属于第 2、11 部分。
-- 第 1–5 章均为按 EvoFlow 模块职责逐步构建的教学实现；逐项行为是否等同上游，以各章对照表为准，不以“结构对齐”暗示“功能等同”。
+
+- `stream_graph()` 没有独立单测：只有导入级检查（`test_ch01_06_e2e.py` 不跑它）。要钉事件映射，得另写异步用例。
+- 服务端不做 SSE 重放：`seq` 只用于排序/去重，断线重连等于开新流。
+- `backend/app/gateway/routers/chat.py` 还没有接持久化：消息表由测试直接调用，不经过路由。
+- 路由建图时**没传 checkpointer**：同一 thread 的历史只在测试里用 `InMemorySaver` 验证。
+- SQLite 单连接 + 全局锁，不适合高并发。
+- 模型只实现 `openai` vendor；`use:` 不解析。
+- 没有取消、鉴权、工具循环 —— 分别属于后面的部分。
 
 #### 常见坑
 
 | 症状 | 原因 | 动作 |
 |---|---|---|
 | `ModuleNotFoundError: myagentflow` | 不在 `backend/` 根目录跑，或没 `uv sync` | `cd backend && uv run pytest tests/chapters -q` |
-| 单章全绿、一起跑就挂 | 模块级单例/环境变量在测试间串味 | 每个用例用 `tmp_path`；改环境变量后 `reset_checkpointer()` |
+| 单章全绿、一起跑就挂 | 模块级单例/环境变量在测试间串味 | 每个用例用 `tmp_path`；改配置后 `reset_app_config()`；换库后 `db.reset_db()` |
 | 临时库残留导致第二次失败 | SQLite 文件写到了仓库目录 | 路径一律 `tmp_path / "x.sqlite"`，不要写死 `data/` |
 
 #### 从零实现（手把手）
+
 > 读完这章你有一条完整链路：配置 → 图 → 消息表 → 工具 → 事件流，并且有一个集成测试兜底。
-> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
+> 文件路径一律写仓库全路径（`backend/...`）。
 
-##### Step 1　写集成测试：一次调用串起四个模块
+##### Step 1　写集成测试：一次调用串起五个模块
+
 **文件**：`backend/tests/chapters/test_ch01_06_e2e.py（新建）`
-**要写的逻辑**：假模型 + 注册表 + 消息表 + 事件流；断言消息落库、schema 可枚举、SSE 帧合法。
 
-**代码**
+**要写的逻辑**
+
+1. `monkeypatch.setenv("MYAF_DB_PATH", ...)` 指向 `tmp_path`，再 `db.reset_db()` 丢掉可能存在的旧连接。
+2. 用 `EchoModel` 替掉真模型：只实现 `invoke`，不发 HTTP。
+3. 手工写 user 消息、跑图、把回复写回 assistant——路由还没接持久化，所以测试直接调仓储。
+4. 断言角色顺序、SSE 帧形状、工具调用返回值。
+
+**代码（全文，50 行）**
 
 ```python
+"""一、文件说明
+    第 1 部分验收：模型 → 图 → 消息落库 → SSE 串成一条链。
+
+二、覆盖
+    EchoModel()        假模型：不联网，只回显；测试里所有模型都该这样替身。
+    test_end_to_end()  模型回复落库后按角色读回，SSE 首帧带 id。
+
+三、运行
+    uv run pytest tests/chapters/test_ch01_06_e2e.py -q
+"""
+
 from __future__ import annotations
 
 from langchain_core.messages import AIMessage, HumanMessage
 
 
 class EchoModel:
+    """假模型：不联网，只回显；测试里所有模型都该这样替身。"""
     def invoke(self, messages, *_a, **_k):
         return AIMessage(content="echo: " + messages[-1].content)
 
 
 def test_end_to_end(monkeypatch, tmp_path):
+    """模型回复落库后按角色读回，SSE 首帧带 id。"""
     from myagentflow.agents.lead_agent.graph import build_graph
-    from myagentflow.persistence.chat_message_repositories import append_message, list_messages
-    from myagentflow.persistence.session_repositories import upsert_session_row
+    from myagentflow.persistence.chat_message_repositories import (
+        append_message,
+        list_messages,
+    )
     from myagentflow.runtime.events import EventStream
     from myagentflow.tools.builtins.echo import register_echo
     from myagentflow.tools.registry import ToolRegistry
 
     monkeypatch.setenv("MYAF_DB_PATH", str(tmp_path / "e2e.sqlite"))
+    from myagentflow.persistence import db
+    db.reset_db()
     registry = ToolRegistry()
     register_echo(registry)
 
     graph = build_graph(EchoModel())
-    upsert_session_row("t1", title="验收")
     append_message("t1", "user", "你好")
     out = graph.invoke({"messages": [HumanMessage(content="你好")]})
 
@@ -2610,36 +2682,32 @@ uv run pytest tests/chapters/test_ch01_06_e2e.py -v
 ```
 
 ##### Step 2　跑一遍全量，确认没有互相踩
+
 **文件**：`（无新文件，回归）`
-**要写的逻辑**：Part 1 的五个测试文件一起跑，检查环境变量/单例/临时库之间是否串味。
 
-**代码**
-
-这一步不写新代码，也没有新文件可建——它考的是「五个模块放一起会不会互相踩」，所以只跑命令，见下面「验证」。
+**要写的逻辑**：Part 1 的五个测试文件一起跑，检查环境变量、配置缓存、数据库单例之间是否串味。
 
 **验证**
 
 ```bash
-uv run pytest tests/chapters -v
-# 期望：Part 1 相关用例全绿
+uv run pytest tests/chapters -q
+# 期望：60 passed（含其他部分的章节测试）
+
+uv run python -m ruff check packages app tools tests
+# 期望：All checks passed!
 ```
 
 ##### 与 EvoFlow 对照
 
 | 我们的做法 | EvoFlow | 为什么 |
 |---|---|---|
-| 集成测试放 `tests/chapters/` | EvoFlow 的 `tests/` 分层 | 每章一个测试文件，失败时能直接定位章节 |
+| 集成测试放 `backend/tests/chapters/` | EvoFlow 的 `tests/` 分层 | 每章一个测试文件，失败时能直接定位章节 |
+| 假模型 + 临时 SQLite | EvoFlow 也用替身与临时库 | 验收不烧 token、不受网络影响 |
 
 ##### 知识点
 
 - [agent-book](https://g0-000.github.io/agent-book/)：整体课程结构
 - 下一部分（02）开始接持久化与生命周期
-
-##### 验收
-
-```bash
-uv run pytest tests/chapters -q
-```
 
 
 ## 02-持久化与运行生命周期

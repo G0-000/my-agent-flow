@@ -1,7 +1,7 @@
 """一、文件说明
     流式事件：统一形状 + SSE 序列化。
-    为什么事件要带 seq：前端断线重连时用 Last-Event-ID 续传，
-    没有 seq 就只能整段重放，用户会看到重复内容。
+    为什么事件要带 seq：前端按 seq 排序、去重；服务端重放（Last-Event-ID 续传）不在本章，
+    那需要 run 状态与事件缓冲，先把事件形状固定下来。
 
 二、目录结构
     packages/harness/myagentflow/runtime/

@@ -21,7 +21,7 @@ models:
 primary_model: local
 
 checkpointer:
-  type: sqlite                             # memory | sqlite | postgres（postgres 未实现）
+  type: sqlite                             # memory | sqlite | postgres（postgres 需 MYAF_CHECKPOINT_PG_DSN）
   connection_string: data/checkpoints.db
 
 storage:

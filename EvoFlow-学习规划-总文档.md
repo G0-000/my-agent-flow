@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-19 11:36　源提交：`192b3ee`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-19 11:38　源提交：`8cb5db4`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -2427,6 +2427,12 @@ from myagentflow.runtime.events import EventStream
 s = EventStream(); e = s.emit('token', text='你')
 print(repr(e.to_sse()))
 "
+```
+
+**输出 / Output**
+
+```text
+'id: 1\nevent: token\ndata: {"text": "你", "seq": 1}\n\n'
 ```
 
 ##### Step 2　把图事件映射成 StreamEvent

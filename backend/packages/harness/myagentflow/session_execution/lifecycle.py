@@ -52,10 +52,11 @@ class RunRegistry:
             return rec
 
     def active_for_thread(self, thread_id: str) -> RunRecord | None:
-        for rec in self._runs.values():
-            if rec.thread_id == thread_id and rec.status == "running":
-                return rec
-        return None
+        with self._lock:      # 可能被别的线程查（HTTP 层），读也要锁
+            for rec in self._runs.values():
+                if rec.thread_id == thread_id and rec.status == "running":
+                    return rec
+            return None
 
     def cancel(self, run_id: str) -> bool:
         with self._lock:

@@ -9,7 +9,7 @@
     └── stdio.py  ← 本文件
 
 三、关键方法
-    handle()  处理一行 JSON-RPC 请求；目前只实现 ping。
+    handle()  处理一行 JSON-RPC 请求：ping 握手、state 读线程状态；其他方法回错误。
     serve()   从 stdin 逐行读 JSON-RPC 并写回 stdout；坏行返回错误而不退出进程。
 """
 from __future__ import annotations
@@ -20,10 +20,25 @@ from typing import Any
 
 
 def handle(req: dict[str, Any]) -> dict[str, Any]:
-    """处理一行 JSON-RPC 请求；目前只实现 ping。"""
-    if req.get("method") != "ping":
-        return {"id": req.get("id"), "error": f"未知方法：{req.get('method')}"}
-    return {"id": req.get("id"), "result": "pong"}
+    """处理一行 JSON-RPC 请求：ping 握手、state 读线程状态；其他方法回错误。"""
+    method = req.get("method")
+    req_id = req.get("id")
+
+    if method == "ping":
+        return {"id": req_id, "result": "pong"}
+
+    if method == "state":
+        # 懒加载：只用 ping 的宿主不该被迫初始化数据库连接
+        from myagentflow.agents.checkpointer import get_checkpointer
+        from myagentflow.agents.checkpointer.thread_state_reader import (
+            read_thread_state,
+        )
+
+        params = req.get("params") or {}
+        thread_id = str(params.get("thread_id") or params.get("thread") or "cli")
+        return {"id": req_id, "result": read_thread_state(get_checkpointer(), thread_id)}
+
+    return {"id": req_id, "error": f"未知方法：{method}"}
 
 
 def serve(stdin=sys.stdin, stdout=sys.stdout) -> None:
@@ -38,3 +53,7 @@ def serve(stdin=sys.stdin, stdout=sys.stdout) -> None:
             resp = {"id": None, "error": str(exc)}
         stdout.write(json.dumps(resp, ensure_ascii=False) + "\n")
         stdout.flush()   # 不 flush 的话父进程会一直等
+
+
+if __name__ == "__main__":
+    serve()

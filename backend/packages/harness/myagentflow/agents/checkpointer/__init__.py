@@ -4,7 +4,8 @@
 二、目录结构
     packages/harness/myagentflow/agents/checkpointer/
     ├── __init__.py  ← 本文件
-    ├── provider.py  检查点提供者：单例 + 一次性上下文（memory / sqlite / pos
+    ├── omit_transcript.py  写入前剥对话：messages / ui_messages，未完成 tool_call 例外
+    ├── provider.py  检查点提供者：单例 + 一次性上下文（memory / sqlite / postgres）
     └── thread_state_reader.py  只读检查点读线程状态：不编译图。
 
 三、关键方法

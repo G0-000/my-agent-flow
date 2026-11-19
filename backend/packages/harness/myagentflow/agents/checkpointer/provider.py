@@ -7,11 +7,14 @@
 二、目录结构
     packages/harness/myagentflow/agents/checkpointer/
     ├── __init__.py  检查点层：对外只暴露「拿 saver / 重置 / 一次性上下文」三件事。
+    ├── omit_transcript.py  写入前剥对话：messages / ui_messages，未完成 tool_call 例外。
     ├── provider.py  ← 本文件
     └── thread_state_reader.py  只读检查点读线程状态：不编译图。
 
 三、关键方法
     _checkpointer_config()  配置来源：AppConfig.checkpointer（type / connection_string）。
+    _wrap_omit_transcript() 给 saver 套上「写前剥对话」的包装；开关关闭时原样返回。
+    _checkpointer_connection_alive() 取单例前 SELECT 1 探活，连接死了重建。
     _backend()              读后端类型；默认 memory —— 保证「什么配置都没有」也能跑起来。
     _sqlite_path()          检查点库文件路径。放 .myaf/ 下，跟仓库源码分开。
     _pg_dsn()               读 Postgres 检查点的 DSN 环境变量；没配返回空串。
@@ -79,12 +82,24 @@ def _pg_dsn() -> str:
     return os.getenv("MYAF_CHECKPOINT_PG_DSN", "").strip()
 
 
+def _wrap_omit_transcript(saver: Checkpointer) -> Checkpointer:
+    """给 saver 套上「写前剥对话」的包装；开关关闭时原样返回。"""
+    from myagentflow.agents.checkpointer.omit_transcript import (
+        OmitTranscriptCheckpointer,
+        omit_transcript_on_checkpoint_put_enabled,
+    )
+
+    if not omit_transcript_on_checkpoint_put_enabled():
+        return saver
+    return OmitTranscriptCheckpointer(saver)
+
+
 def _build(backend: str) -> Checkpointer:
     """按 backend 造一个全新的 saver（不缓存）。"""
     if backend == "memory":
         from langgraph.checkpoint.memory import InMemorySaver
 
-        return InMemorySaver()
+        return _wrap_omit_transcript(InMemorySaver())
 
     if backend == "sqlite":
         try:
@@ -105,7 +120,7 @@ def _build(backend: str) -> Checkpointer:
 
         saver = SqliteSaver(conn)
         saver.setup()  # 建表：v3.x 实测为 checkpoints + writes（版本不同表名会变，以实际为准）
-        return saver
+        return _wrap_omit_transcript(saver)
 
     if backend == "postgres":
         dsn = _pg_dsn()
@@ -118,9 +133,22 @@ def _build(backend: str) -> Checkpointer:
 
         saver = PostgresSaver.from_conn_string(dsn)
         saver.setup()
-        return saver
+        return _wrap_omit_transcript(saver)
 
     raise RuntimeError(f"未知的 checkpointer 后端：{backend}")
+
+
+def _checkpointer_connection_alive(cp: Checkpointer) -> bool:
+    """长连接可能已被关闭：取用前 SELECT 1 探活，失败就让单例重建。"""
+    inner = getattr(cp, "_inner", cp)
+    conn = getattr(inner, "conn", None) or getattr(cp, "conn", None)
+    if conn is None:            # memory / postgres pool 没有 .conn，视为活着
+        return True
+    try:
+        conn.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
 
 
 _lock = threading.RLock()
@@ -144,7 +172,9 @@ def get_checkpointer() -> Checkpointer:
 
     with _lock:  # 两个线程同时首次调用时，只允许一个真的去 build
         if _singleton is not None and _singleton_key == key:
-            return _singleton
+            if _checkpointer_connection_alive(_singleton):
+                return _singleton
+            _close(_singleton)      # 连接已死：清掉，下面重建
         if _singleton is not None:  # 旧配置：先关连接
             _close(_singleton)
         _singleton = _build(backend)

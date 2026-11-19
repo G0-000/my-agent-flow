@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-19 11:50　源提交：`a7f844a`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-19 12:01　源提交：`55be3dc`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -2719,42 +2719,57 @@ uv run python -m ruff check packages app tools tests
 ### 第 2 部分　持久化与运行生命周期 / Durability and Run Lifecycle
 
 
-> 状态：🟡→✅ 推进中。第 1、2 章已逐行核对源码（provider / omit_transcript / thread_state_reader / lifecycle / langgraph_cancel）；第 3、4 章仍为骨架。
+> 状态：🟡 推进中。第 1 章已实现并验收；第 2、3、4 章是范围内最小实现，章节开头都写清了「未做什么」。
 
-目标：让一次 Agent 运行从「进程内的一次性事件」变成 **可恢复、可取消、可远程驱动、可分享** 的长生命周期对象。
+目标：让一次 Agent 运行从「进程内的一次性事件」变成 **可恢复、可取消、可被外部程序驱动、可分享** 的长生命周期对象。
 
 #### 章节
 
-| 章 | 主题 | 真实模块（已核对路径） |
-|---|---|---|
-| 1（01-检查点与线程恢复.md） ✅ | 检查点与线程恢复 Checkpoints | `packages/harness/evoflow/agents/checkpointer/`、`data/checkpoints/checkpoints.db` |
-| 2（02-运行生命周期与取消.md） ✅ | 运行生命周期与取消 Run lifecycle | `session_execution/`、`cancellation/`、`app/gateway/run_status_reconcile.py` |
-| 3（03-CLI与stdio-App-Server.md） | CLI 与 stdio App Server | `cli/`、`app_server/`、`desktop_stdio.py` |
-| 4（04-分享生命周期.md） | 分享生命周期 Sharing | `app/gateway/routers/share.py`、`persistence/chat_share_repositories.py` |
+| 章 | 主题 | 状态 | 本章真实代码 |
+|---|---|---|---|
+| 1（01-检查点与线程恢复.md） | 检查点与线程恢复 Checkpoints | ✅ 已实现 + 5 测试 | `agents/checkpointer/{provider,omit_transcript,thread_state_reader}.py` |
+| 2（02-运行生命周期与取消.md） | 运行生命周期与取消 Run lifecycle | 🟡 进程内注册表 + 4 测试 | `session_execution/lifecycle.py` |
+| 3（03-CLI与stdio-App-Server.md） | CLI 与 stdio App Server | 🟡 `chat`/`state` + `ping`/`state` + 5 测试 | `cli/main.py`、`app_server/stdio.py` |
+| 4（04-分享生命周期.md） | 分享生命周期 Sharing | 🟡 token 存储 + 3 测试 | `collab/shares.py` |
+
+**状态口径**：✅ = 本章声明的行为全部实现且有测试；🟡 = 范围缩小/部分实现，章节内「本章不做」逐条列了缺什么。
 
 #### 这一部分要解决什么问题
 
-1. **崩了怎么办**：进程被杀、机器重启后，会话与任务还在。
-2. **怎么停下**：用户点停止、超时、被新消息打断（`multitask_strategy: interrupt`）。
-3. **怎么被别的程序驱动**：CLI / stdio JSON-RPC 让编辑器、脚本、桌面端复用同一内核。
-4. **怎么给别人看**：只读分享链接，不能把整个工作区暴露出去。
+1. **崩了怎么办**：进程被杀后，同一 `thread_id` 能从检查点续上；历史从消息表 hydrate。
+2. **怎么停下**：同线程只允许一个 run；取消是信号，执行方在安全点收尾。
+3. **怎么被别的程序驱动**：CLI 与 stdio 两个入口，stdout 只放协议。
+4. **怎么给别人看**：token 分享链接，可过期、可撤销，库里不存明文 token。
 
 #### 依赖关系
 
 ```text
 Part 1 的 run/stream
    ├─→ checkpointer（状态落盘）→ 恢复
-   ├─→ session_execution（生命周期/命令）→ 取消
-   └─→ app_server / cli（外部入口）
-                 └─→ share（只读投影）
+   ├─→ session_execution（进程内单活/取消）
+   └─→ cli / app_server（外部入口）
+                 └─→ collab/shares（token 生命周期）
 ```
+
+#### 本部分明确未实现（留给后续）
+
+- 检查点：`async_provider.py`、`session_search.py`、checkpoint 中间件二次瘦身。
+- 生命周期：DB 状态表、停止扫描、调 LangGraph Server 取消、跨进程可见。
+- stdio：`chat/send` / `chat/event` 流式协议、TCP 监听、Windows UTF-8 包装。
+- 分享：HTTP 路由、不可变快照内容、鉴权。
 
 #### 验收口径
 
-- 杀掉进程重启后，同一 thread 能继续对话且历史完整。
-- 停止请求 3 秒内生效，且状态不会「卡在 running」。
-- CLI 能在无 HTTP 的情况下完成一次完整对话。
-- 分享页看不到未授权资源。
+```bash
+cd /Users/main/my-agent-flow/backend
+uv run pytest tests/chapters/test_ch02_*.py -q     # 17 passed
+uv run python -m ruff check packages tests
+```
+
+- 同一 thread 重启后能读回检查点；检查点 `messages` 为空（未完成 tool_call 除外）。
+- 同线程第二次 run 被拒；取消后的 run 不能报 `finished`。
+- CLI `state` 不需要模型配置；stdio 坏行不拖垮进程。
+- 过期 token 与撤销 token 状态可区分。
 
 
 <!-- ===== 02-持久化与运行生命周期/01-检查点与线程恢复.md ===== -->
@@ -2763,251 +2778,322 @@ Part 1 的 run/stream
 ### 第 1 章　检查点与线程恢复 / Checkpoints
 
 
-> **对照状态** ✅ **已核对源码**：`backend/packages/harness/myagentflow/agents/checkpointer/provider.py`（264 行）、`omit_transcript.py`（270 行）、`thread_state_reader.py`（172 行）。下列函数名、常量、PRAGMA 均可直接检索到。
+> **本章状态**：✅ 已实现并跑过验收。EvoFlow 侧事实标「源码事实」，本项目取舍标「本项目」。
+> 基准：EvoFlow `f22af539`（v1.3.22）；本项目 `backend/packages/harness/myagentflow/`。
 
-> 👉 **想直接动手写代码**：跳到 第 10 节，从新建文件开始，一步一验证。
+#### 本章目标 / Goals
 
-#### 本章目标
-理解 EvoFlow 如何用 **LangGraph saver + 一层「去 transcript」包装**，同时满足「可恢复」和「检查点别变成消息库」两个相互冲突的需求。
+- 用 LangGraph saver 把「执行到哪一步」落盘，进程重启后同一 `thread_id` 能续上。
+- 检查点里**不存对话记录**：历史的事实源是 `chat_messages` 表；检查点只存恢复所需的状态。
+- 例外：工具执行到一半（AI 有 `tool_calls`、还没有对应 `ToolMessage`）时必须保留消息，否则恢复失败。
+- 读线程状态走轻量路径，**不编译图**。
 
-#### 最小闭环
-跑一轮调用工具的对话 → 进程退出 → 重新进入同一 `thread_id` → 历史消息与工具结果仍在 → 继续提问能续上。
+**本章不做**：跨会话检索（EvoFlow `session_search.py`）、异步 provider（`async_provider.py`）、网关 `GET /threads/{id}/state` 路由（第 10 部分）。EvoFlow 的 `CheckpointTranscriptSlimMiddleware` 也不在本章。
 
-#### 1. 已核对的事实
+#### 前置 / Prerequisites
 
-| # | 事实 | 证据 |
+- 第 1 部分：`config/checkpointer_config.py`、`config/app_config.py`、`agents/lead_agent/graph.py`。
+- 依赖包：`langgraph`、`langgraph-checkpoint-sqlite`（sqlite 后端）。
+
+#### EvoFlow 源码导读 / Source reading
+
+按这个顺序读，读完能回答「检查点存什么、不存什么、连接怎么管」：
+
+| 顺序 | 文件 | 看什么 |
 |---|---|---|
-| 1 | 提供 **同步单例** 与 **上下文管理器** 两套入口 | `get_checkpointer()` / `checkpointer_context()` |
-| 2 | 后端三选一：`memory` / `sqlite` / `postgres` | `_sync_checkpointer_cm()` 里的三分支 |
-| 3 | SQLite 用**长连接**，不是 `SqliteSaver.from_conn_string` 的 `closing` 语义 | `_create_sqlite_saver()`：`sqlite3.connect(conn_str, check_same_thread=False)` |
-| 4 | 写前设 `PRAGMA journal_mode=WAL`、`PRAGMA busy_timeout=5000`，再 `saver.setup()` 建表 | 同上 |
-| 5 | 单例可能「连接已死」，每次取用前用 `SELECT 1` 探活，失败则 `reset_checkpointer()` 重建 | `_checkpointer_connection_alive()` |
-| 6 | 依赖缺失时抛**可操作的** ImportError，而不是裸 ImportError | 常量 `SQLITE_INSTALL` / `POSTGRES_INSTALL`（内含 `uv add` 命令） |
-| 7 | postgres 缺连接串抛 `POSTGRES_CONN_REQUIRED` | `_sync_checkpointer_cm()` |
-| 8 | **检查点不存对话记录**：写入时剥掉 `messages` 与 `ui_messages` 两个通道 | `omit_transcript.py` 的 `_TRANSCRIPT_CHANNELS` |
-| 9 | 该行为默认开启，可用 `EVOFLOW_CHECKPOINT_OMIT_TRANSCRIPT=0` 关闭 | `omit_transcript_on_checkpoint_put_enabled()` |
-| 10 | 例外：存在**未完成的 tool_call**（HITL / 工具中途）时必须保留 messages | `has_unresolved_tool_calls()` |
-| 11 | 读 thread 状态**不编译图**：直接读 SQLite，毫秒级 | `thread_state_reader.py` 模块 docstring |
-| 12 | 最终检查点还会由链头中间件再瘦身一次 | `CheckpointTranscriptSlimMiddleware`（`agents/lead_agent/agent.py:705` 注释） |
+| 1 | `backend/packages/harness/evoflow/agents/checkpointer/provider.py`（264 行） | `_create_sqlite_saver()` 的长连接 + 两条 PRAGMA；`_checkpointer_connection_alive()` 探活；`_wrap_omit_transcript()` 包装 |
+| 2 | `.../omit_transcript.py`（270 行） | `_TRANSCRIPT_CHANNELS`、`has_unresolved_tool_calls()`、`put/aput` 两个写入口 |
+| 3 | `.../thread_state_reader.py`（172 行） | 读状态不 `make_lead_agent`；`get_tuple()` 后把 `channel_values` 转 JSON |
+| 4 | `.../async_provider.py`（122 行） | 🟡 本章未实现，只记录存在 |
 
-#### 2. 调用逻辑
+#### 调用逻辑 / Invocation logic
 
 ```mermaid
 sequenceDiagram
-    participant C as CLI / 脚本
-    participant P as get_checkpointer
-    participant S as Saver · SQLite / Memory
-    participant R as read_thread_state
-    C->>P: get_checkpointer()（进程内单例）
-    P->>S: _build() → SqliteSaver / InMemorySaver
-    C->>S: graph.invoke(config={"thread_id": ...})
-    C->>R: read_thread_state(cp, thread_id)
-    R-->>C: {values, next, checkpoint_id} / None（空线程）
+    participant App as CLI / Gateway
+    participant P as provider.get_checkpointer()
+    participant W as OmitTranscriptCheckpointer
+    participant S as SqliteSaver
+    participant R as thread_state_reader
+    App->>P: get_checkpointer()
+    P->>P: 配置 key 比对 + SELECT 1 探活
+    P->>W: _build() → 包装真 saver
+    App->>W: graph.invoke(config={thread_id})
+    W->>W: put 前剥 messages / ui_messages（有未完成 tool_call 则跳过）
+    W->>S: 写入剥离后的 checkpoint
+    App->>R: read_thread_state(cp, thread_id)
+    R->>S: get_tuple(config)
+    R-->>App: {checkpoint_id, values, metadata} / None
 ```
 
+#### 事实与状态 / Facts
 
-```text
-首次运行
-  get_checkpointer()                       # 单例；无配置 → InMemorySaver
-    ├─ checkpointer_config.type == sqlite  → _create_sqlite_saver() → OmitTranscriptCheckpointer(saver)
-    └─ type == postgres                    → PostgresSaver.from_conn_string(...).setup()
-  graph.invoke(input, config={"configurable": {"thread_id": tid}})
-    → saver.put() 时，OmitTranscriptCheckpointer 把 state["messages"] / state["ui_messages"] 摘掉
+| # | 事实 | 归属 | 本项目状态 |
+|---|---|---|---|
+| 1 | 同步单例 `get_checkpointer()` + 一次性 `checkpointer_context()` | 源码事实 | ✅ 同名实现 |
+| 2 | 后端 `memory` / `sqlite` / `postgres` | 源码事实 | ✅ 三分支（postgres 需 DSN 与依赖） |
+| 3 | SQLite 用长连接 + `check_same_thread=False`，写前 `WAL`、`busy_timeout=5000`，再 `setup()` | 源码事实 | ✅ 相同 |
+| 4 | 取单例前 `SELECT 1` 探活，失败重建 | 源码事实 | ✅ `_checkpointer_connection_alive()` |
+| 5 | 缺包抛带安装命令的错误 | 源码事实 | ✅ 常量 `SQLITE_INSTALL` / `POSTGRES_INSTALL` |
+| 6 | 写检查点前剥 `messages` / `ui_messages` | 源码事实 | ✅ `omit_transcript.py` |
+| 7 | 开关默认开，可用环境变量关闭 | 源码事实（`EVOFLOW_CHECKPOINT_OMIT_TRANSCRIPT`） | ✅ 变量名换成 `MYAF_CHECKPOINT_OMIT_TRANSCRIPT` |
+| 8 | 未完成 `tool_calls` 时保留 `messages` | 源码事实 | ✅ `has_unresolved_tool_calls()` |
+| 9 | 读状态不编译图 | 源码事实 | ✅ `read_thread_state()` |
+| 10 | 最终检查点再由 middleware 瘦身 | 源码事实 | ❌ 未实现（第 3 部分中间件章节） |
 
-读取状态（GET /threads/{id}/state）
-  thread_state_reader → 读 SQLite → 拍平成 {type: human|ai|tool|system, content, tool_calls, usage_metadata}
-```
+#### 为什么检查点里不能有 `messages`
 
-#### 3. 为什么「检查点里不能有 messages」
+- 会话历史的事实源是 `chat_messages` 表：UI 历史、hydrate 都从那儿读。
+- 检查点每轮都带完整 `messages`，体积随对话线性增长；同一份数据两处存，迟早不一致。
+- 恢复只需要「哪个 superstep、哪些通道值」，不需要整段对白。
 
-这是本章最重要的一条设计：
+唯一例外是工具调用未完成：LangGraph 恢复时要看到「AIMessage 带 `tool_calls`、缺 `ToolMessage`」的形状，这个形状无法只凭消息表重建。
 
-- **事实源（SSOT）是 `evoflow_chat_messages` 表**，不是检查点。
-- 运行期 `messages` 仍然在内存里（hydrate + model + tools 都需要），但**不能每次 `put` 都落盘**，包括当前用户这一轮。
-- 理由有三：检查点体积会随对话线性膨胀；同一份数据两处存会不一致；UI 历史直接从消息表投影更快。
+#### 实现步骤 / Step by step
 
-**唯一例外**是 `has_unresolved_tool_calls()` 为真时：LangGraph 恢复时要看到「AIMessage 带 tool_calls、但缺对应 ToolMessage」的形状，这个形状无法仅凭消息表重建，所以必须保留。
-
-#### 4. 核心概念
-
-| 概念 | 含义 | 在代码里的位置 |
-|---|---|---|
-| thread | 一条执行线，`thread_id` 全链路携带 | `_build_middlewares` 注释：`ThreadDataMiddleware` 必须先跑，保证 thread_id 可用 |
-| checkpoint | 某个 superstep 的 state 快照 | `saver.put()/aput()` |
-| durability=exit | 运行结束才写，减少写入放大 | 注释「final checkpoint (esp. durability=exit) drops transcript blobs」 |
-| 单例 vs 一次性 | 单例省连接开销；一次性便于测试确定性清理 | `get_checkpointer()` vs `checkpointer_context()` |
-| 探活 | 长连接可能已被关闭，取用前必须验证 | `SELECT 1` |
-
-#### 5. 自研实现要点（按 EvoFlow 的取舍复刻）
-
-```text
-1) 一个 Checkpointer 包装类：put/aput 前剥离 transcript 通道
-2) 例外判定：扫描 messages，AI 的 tool_calls 是否有未配对的 ToolMessage → 有则不剥离
-3) SQLite：WAL + busy_timeout=5000 + 单连接跨线程（check_same_thread=False）+ 一把初始化锁
-4) 单例 + SELECT 1 探活 + reset() 供测试/改配置后用
-5) 状态读取单独走一条轻量路径，禁止在读取时编译图（编译=加载工具+中间件+配置，秒级）
-```
-
-自研最小表结构（**本项目设计**，不是 EvoFlow 的 LangGraph 表；只有脱离 LangGraph 自建持久层时才参考）：
-
-```text
-checkpoints(thread_id, checkpoint_id, parent_id, step, state_json, created_at)
-  主键 (thread_id, checkpoint_id)；恢复取最新，失败沿 parent_id 回溯
-```
-
-#### 6. 业务规则
-
-- 检查点与业务消息**分表**，且业务消息是事实源。
-- 同一 thread 同时只允许一个活跃 run（🟡 **推断、待核实**：`session_execution` 的查询路径每次只解析一个 `run_id`，但未找到显式的数据库唯一约束）。
-- 状态读取接口不得触发图编译（否则每次刷新状态都要几秒）。
-- 依赖缺失的错误信息必须包含「怎么装」。
-
-#### 7. 常见坑
-
-| 坑 | 后果 | 对策 |
-|---|---|---|
-| 把检查点当会话库 | schema 升级即数据灾难 | SSOT 用消息表 |
-| 剥离 transcript 后仍想「从检查点恢复历史」 | 恢复出来没有历史 | 恢复时从消息表 hydrate |
-| 在 unresolved tool_calls 时也剥离 | 恢复即 400/校验失败 | 用 `has_unresolved_tool_calls()` 做例外 |
-| SQLite 每请求新连接 | 锁竞争、慢 | 长连接 + WAL + busy_timeout |
-| 单例连接已死却继续用 | 偶发 `sqlite3.ProgrammingError` | 探活 + 重建 |
-| 读取状态时编译图 | 秒级延迟 | 直读检查点（`thread_state_reader`） |
-
-#### 8. 验收
-
-- [ ] 重启后同 thread 历史完整（历史来自消息表，不是检查点）
-- [ ] 有未完成 tool_call 的中断能恢复并继续
-- [ ] SQLite 单例在连接被关闭后能自愈
-- [ ] `GET thread state` 在 50ms 量级（**这是验收目标，不是实测值**；依据只是 `thread_state_reader` 读状态不编译图，量级为推断）
-
-#### 9. 对照 EvoFlow 核对清单
-
-- [x] 三后端分支与错误常量
-- [x] SQLite PRAGMA 与 setup 时机
-- [x] transcript 剥离的两个通道名
-- [x] 未完成 tool_call 的例外逻辑
-- [ ] `async_provider.py`（122 行）与同步版的行为差异（尚未逐行读）
-- [ ] `session_search.py`（417 行）跨会话检索的索引方式
-- [ ] `CheckpointTranscriptSlimMiddleware` 与 `OmitTranscriptCheckpointer` 的职责边界（是否重复剥离）
-
-#### 10. 从零实现（手把手）：provider.py → 单例 → 轻量读取 → 测试
-
-> 目标不是「读懂 EvoFlow」，而是**你手上有一份能跑的检查点层**。全部代码放在 `backend/packages/harness/myagentflow/`。
-
-##### 前置检查
+##### Step 0　环境
 
 ```bash
-cd backend
-uv sync                              # 装工作区依赖
-uv add langgraph-checkpoint-sqlite   # SQLite 后端（可选，先装不会错）
+cd /Users/main/my-agent-flow/backend
+uv sync
+uv add langgraph-checkpoint-sqlite     # 只用 memory 可跳过
 ```
-
-如果 `uv add` 报网络错误，先跳过，用 memory 后端跑通 Step 1–5，最后再补。
 
 ---
 
-##### Step 1　改 `backend/packages/harness/myagentflow/__init__.py`：只暴露三个公开名字
+##### Step 1　`backend/packages/harness/myagentflow/agents/checkpointer/omit_transcript.py`：写前剥对话
 
-**文件**：`backend/packages/harness/myagentflow/agents/checkpointer/__init__.py`（已存在，内容是空的）
+**职责**：判断「能不能剥」+ 剥两个通道 + 包一层 saver。
 
-**要写的逻辑**：把 `get_checkpointer` / `reset_checkpointer` / `checkpointer_context` 三个名字提到包级，调用方不必知道内部还有 `provider` 这个模块。
+**逻辑**
 
-**代码**
+1. `_TRANSCRIPT_CHANNELS = ("messages", "ui_messages")`：只这两个通道算对话，其他通道（`plan`、`files` 等）一律不动。
+2. `has_unresolved_tool_calls()`：扫消息，AI 的 `tool_call id` 进集合，`ToolMessage.tool_call_id` 出集合；集合非空 = 还欠工具结果。
+3. `omit_transcript_channels()` 返回**新 dict**，不原地改：checkpoint 可能还被调用方持有。
+4. `OmitTranscriptCheckpointer` 只覆盖 `put` / `aput`；`delete_thread` / `alist` 等显式透传，否则 LangGraph 的类级 capability 探测会误报「不支持删线程」。
 
-```python
-# agents/checkpointer/__init__.py
-"""检查点层：对外只暴露「拿 saver / 重置 / 一次性上下文」三件事。"""
-from .provider import checkpointer_context, get_checkpointer, reset_checkpointer
-
-__all__ = ["get_checkpointer", "reset_checkpointer", "checkpointer_context"]
-```
-
-**验证**：此时 import 会失败（`provider.py` 还没建），这是**预期**的，说明包路径接对了。
-
----
-
-##### Step 2　新建 provider.py 上半段：错误常量 + 后端开关
-
-**文件**：`backend/packages/harness/myagentflow/agents/checkpointer/provider.py`（新建）
-
-**要写的逻辑**：先把「三种后端」「三条错误文案」定死。错误文案要自带修复指令，否则线上只能看到一句裸 `ImportError`。
-
-**代码**
+**代码（全文，169 行）**
 
 ```python
-"""检查点提供者：单例 + 一次性上下文（memory / sqlite / postgres）。
+"""一、文件说明
+    检查点写入前剥离对话记录（messages / ui_messages）。
+    为什么这么做：会话历史的事实源是 chat_messages 表，检查点只负责「恢复到哪个 superstep」。
+    每轮都把完整 messages 写进检查点，库会随对话线性膨胀，同一份数据两处存也迟早不一致。
+    例外：还有未完成的 tool_call（工具执行到一半、等人审批）时必须保留，
+    否则 LangGraph 恢复时看不到「AIMessage 带 tool_calls、缺 ToolMessage」这个形状。
 
-为什么要多这一层：
-1) checkpointer 是带连接的活对象，随手 new 会到处漏连接；
-2) 配置会变（切后端、换库文件），必须能不重启进程就重建。
+二、目录结构
+    packages/harness/myagentflow/agents/checkpointer/
+    ├── __init__.py  检查点层：对外只暴露「拿 saver / 重置 / 一次性上下文」三件事。
+    ├── omit_transcript.py  ← 本文件：写入前剥对话、未完成 tool_call 例外
+    ├── provider.py  检查点提供者：单例 + 一次性上下文（memory / sqlite / postgres）。
+    └── thread_state_reader.py  只读检查点读线程状态：不编译图。
+
+三、关键方法
+    omit_transcript_on_checkpoint_put_enabled()  开关：MYAF_CHECKPOINT_OMIT_TRANSCRIPT，默认开。
+    has_unresolved_tool_calls()                  是否有 AI tool_call 还没配对的 ToolMessage。
+    omit_transcript_channels()                   安全时清空两个对话通道，返回新 dict。
+    OmitTranscriptCheckpointer                   包在真 saver 外面，只改 put/aput，其余透传。
 """
 from __future__ import annotations
 
-import contextlib
-import logging
 import os
-import sqlite3
-import threading
-from collections.abc import Iterator
+from typing import Any
 
-from langgraph.types import Checkpointer
+# 要剥离的两个通道：messages 给模型/工具用，ui_messages 给前端投影用，都不是检查点该存的
+_TRANSCRIPT_CHANNELS = ("messages", "ui_messages")
 
-logger = logging.getLogger(__name__)
-
-# 错误文案写成常量：报错时直接把「装什么」告诉人
-SQLITE_INSTALL = "需要 langgraph-checkpoint-sqlite。安装：uv add langgraph-checkpoint-sqlite"
-POSTGRES_INSTALL = (
-    "需要 langgraph-checkpoint-postgres。"
-    "安装：uv add langgraph-checkpoint-postgres psycopg[binary] psycopg-pool"
-)
-POSTGRES_CONN_REQUIRED = "postgres 后端必须提供连接串（MYAF_CHECKPOINT_PG_DSN）"
+# 关掉开关的写法：0 / false / no / off（大小写不敏感）
+_FALSE_VALUES = {"0", "false", "no", "off"}
 
 
-def _backend() -> str:
-    """读后端类型；默认 memory —— 保证「什么配置都没有」也能跑起来。"""
-    return (os.getenv("MYAF_CHECKPOINTER") or "memory").strip().lower()
+def omit_transcript_on_checkpoint_put_enabled() -> bool:
+    """开关：MYAF_CHECKPOINT_OMIT_TRANSCRIPT，默认开。"""
+    raw = (os.getenv("MYAF_CHECKPOINT_OMIT_TRANSCRIPT") or "1").strip().lower()
+    return raw not in _FALSE_VALUES
 
 
-def _sqlite_path() -> str:
-    """检查点库文件路径。放 .myaf/ 下，跟仓库源码分开。"""
-    return os.getenv("MYAF_CHECKPOINT_SQLITE_PATH", ".myaf/checkpoints.sqlite")
+def _tool_call_id(tc: Any) -> str:
+    """从 tool_call 里取 id：dict 与对象两种形状都认。"""
+    if isinstance(tc, dict):
+        return str(tc.get("id") or tc.get("tool_call_id") or "").strip()
+    return str(getattr(tc, "id", None) or getattr(tc, "tool_call_id", None) or "").strip()
 
 
-def _pg_dsn() -> str:
-    return os.getenv("MYAF_CHECKPOINT_PG_DSN", "").strip()
+def _message_type_name(msg: Any) -> str:
+    """把消息归一成 ai / tool / 其他：LangChain 对象与 dict 两种形状都认。"""
+    if isinstance(msg, dict):
+        t = str(msg.get("type") or msg.get("role") or "").strip().lower()
+        if t in {"ai", "assistant"}:
+            return "ai"
+        if t == "tool":
+            return "tool"
+        return t
+    name = type(msg).__name__.lower()
+    if "ai" in name:
+        return "ai"
+    if "tool" in name:
+        return "tool"
+    return name
+
+
+def has_unresolved_tool_calls(messages: Any) -> bool:
+    """有 AI tool_call 没配对的 ToolMessage 时返回 True（中断/工具中途）。
+
+    做法：扫一遍，AI 的 tool_call id 进集合，ToolMessage 的 tool_call_id 出集合；
+    最后集合非空就是「还欠一个工具结果」。
+    """
+    if not isinstance(messages, list) or not messages:
+        return False
+
+    pending: set[str] = set()
+    for msg in messages:
+        kind = _message_type_name(msg)
+        if kind == "ai":
+            if isinstance(msg, dict):
+                raw_tcs = msg.get("tool_calls")
+                if raw_tcs is None and isinstance(msg.get("kwargs"), dict):
+                    raw_tcs = msg["kwargs"].get("tool_calls")
+            else:
+                raw_tcs = getattr(msg, "tool_calls", None)
+            for tc in raw_tcs or []:
+                tid = _tool_call_id(tc)
+                if tid:
+                    pending.add(tid)
+        elif kind == "tool":
+            if isinstance(msg, dict):
+                tid = str(msg.get("tool_call_id") or "").strip()
+                if not tid and isinstance(msg.get("kwargs"), dict):
+                    tid = str(msg["kwargs"].get("tool_call_id") or "").strip()
+            else:
+                tid = str(getattr(msg, "tool_call_id", None) or "").strip()
+            if tid:
+                pending.discard(tid)
+    return bool(pending)
+
+
+def omit_transcript_channels(checkpoint: dict[str, Any]) -> dict[str, Any]:
+    """安全时清空 messages / ui_messages，返回浅拷贝；不安全或没东西可剥就原样返回。
+
+    返回新 dict 而不是原地改：checkpoint 可能还被调用方持有，原地改会污染它的状态。
+    """
+    if not isinstance(checkpoint, dict):
+        return checkpoint
+
+    channel_values = checkpoint.get("channel_values")
+    if not isinstance(channel_values, dict):
+        return checkpoint
+
+    messages = channel_values.get("messages")
+    if has_unresolved_tool_calls(messages):
+        return checkpoint
+
+    # 没有对话也没有 UI 消息：不用白拷一份
+    if not messages and not channel_values.get("ui_messages"):
+        return checkpoint
+
+    new_values = dict(channel_values)
+    new_values["messages"] = []
+    if "ui_messages" in new_values:
+        new_values["ui_messages"] = []
+    out = dict(checkpoint)
+    out["channel_values"] = new_values
+    return out
+
+
+class OmitTranscriptCheckpointer:
+    """包在真 saver 外面：put/aput 前剥对话，其余方法原样透传。
+
+    为什么要包一层而不是改 Saver 子类：memory / sqlite / postgres 三个 saver 的
+    写入口签名一致，包一层就能同时覆盖；子类化要给每个后端各写一遍。
+    """
+
+    def __init__(self, inner: Any) -> None:
+        self._inner = inner
+
+    def __getattr__(self, name: str) -> Any:
+        # 没显式声明的方法一律转给真 saver：capability 探测以外都够用
+        return getattr(self._inner, name)
+
+    def put(self, config: Any, checkpoint: Any, metadata: Any, new_versions: Any) -> Any:
+        """写检查点前剥对话；开关关闭时原样写。"""
+        if omit_transcript_on_checkpoint_put_enabled() and isinstance(checkpoint, dict):
+            checkpoint = omit_transcript_channels(checkpoint)
+        return self._inner.put(config, checkpoint, metadata, new_versions)
+
+    async def aput(self, config: Any, checkpoint: Any, metadata: Any, new_versions: Any) -> Any:
+        """异步写入口，规则与 put 相同。"""
+        if omit_transcript_on_checkpoint_put_enabled() and isinstance(checkpoint, dict):
+            checkpoint = omit_transcript_channels(checkpoint)
+        return await self._inner.aput(config, checkpoint, metadata, new_versions)
+
+    # 下面这些显式声明只为让 LangGraph 的类级 capability 探测看到它们；
+    # 只靠 __getattr__ 的话，类上查不到 adelete_thread，会误报「不支持删线程」。
+    async def aput_writes(self, config: Any, writes: Any, task_id: str, task_path: str = "") -> Any:
+        """透传异步写 writes。"""
+        return await self._inner.aput_writes(config, writes, task_id, task_path)
+
+    async def adelete_thread(self, thread_id: str) -> None:
+        """透传删线程：删的是检查点，不动消息表。"""
+        return await self._inner.adelete_thread(thread_id)
+
+    def delete_thread(self, thread_id: str) -> None:
+        """透传同步删线程。"""
+        return self._inner.delete_thread(thread_id)
+
+    async def alist(self, config: Any, *, filter: dict[str, Any] | None = None, before: Any = None, limit: int | None = None) -> Any:
+        """透传异步列举；返回的是异步迭代器，不要 await。"""
+        return self._inner.alist(config, filter=filter, before=before, limit=limit)
 ```
 
 **验证**
 
 ```bash
+cd /Users/main/my-agent-flow/backend
 uv run python -c "
-from myagentflow.agents.checkpointer.provider import _backend, SQLITE_INSTALL
-print(_backend()); print(SQLITE_INSTALL)
+from langchain_core.messages import HumanMessage
+from myagentflow.agents.checkpointer.omit_transcript import omit_transcript_channels
+cp = {'channel_values': {'messages': [HumanMessage(content='hi')], 'plan': 1}}
+print(omit_transcript_channels(cp)['channel_values'])
 "
-# 期望：memory
-#       需要 langgraph-checkpoint-sqlite。安装：uv add langgraph-checkpoint-sqlite
+# 期望：{'messages': [], 'plan': 1}
 ```
 
 ---
 
-##### Step 3　继续加 `_build()`：三个后端各造一个 saver
+##### Step 2　`backend/packages/harness/myagentflow/agents/checkpointer/provider.py`：单例 + 探活 + 包装
 
-**文件**：同上，接着往下写
+**职责**：按配置造 saver、缓存单例、连接死了能重建。
 
-**要写的逻辑**：
-1. memory：`InMemorySaver()`，进程结束即丢，只用于单测；
-2. sqlite：**一个长连接** + WAL + `busy_timeout`，再 `setup()` 建表；
-3. postgres：必须有 DSN，`from_conn_string()` 之后同样 `setup()`。
+**逻辑**
 
-**代码**
+1. 配置来源 `_checkpointer_config()`：优先环境变量（测试覆盖），否则 `AppConfig.checkpointer`。
+2. `_build()` 三分支；sqlite 走长连接 + 两条 PRAGMA；每个分支返回前都套 `_wrap_omit_transcript()`。
+3. `_checkpointer_connection_alive()`：`inner.conn` 存在就 `SELECT 1`；memory / postgres 没有 `.conn`，视为活着。
+4. `get_checkpointer()`：key（backend + DSN/path）不变且连接活着就复用；否则关旧连接重建。
+5. `checkpointer_context()`：一次性 saver，退出即关，给 CLI / 测试用。
+
+**代码（节选：包装、探活、单例、重置；完整文件 207 行）**
 
 ```python
+def _wrap_omit_transcript(saver: Checkpointer) -> Checkpointer:
+    """给 saver 套上「写前剥对话」的包装；开关关闭时原样返回。"""
+    from myagentflow.agents.checkpointer.omit_transcript import (
+        OmitTranscriptCheckpointer,
+        omit_transcript_on_checkpoint_put_enabled,
+    )
+
+    if not omit_transcript_on_checkpoint_put_enabled():
+        return saver
+    return OmitTranscriptCheckpointer(saver)
+
+
 def _build(backend: str) -> Checkpointer:
     """按 backend 造一个全新的 saver（不缓存）。"""
     if backend == "memory":
         from langgraph.checkpoint.memory import InMemorySaver
 
-        return InMemorySaver()
+        return _wrap_omit_transcript(InMemorySaver())
 
     if backend == "sqlite":
         try:
@@ -3028,7 +3114,7 @@ def _build(backend: str) -> Checkpointer:
 
         saver = SqliteSaver(conn)
         saver.setup()  # 建表：v3.x 实测为 checkpoints + writes（版本不同表名会变，以实际为准）
-        return saver
+        return _wrap_omit_transcript(saver)
 
     if backend == "postgres":
         dsn = _pg_dsn()
@@ -3041,39 +3127,24 @@ def _build(backend: str) -> Checkpointer:
 
         saver = PostgresSaver.from_conn_string(dsn)
         saver.setup()
-        return saver
+        return _wrap_omit_transcript(saver)
 
     raise RuntimeError(f"未知的 checkpointer 后端：{backend}")
-```
 
-**验证**（临时库，不污染仓库）
 
-```bash
-MYAF_CHECKPOINTER=sqlite MYAF_CHECKPOINT_SQLITE_PATH=/tmp/myaf-cp.sqlite uv run python -c "
-from myagentflow.agents.checkpointer.provider import _build
-import sqlite3
-cp = _build('sqlite')
-print(type(cp).__name__)
-print([r[0] for r in sqlite3.connect('/tmp/myaf-cp.sqlite').execute(\"select name from sqlite_master where type='table'\")])
-"
-# 期望（实测 langgraph 1.0.9 + langgraph-checkpoint-sqlite 3.1.3）：
-#       SqliteSaver
-#       ['checkpoints', 'writes']
-```
+def _checkpointer_connection_alive(cp: Checkpointer) -> bool:
+    """长连接可能已被关闭：取用前 SELECT 1 探活，失败就让单例重建。"""
+    inner = getattr(cp, "_inner", cp)
+    conn = getattr(inner, "conn", None) or getattr(cp, "conn", None)
+    if conn is None:            # memory / postgres pool 没有 .conn，视为活着
+        return True
+    try:
+        conn.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
 
-表名随版本变化（旧版是 `checkpoint_writes` / `checkpoint_blobs`）。**判断标准是「表不为空」，不是「表名叫什么」**。表没建出来 = `setup()` 没执行。
 
----
-
-##### Step 4　单例 + 重置：配置变了能安全换
-
-**文件**：同上
-
-**要写的逻辑**：缓存 saver 并记住它是按哪份配置建的；配置变了先关旧连接再重建。
-
-**代码**
-
-```python
 _lock = threading.RLock()
 _singleton: Checkpointer | None = None
 _singleton_key: tuple[str, str] | None = None
@@ -3095,7 +3166,9 @@ def get_checkpointer() -> Checkpointer:
 
     with _lock:  # 两个线程同时首次调用时，只允许一个真的去 build
         if _singleton is not None and _singleton_key == key:
-            return _singleton
+            if _checkpointer_connection_alive(_singleton):
+                return _singleton
+            _close(_singleton)      # 连接已死：清掉，下面重建
         if _singleton is not None:  # 旧配置：先关连接
             _close(_singleton)
         _singleton = _build(backend)
@@ -3117,67 +3190,39 @@ def reset_checkpointer() -> None:
 **验证**
 
 ```bash
-uv run python -c "
-from myagentflow.agents.checkpointer.provider import get_checkpointer, reset_checkpointer
+cd /Users/main/my-agent-flow/backend
+MYAF_CHECKPOINTER=sqlite MYAF_CHECKPOINT_SQLITE_PATH=/tmp/myaf-cp.sqlite uv run python -c "
+from myagentflow.agents.checkpointer import get_checkpointer, reset_checkpointer
 a = get_checkpointer(); b = get_checkpointer()
-print(a is b)                    # True：单例生效
+print(a is b, type(a).__name__)
 reset_checkpointer()
-print(a is get_checkpointer())   # False：reset 后是新对象
+print(a is get_checkpointer())
 "
+# 期望：True OmitTranscriptCheckpointer / False
 ```
 
 ---
 
-##### Step 5　`checkpointer_context()`：给 CLI 和脚本用
+##### Step 3　`backend/packages/harness/myagentflow/agents/checkpointer/thread_state_reader.py`：读状态不编译图
 
-**文件**：同上
+**职责**：只调 `get_tuple()`，返回最小快照。
 
-**要写的逻辑**：常驻进程走单例；一次性的 CLI 子命令走 `with`，退出即关，不留 sqlite 锁文件。
-
-**代码**
+**代码（全文，38 行）**
 
 ```python
-@contextlib.contextmanager
-def checkpointer_context() -> Iterator[Checkpointer]:
-    """一次性 saver：进入时新建，退出时必定关闭。
+"""一、文件说明
+    只读检查点读线程状态：不编译图。
+    为什么独立成文件：刷新页面、拉历史这类高频路径会反复调它。
+    一旦有人顺手在这里 compile/invoke 图，整条读路径就变成秒级。
 
-    适用：CLI 跑一次图就退出、测试要隔离连接。
-    不适用：常驻 Gateway —— 反复建连接会让 WAL 文件持续增长。
-    """
-    saver = _build(_backend())
-    try:
-        yield saver
-    finally:
-        _close(saver)
-```
+二、目录结构
+    packages/harness/myagentflow/agents/checkpointer/
+    ├── __init__.py  检查点层：对外只暴露「拿 saver / 重置 / 一次性上下文」三件事。
+    ├── provider.py  检查点提供者：单例 + 一次性上下文（memory / sqlite / pos
+    └── thread_state_reader.py  ← 本文件
 
-**验证**
-
-```bash
-MYAF_CHECKPOINTER=sqlite MYAF_CHECKPOINT_SQLITE_PATH=/tmp/myaf-cp2.sqlite uv run python -c "
-from myagentflow.agents.checkpointer.provider import checkpointer_context
-with checkpointer_context() as cp:
-    print(type(cp).__name__)
-print('closed ok')
-"
-# 期望：SqliteSaver / closed ok
-```
-
----
-
-##### Step 6　新建 thread_state_reader.py：读状态不编译图
-
-**文件**：`backend/packages/harness/myagentflow/agents/checkpointer/thread_state_reader.py`（新建）
-
-**要写的逻辑**：只调 `checkpointer.get_tuple()`，**不 import 图、不 make agent**。编译图要加载工具表、中间件、模型配置，是秒级开销；刷新页面走这条路径，编译图就是用户眼里的卡顿。
-
-**代码**
-
-```python
-"""只读检查点读线程状态：不编译图。
-
-为什么独立成文件：刷新页面、拉历史这类高频路径会反复调它。
-一旦有人顺手在这里 compile/invoke 图，整条读路径就变成秒级。
+三、关键方法
+    read_thread_state()  返回最新检查点的最小快照；线程不存在返回 None。
 """
 from __future__ import annotations
 
@@ -3208,31 +3253,67 @@ def read_thread_state(checkpointer: Checkpointer, thread_id: str) -> dict[str, A
 **验证**
 
 ```bash
+cd /Users/main/my-agent-flow/backend
 uv run python -c "
-from myagentflow.agents.checkpointer.provider import get_checkpointer
+from myagentflow.agents.checkpointer import get_checkpointer
 from myagentflow.agents.checkpointer.thread_state_reader import read_thread_state
-print(read_thread_state(get_checkpointer(), 'no-such-thread'))   # 期望 None
+print(read_thread_state(get_checkpointer(), 'no-such-thread'))
 "
+# 期望：None
 ```
 
 ---
 
-##### Step 7　新建测试：把单例、建表、空线程钉死
-
-**文件**：`backend/tests/chapters/test_ch02_01_checkpointer.py`（新建，目录已存在）
-
-**要写的逻辑**：三条断言各自对应 Step 4 / Step 3 / Step 6。每个用例首尾都 `reset_checkpointer()`，否则单例会串到下一个用例。
-
-**代码**
+##### Step 4　`backend/packages/harness/myagentflow/agents/checkpointer/__init__.py`：只暴露三个名字
 
 ```python
-"""02/01 检查点层三件事：单例、建表、空线程读取。"""
+"""一、文件说明
+    检查点层：对外只暴露「拿 saver / 重置 / 一次性上下文」三件事。
+
+二、目录结构
+    packages/harness/myagentflow/agents/checkpointer/
+    ├── __init__.py  ← 本文件
+    ├── omit_transcript.py  写入前剥对话：messages / ui_messages，未完成 tool_call 例外
+    ├── provider.py  检查点提供者：单例 + 一次性上下文（memory / sqlite / postgres）
+    └── thread_state_reader.py  只读检查点读线程状态：不编译图。
+
+三、关键方法
+    （仅模块级常量，无公开函数）
+"""
+from .provider import checkpointer_context, get_checkpointer, reset_checkpointer
+
+__all__ = ["checkpointer_context", "get_checkpointer", "reset_checkpointer"]
+```
+
+---
+
+##### Step 5　`backend/tests/chapters/test_ch02_01_checkpointer.py`：5 个用例
+
+覆盖：单例 + 建表、空线程、正常轮次剥离、未完成 tool_call 保留、开关关闭。
+
+**代码（全文，128 行）**
+
+```python
+"""一、文件说明
+    02/01 检查点：单例、建表、空线程读取。
+
+二、覆盖
+    test_sqlite_setup_and_singleton()  两次取检查点返回同一对象，且 setup() 建出了 checkpoints 表。
+    test_read_unknown_thread()         读不存在的线程返回 None，不抛异常。
+    test_omit_transcript_on_put()      正常轮次写入前把 messages / ui_messages 清空。
+    test_keep_messages_for_unresolved_tool_call()  工具没配对的轮次必须保留 messages。
+    test_omit_switch_off()             开关关闭时原样写入，不剥对话。
+
+三、运行
+    uv run pytest tests/chapters/test_ch02_01_checkpointer.py -q
+"""
 from __future__ import annotations
 
 import sqlite3
 
 
 def test_sqlite_setup_and_singleton(tmp_path, monkeypatch):
+    """两次取检查点返回同一对象，且 setup() 建出了 checkpoints 表。"""
     db = tmp_path / "cp.sqlite"
     monkeypatch.setenv("MYAF_CHECKPOINTER", "sqlite")
     monkeypatch.setenv("MYAF_CHECKPOINT_SQLITE_PATH", str(db))
@@ -3256,6 +3337,7 @@ def test_sqlite_setup_and_singleton(tmp_path, monkeypatch):
 
 
 def test_read_unknown_thread(tmp_path, monkeypatch):
+    """读不存在的线程返回 None，不抛异常。"""
     monkeypatch.setenv("MYAF_CHECKPOINTER", "sqlite")
     monkeypatch.setenv("MYAF_CHECKPOINT_SQLITE_PATH", str(tmp_path / "x.sqlite"))
 
@@ -3265,72 +3347,133 @@ def test_read_unknown_thread(tmp_path, monkeypatch):
     provider.reset_checkpointer()
     assert read_thread_state(provider.get_checkpointer(), "nope") is None
     provider.reset_checkpointer()
+
+
+class _RecordingSaver:
+    """记录 put 收到什么的假 saver：只验证「写之前被改成了什么」。"""
+
+    def __init__(self) -> None:
+        self.checkpoint = None
+
+    def put(self, config, checkpoint, metadata, new_versions):
+        self.checkpoint = checkpoint
+
+    async def aput(self, config, checkpoint, metadata, new_versions):
+        self.checkpoint = checkpoint
+
+
+def test_omit_transcript_on_put(monkeypatch):
+    """正常轮次（工具都配对）写入前把两个对话通道清空，其他通道保留。"""
+    monkeypatch.delenv("MYAF_CHECKPOINT_OMIT_TRANSCRIPT", raising=False)
+    from langchain_core.messages import AIMessage, HumanMessage
+    from myagentflow.agents.checkpointer.omit_transcript import (
+        OmitTranscriptCheckpointer,
+    )
+
+    inner = _RecordingSaver()
+    cp = OmitTranscriptCheckpointer(inner)
+    cp.put(
+        {"configurable": {"thread_id": "t1"}},
+        {
+            "channel_values": {
+                "messages": [HumanMessage(content="hi"), AIMessage(content="ok")],
+                "ui_messages": [{"type": "human"}],
+                "plan": {"steps": 1},
+            }
+        },
+        {},
+        {},
+    )
+    assert inner.checkpoint["channel_values"]["messages"] == []
+    assert inner.checkpoint["channel_values"]["ui_messages"] == []
+    assert inner.checkpoint["channel_values"]["plan"] == {"steps": 1}   # 非对话通道不许动
+
+
+def test_keep_messages_for_unresolved_tool_call(monkeypatch):
+    """AI 带 tool_call、还没有对应 ToolMessage 时，messages 必须原样保留。"""
+    monkeypatch.delenv("MYAF_CHECKPOINT_OMIT_TRANSCRIPT", raising=False)
+    from langchain_core.messages import AIMessage
+    from myagentflow.agents.checkpointer.omit_transcript import (
+        OmitTranscriptCheckpointer,
+    )
+
+    messages = [
+        AIMessage(
+            content="",
+            tool_calls=[{"name": "echo", "args": {"text": "x"}, "id": "call-1"}],
+        )
+    ]
+    inner = _RecordingSaver()
+    cp = OmitTranscriptCheckpointer(inner)
+    cp.put({"configurable": {"thread_id": "t1"}}, {"channel_values": {"messages": messages}}, {}, {})
+    assert inner.checkpoint["channel_values"]["messages"] == messages
+
+
+def test_omit_switch_off(monkeypatch):
+    """开关设 0 时，put 收到的 checkpoint 保持原样。"""
+    monkeypatch.setenv("MYAF_CHECKPOINT_OMIT_TRANSCRIPT", "0")
+    from langchain_core.messages import HumanMessage
+    from myagentflow.agents.checkpointer.omit_transcript import (
+        OmitTranscriptCheckpointer,
+    )
+
+    messages = [HumanMessage(content="hi")]
+    inner = _RecordingSaver()
+    cp = OmitTranscriptCheckpointer(inner)
+    cp.put({"configurable": {"thread_id": "t1"}}, {"channel_values": {"messages": messages}}, {}, {})
+    assert inner.checkpoint["channel_values"]["messages"] == messages
 ```
 
 **验证**
 
 ```bash
-uv run pytest tests/chapters/test_ch02_01_checkpointer.py -v
-# 期望：2 passed
+cd /Users/main/my-agent-flow/backend
+uv run pytest tests/chapters/test_ch02_01_checkpointer.py -q
+# 期望：5 passed
 ```
 
----
+#### 对照与差异 / Alignment
 
-##### 关键实现细节（每条都回指 EvoFlow）
+| EvoFlow 文件 | 本项目文件 | 本章实现 | 未实现 |
+|---|---|---|---|
+| `agents/checkpointer/provider.py` | `backend/packages/harness/myagentflow/agents/checkpointer/provider.py` | `get_checkpointer` / `reset_checkpointer` / `checkpointer_context` / 探活 / 包装 | async provider、data_paths 的 `$EVOFLOW_HOME` 解析 |
+| `agents/checkpointer/omit_transcript.py` | `backend/packages/harness/myagentflow/agents/checkpointer/omit_transcript.py` | 剥对话、未完成 tool_call 例外、开关 | 延迟观测事件 `_emit_cp_io` |
+| `agents/checkpointer/thread_state_reader.py` | `backend/packages/harness/myagentflow/agents/checkpointer/thread_state_reader.py` | `read_thread_state()` 最小快照 | 消息扁平化、`next/tasks`、路径解析、重试 |
+| `agents/checkpointer/async_provider.py` | — | — | 本章不需要 |
+| `agents/checkpointer/session_search.py` | — | — | 跨会话检索，后续章节 |
 
-| 我们的做法 | EvoFlow 对照 | 为什么 |
-|---|---|---|
-| `sqlite3.connect(path, check_same_thread=False)` | `backend/packages/harness/myagentflow/agents/checkpointer/provider.py:87` | saver 会被不同线程调用，默认 `True` 直接报跨线程错误 |
-| `PRAGMA journal_mode=WAL` | `:88` | 读多写少，WAL 让读不阻塞写 |
-| `PRAGMA busy_timeout=5000` | `:89` | 并发写等 5 秒，而不是立刻 `database is locked` |
-| 单例 + `reset_checkpointer()` | `:171`、`:218` | 配置可变；测试必须隔离 |
-| `checkpointer_context()` 一次性 saver | `:243` | CLI 跑完即退，避免残留锁 |
-| 读状态走 `thread_state_reader`，不编译图 | 该模块 docstring 自述 | 编译图要加载工具+中间件，秒级；刷新扛不住 |
-| 检查点不存对话 | `omit_transcript.py` 的剥离逻辑 | 检查点是恢复用，不是消息存档 |
+**本项目设计选择**：环境变量前缀用 `MYAF_` 而不是 `EVOFLOW_`；检查点默认路径 `.myaf/checkpoints.sqlite`；`read_thread_state` 只返回 `checkpoint_id` / `values` / `metadata`，够本章用。
 
-##### 知识点（从这两个站补原理）
+#### 验收 / Acceptance
 
-| 主题 | 来源 | 用在哪一步 |
-|---|---|---|
-| checkpointer / thread / checkpoint 概念 | [agent-book · LangGraph 课程](https://g0-000.github.io/agent-book/langgraph/) | Step 2–3 弄清 `thread_id` 与 `checkpoint_id` 是两回事 |
-| 状态持久化 vs 记忆 | [agent-book · 记忆章](https://g0-000.github.io/agent-book/agent-learning/chapter_memory/) | §3 为什么检查点不能当消息库 |
-| TTFT / 首屏延迟为什么要压 | [Harbor404 · 推理链路延迟优化](https://harbor404.fushenlin.com/notes/llm-agent-latency-optimization/) | Step 6「读状态不编译图」的性能依据 |
+```bash
+cd /Users/main/my-agent-flow/backend
+uv run pytest tests/chapters/test_ch02_01_checkpointer.py -q          # 5 passed
+uv run python -m ruff check packages tests                            # All checks passed
+```
 
-##### 跑不通怎么查
+**行为验收**（手工，需 sqlite 后端）：
+
+1. 用同一 `thread_id` 跑两轮，检查点里有 `checkpoints` 表、`messages` 通道为空；
+2. 造一个「AI 带 tool_call、无 ToolMessage」的状态写入，确认 `messages` 未被清空；
+3. `reset_checkpointer()` 后旧对象不再被复用。
+
+#### 常见坑 / Troubleshooting
 
 | 症状 | 原因 | 动作 |
 |---|---|---|
-| `ModuleNotFoundError: langgraph.checkpoint.sqlite` | 没装后端包 | `uv add langgraph-checkpoint-sqlite`，或先切 memory 跑完 Step 1–5 |
-| `database is locked` | 没设 busy_timeout / 开了多个长连接 | 确认两行 PRAGMA；确认走单例，不是每处 new |
-| `SQLite objects created in a thread can only be used in that same thread` | 漏 `check_same_thread=False` | 补上；别改成每次新建连接 |
-| `no such table: checkpoints` | `setup()` 没调 | Step 3 补 `saver.setup()` |
-| 表名和文档不一致（如 `writes` vs `checkpoint_writes`） | 后端包版本不同 | 正常现象，只要 `sqlite_master` 里有表就说明 setup 成功 |
-| 刷新线程状态要 2–3 秒 | 在读取路径里编译了图 | 只调 `get_tuple()` |
-| 测试之间互相干扰 | 单例没清 | 每个用例首尾 `reset_checkpointer()` |
+| `ModuleNotFoundError: langgraph.checkpoint.sqlite` | 没装后端包 | `uv add langgraph-checkpoint-sqlite`，或先用 memory |
+| `database is locked` | 多个长连接 / 没设 busy_timeout | 确认走单例；确认两条 PRAGMA |
+| `SQLite objects created in a thread ...` | 漏 `check_same_thread=False` | 补上，别改成每请求新连接 |
+| `no such table: checkpoints` | `setup()` 没调 | 在 `_build()` 里补 |
+| 恢复后没有历史 | 检查点本来就不存 messages | 从 `chat_messages` hydrate，别指望检查点 |
+| 工具中断后恢复失败 | 剥离时把未完成 `tool_calls` 也清了 | 确认 `has_unresolved_tool_calls()` 生效 |
 
-##### 本节代码的实测记录
+#### 知识点
 
-```text
-环境：langgraph 1.0.9 / langgraph-checkpoint-sqlite 3.1.3 / Python 3.14
-singleton: True SqliteSaver
-tables: ['checkpoints', 'writes']
-empty thread: None
-after reset new obj: True
-ctx: SqliteSaver  →  ctx closed ok
-```
-
-Step 3 / 4 / 5 / 6 的代码按文档原样落地后，以上输出全部吻合。意味着这份指引里的代码是**跑过的**，不是排版的示意。
-
-##### 验收（这一章算过了的标准）
-
-```bash
-uv run pytest tests/chapters/test_ch02_01_checkpointer.py -v        # 2 passed
-MYAF_CHECKPOINTER=sqlite MYAF_CHECKPOINT_SQLITE_PATH=/tmp/myaf-cp.sqlite \
-  uv run python -c "from myagentflow.agents.checkpointer import get_checkpointer; print(type(get_checkpointer()).__name__)"
-# 期望：SqliteSaver
-```
-
-两条都过，再开 02/02 运行生命周期与取消。
+- [agent-book · LangGraph](https://g0-000.github.io/agent-book/langgraph/)：`thread_id` 与 `checkpoint_id` 的区别
+- [agent-book · 记忆章](https://g0-000.github.io/agent-book/agent-learning/chapter_memory/)：状态持久化与消息存档的分工
+- [Harbor404 · 推理链路延迟优化](https://harbor404.fushenlin.com/notes/llm-agent-latency-optimization/)：读路径为什么不编译图
 
 
 <!-- ===== 02-持久化与运行生命周期/02-运行生命周期与取消.md ===== -->
@@ -3339,150 +3482,98 @@ MYAF_CHECKPOINTER=sqlite MYAF_CHECKPOINT_SQLITE_PATH=/tmp/myaf-cp.sqlite \
 ### 第 2 章　运行生命周期与取消 / Run Lifecycle
 
 
-> **对照状态** ✅ **已核对源码**：`backend/packages/harness/myagentflow/session_execution/lifecycle.py`（228 行）、`langgraph_cancel.py`（279 行）、`persistence/session_run_state.py`（被前者引用）。函数名、环境变量默认值均可检索。
+> **本章状态**：🟡 最小实现（进程内注册表）已落地并测试；EvoFlow 的 DB 单写入口、4 秒停止扫描、远程 HTTP 取消**本章未实现**。
+> 基准：EvoFlow `f22af539`（v1.3.22）。
 
-#### 本章目标
-看清 EvoFlow 把「run 状态」做成 **单一写入口（single write funnel）**，以及「停止」如何变成一次**带扫描收敛**的远程取消，而不是本地一个布尔标志。
+#### 本章目标 / Goals
 
-#### 最小闭环
-发起 run → 流式中 → 用户停止 → 4 秒内收敛 → 状态落终态 → 新一轮不受污染。
+- 给「一次 run」一个可查询的状态：`running` → `finished` / `cancelled` / `error`。
+- 同一线程同时只允许一个活跃 run：两条 run 会抢写同一个 checkpoint。
+- 取消是「发信号」，不是「杀线程」：执行方在安全点检查信号并自己收尾。
+- 取消过的 run 不许再报成功（`finish("finished")` 会被改写成 `cancelled`）。
 
-#### 1. 已核对的事实
+**本章不做**：把状态写进 DB（EvoFlow 的 `persistence/session_run_state.py`）、停止扫描、调 LangGraph Server 的 `/runs/{id}/cancel`。这些属于第 10 部分「Gateway 与运行控制」。本章先把状态机与并发语义写对。
 
-| # | 事实 | 证据 |
+#### EvoFlow 源码导读 / Source reading
+
+| 文件 | 行数 | 读什么 |
 |---|---|---|
-| 1 | 生命周期模块自称「run_status 的唯一写入口」 | `lifecycle.py` 模块 docstring |
-| 2 | 三个写状态函数：开始 / 采纳上游 run_id / 强制结束 | `start_session_turn()`、`adopt_session_run_id()`、`force_end_session_turn()` |
-| 3 | 「开始」同时清空 stream 镜像 | `mark_session_run_started()`（注释：DB + mirror clear on new run） |
-| 4 | 「采纳」不清镜像，只把上游 LangGraph 的 run_id 绑到本地会话 | `patch_session_current_run_id()` |
-| 5 | 「结束」会先推导终态再落库 | `resolve_terminal_run_status(reason=..., source=...)` → `mark_session_run_ended()` |
-| 6 | 结束成功后失效 runs 探活缓存 | `_after_run_ended()` → `invalidate_runs_probe_cache` |
-| 7 | session_key 无法解析时**明确告警**而不是静默失败 | `force_end_session_turn` 里的 `logger.warning(...NOT updated)` |
-| 8 | 取消是**调 LangGraph HTTP API**，不是本地线程中断 | `POST {LANGGRAPH_BASE_URL}/threads/{tid}/runs/{rid}/cancel` |
-| 9 | 默认地址 `http://127.0.0.1:8070/api/langgraph`，可用 `EVOFLOW_LANGGRAPH_URL` 覆盖 | 模块常量 |
+| `backend/packages/harness/evoflow/session_execution/lifecycle.py` | 228 | `start_session_turn()` / `force_end_session_turn()` / `_after_run_ended()`：状态变更只走 DB，且结束要清缓存 |
+| `.../session_execution/langgraph_cancel.py` | 279 | `_post_cancel_run()` 三态 `cancelled` / `already_gone` / `rejected`；4 秒上限来自 `EVOFLOW_STOP_SWEEP_MAX_WAIT_S=4` |
+| `.../session_execution/types.py` | 14 | 运行状态的类型定义 |
+| `.../persistence/session_run_state.py` | — | `RUN_STATUS_RUNNING`、`mark_session_run_started/ended`、`resolve_terminal_run_status` |
 
-> **两个端口不要混淆**：`8070` 是 **EvoFlow Gateway**（`backend/scripts/*.py` 里 `EVOFLOW_GATEWAY_URL` 默认值），`/api/langgraph` 是网关**反向代理**到 LangGraph Server 的路径；LangGraph Server 自己的监听地址在 `config.example.yaml:649` 是 `http://localhost:2024`。取消除 ACL 外，本质上仍是打到 2024 那个进程。
-| 10 | 相机状态集合：`pending / running / interrupted` 都算「活跃，可取消」 | `_ACTIVE_RUN_STATUSES` / `_CANCEL_STATUSES` |
-| 11 | 取消后要**扫描确认**：最多等 4 秒，每 0.25 秒轮询 | `EVOFLOW_STOP_SWEEP_MAX_WAIT_S=4`、`EVOFLOW_STOP_SWEEP_POLL_INTERVAL_S=0.25` |
-| 12 | 404 视为 `already_gone`（列表说活跃但已不可取消），不是错误 | `_post_cancel_run()` 返回三态：`cancelled / already_gone / rejected` |
-| 13 | 全程有 `[STOP-TRACE]` 阶段日志便于定位卡在哪一步 | `4.cancel-post-failed` / `4.cancel-post-rejected` |
-| 14 | 网关侧另有对账入口，纠正「库里 running、实际没人跑」 | `app/gateway/run_status_reconcile.py`（文件存在） |
+**EvoFlow 的事实**：
 
-#### 2. 状态机（按代码推导）
+1. 状态是**数据库里的一个字段**，不是进程内对象；所以 Gateway、worker 看到的是同一份状态。
+2. 结束状态由 `resolve_terminal_run_status(reason, source)` 决定，避免每个调用点各写一套判断。
+3. 取消是向 LangGraph Server 发 HTTP 请求，失败分三态；停止扫描最多等 4 秒，每 0.25 秒轮询。
+4. run 结束后要失效 `runs_probe` 与 `active_sessions` 缓存。
 
-```text
-            start_session_turn()
-(初始) ──────────────► running ──┬── 正常完成 ──────► completed
-                                ├── 用户停止 ──────► interrupted / cancelled
-                                ├── 异常 ──────────► failed
-                                └── 等待审批 ──────► waiting_approval ──► running
-任意状态 ── reconcile（无心跳/无活跃 run）──► failed(source=reconcile)
-```
+#### 本章的取舍 / Scope trade-off
 
-`interrupted` 是**本轮**语义：会话本身仍然可用，下一轮重新 `running`。
+| 能力 | EvoFlow | 本章 |
+|---|---|---|
+| 状态存哪 | DB 字段 | 进程内 `dict` + `threading.Event` |
+| 同线程单活 | DB 唯一约束 / 状态检查 | `RunRegistry.start()` 抛 `RuntimeError` |
+| 取消 | HTTP 调 LangGraph Server + 停止扫描 | 只置 `Event`，由执行方检查 |
+| 跨进程可见 | 是 | **否**（仅当前进程） |
+| 收尾缓存失效 | 有 | 无（没有缓存层） |
 
-#### 3. 调用逻辑
+这不是「对齐简化版」，是**范围更小**：本章只保证单进程内的语义正确。后续接 Gateway 时把 `RunRegistry` 的状态写进 `session_run_state` 即可，状态机不用改。
+
+#### 调用逻辑 / Invocation logic
 
 ```mermaid
 sequenceDiagram
-    participant W as 执行侧
-    participant G as RunRegistry
-    participant U as 用户
-    W->>G: start(thread_id)
-    G-->>W: RunRecord(run_id)（同线程已有活跃则拒绝）
-    U->>G: cancel(run_id)
-    W->>G: is_cancelled(run_id)?
-    G-->>W: True → 收敛
-    W->>G: finish(run_id, "cancelled")
+    participant API as 调用方
+    participant R as RunRegistry
+    participant Run as 执行方
+    API->>R: start(thread_id)
+    alt 同线程已有 running
+        R-->>API: RuntimeError
+    else 空闲
+        R-->>API: RunRecord(run_id, Event)
+    end
+    API->>R: cancel(run_id)
+    R-->>Run: Event.set()（只发信号）
+    Run->>Run: 在安全点检查 is_cancelled()
+    Run->>R: finish(run_id, "finished")
+    R->>R: 已取消 → 状态改写为 cancelled
 ```
 
+#### 实现步骤 / Step by step
 
-```text
-POST /runs/stream
-  → start_session_turn(source="gateway")          # 清镜像 + 写 running
-  → （外部 LangGraph 模式）adopt_session_run_id(run_id=上游 id)  # 不清镜像
-  → 流结束
-      ├─ 正常：force_end_session_turn(terminal_status="completed")
-      └─ 用户点停止：
-            langgraph_cancel.list_active_langgraph_run_ids()
-            → _post_cancel_run() 逐个 cancel（三态）
-            → 轮询最多 4s / 0.25s 一次，直到无活跃 run
-            → force_end_session_turn(reason="user_stop", terminal_status="cancelled")
-```
+##### Step 1　`backend/packages/harness/myagentflow/session_execution/lifecycle.py`
 
-#### 4. 为什么「取消要远程取消 + 扫描收敛」
+**职责**：`RunRecord` 保存一次 run 的事实；`RunRegistry` 管注册、单活、取消、收尾。
 
-- Agent 实际执行在 LangGraph 服务里（独立进程，默认 `:2024`，经 Gateway `:8070/api/langgraph` 代理访问）。**本地的 `threading.Event` 停不了它**。
-- 一次停止可能面对**多个**活跃 run（被打断后未清理的旧 run、子代理触发的 run），所以要 `list_active_langgraph_run_ids()` 拿到集合，逐个 cancel。
-- 取消 API 成功 ≠ 执行已停。所以必须**轮询确认**：这就是 4 秒窗口的存在理由——不是「等它停」，而是「确认它停了」。
-- 4 秒是**上限**，不是硬等待；轮询间隔 0.25 秒，能早停就早停。
-- 404 归为 `already_gone`：LangGraph 的「No matching runs to cancel」说明它已经自然结束，不是失败，不能污染终态。
+**关键决策**
 
-#### 5. 自研实现要点
+1. **用 `threading.Event` 而不是 `bool`**：取消可能来自另一个线程（将来 HTTP 接口），`bool` 读写没有同步语义，`Event` 有。
+2. **`ALLOWED_END`** 只放三个终态：`finished` / `cancelled` / `error`。放 `failed` 进来会让调用方分不清「取消」和「出错」。
+3. **`start()` 内先查活跃 run 再插入**，整段在 `RLock` 里：否则两个请求同时 start 都能过检查。
+4. **`cancel()` 只置位**：不直接把状态改 `cancelled`，因为执行方可能正握着 checkpoint 写一半；让它自己在安全点收尾。
+5. **`finish()` 的取消优先**：`cancelled.is_set() and status == "finished"` → 强制 `cancelled`。用户点了停止，UI 就不能显示「成功」。
+6. **`active_for_thread()` 读也加锁**：它会被 HTTP 线程调用，和 `start()` 并发。
 
-```text
-RunRegistry:  {run_id: {status, thread_id, cancel_event, started_at, heartbeat_at}}
-start(): 写 running + 清 stream 镜像
-stop():  1) 通知执行侧（远程 cancel / 本地 cancel_event）
-         2) 在 4s 内 0.25s 轮询确认「无活跃」
-         3) 写终态（幂等，只写一次）
-sweeper: 每 30s 扫 heartbeat 超时行 → failed(reason=stale)
-```
-
-**必须同时做的三件事**：
-1. 状态写入只走一个函数（避免多路径写导致状态乱跳）；
-2. 停止要「请求 + 确认」两段式；
-3. 终态写入幂等（重复 stop 不覆盖已成终态的 run）。
-
-#### 6. 业务规则
-
-- 用户主动停止不是错误：不写 error 事件，`reason` 记 `user_stop`。
-- 停止后必须释放：子进程、沙箱会话、浏览器会话、文件锁。
-- session_key 推导失败必须告警（否则库里永远 running）。
-- 结束事件触发探活缓存失效，避免 UI 继续显示「运行中」。
-
-#### 7. 常见坑
-
-| 坑 | 后果 | EvoFlow 的解法 |
-|---|---|---|
-| 只让前端 abort 流，后端继续跑 | 幽灵 run + 重复计费 | 远程 cancel + 扫描确认 |
-| cancel 成功就当已停 | 状态与事实不符 | 4s/0.25s 轮询收敛 |
-| 404 当失败 | 终态被污染成 failed | 归一为 `already_gone` |
-| 多写入口各自改 run_status | 状态乱跳 | 单写入口（funnel） |
-| 新 run 不清镜像 | 上一轮残影混入新流 | `mark_session_run_started` 清 mirror |
-| 无心跳 | 崩溃后永远 running | 对账 + 探活缓存失效 |
-
-#### 8. 验收
-
-- [ ] 停止后 4 秒内状态变终态
-- [ ] 连续点两次停止不产生两次取消副作用
-- [ ] 重启后无僵尸 running（reconcile 生效）
-- [ ] 取消后资源句柄全部释放（`lsof` / 端口可验证）
-
-#### 9. 对照 EvoFlow 核对清单
-
-- [x] 三个写状态函数与职责
-- [x] 取消走 HTTP API 及三态返回
-- [x] 扫描窗口与轮询间隔的环境变量
-- [ ] `session_run_state.py` 的 `resolve_terminal_run_status()` 判定表（未逐行读）
-- [ ] `run_status_reconcile.py` 的对账触发时机（启动 / 定时 / 请求前）
-- [ ] `cancellation/` 三个模块（本地取消）与远程 cancel 的分工
-
-#### 从零实现（手把手）
-> 读完这章你能管住「谁在跑」：每次运行有 id、状态、取消信号，取消后不再写检查点。
-> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
-
-##### Step 1　新建 lifecycle.py：运行登记表
-**文件**：`backend/packages/harness/myagentflow/session_execution/lifecycle.py（新建）`
-**要写的逻辑**：用 `threading.Event` 做取消信号（跨线程安全）；`active_for_thread` 保证一条线程只有一个活跃 run；状态机只允许 `running → finished/cancelled/error`。
-
-**代码**
+**代码（全文，83 行）**
 
 ```python
-"""运行生命周期：登记、取消、收尾。
+"""一、文件说明
+    运行生命周期：登记、取消、收尾。
+    为什么用 Event 而不是 bool：取消可能来自另一个线程（HTTP cancel 接口），
+    bool 读写没有内存屏障，Event 有。
 
-为什么用 Event 而不是 bool：取消可能来自另一个线程（HTTP cancel 接口），
-bool 读写没有内存屏障，Event 有。
+二、目录结构
+    packages/harness/myagentflow/session_execution/
+    ├── __init__.py
+    ├── idempotency.py  幂等：同一个请求只执行一次。
+    └── lifecycle.py  ← 本文件
+
+三、关键方法
+    RunRecord    一次运行的记录：线程、状态、起止时间。
+    RunRegistry  线程内 run 的注册表：启动、完成、取消、查询。
 """
 from __future__ import annotations
 
@@ -3491,11 +3582,13 @@ import time
 import uuid
 from dataclasses import dataclass, field
 
+# 允许的终态：running 之外的三个。别把 "failed" 也放进来，否则调用方分不清「取消」和「出错」
 ALLOWED_END = {"finished", "cancelled", "error"}
 
 
 @dataclass
 class RunRecord:
+    """一次运行的记录：线程、状态、起止时间。"""
     thread_id: str
     run_id: str = field(default_factory=lambda: uuid.uuid4().hex)
     status: str = "running"
@@ -3505,12 +3598,13 @@ class RunRecord:
 
 
 class RunRegistry:
+    """线程内 run 的注册表：启动、完成、取消、查询。"""
     def __init__(self) -> None:
         self._runs: dict[str, RunRecord] = {}
         self._lock = threading.RLock()
 
     def start(self, thread_id: str) -> RunRecord:
-        """开一个 run。同线程已有活跃 run 时直接拒绝——这是 EvoFlow 的取舍。"""
+        """开一个 run。同线程已有活跃 run 时直接拒绝：两条 run 会抢写同一个 checkpoint。"""
         with self._lock:
             active = self.active_for_thread(thread_id)
             if active is not None:
@@ -3520,10 +3614,11 @@ class RunRegistry:
             return rec
 
     def active_for_thread(self, thread_id: str) -> RunRecord | None:
-        for rec in self._runs.values():
-            if rec.thread_id == thread_id and rec.status == "running":
-                return rec
-        return None
+        with self._lock:      # 可能被别的线程查（HTTP 层），读也要锁
+            for rec in self._runs.values():
+                if rec.thread_id == thread_id and rec.status == "running":
+                    return rec
+            return None
 
     def cancel(self, run_id: str) -> bool:
         with self._lock:
@@ -3553,22 +3648,46 @@ class RunRegistry:
 **验证**
 
 ```bash
-uv run python -c "from myagentflow.session_execution.lifecycle import RunRegistry; print('import ok')"
+cd /Users/main/my-agent-flow/backend
+uv run python -c "
+from myagentflow.session_execution.lifecycle import RunRegistry
+r = RunRegistry(); run = r.start('t1')
+print(run.status, r.cancel(run.run_id))
+r.finish(run.run_id, 'finished')
+print(r._runs[run.run_id].status)
+"
+# 期望：running True / cancelled
 ```
 
-##### Step 2　写测试：单活跃 run + 取消优先
-**文件**：`backend/tests/chapters/test_ch02_02_lifecycle.py（新建）`
-**要写的逻辑**：同一线程第二个 run 应被拒；取消后 `finish('finished')` 必须被改写成 cancelled。
+---
 
-**代码**
+##### Step 2　`backend/tests/chapters/test_ch02_02_lifecycle.py`
+
+覆盖四个点：单活、取消优先、取消只影响目标 run、取消未知/已结束返回 False。
+
+**代码（全文，64 行）**
 
 ```python
+"""一、文件说明
+    02/02 run 生命周期：线程内单活、取消优先。
+
+二、覆盖
+    test_one_active_run_per_thread()  同线程第二次 start 抛 RuntimeError，finish 后可再开。
+    test_cancel_wins_over_finish()    cancel 后即使再 finish，状态仍是 cancelled。
+    test_cancel_is_per_run()          取消只影响目标 run，不误伤别的线程。
+    test_cancel_unknown_and_done()    取消不存在/已收尾的 run 返回 False，不抛异常。
+
+三、运行
+    uv run pytest tests/chapters/test_ch02_02_lifecycle.py -q
+"""
+
 from __future__ import annotations
 
 import pytest
 
 
 def test_one_active_run_per_thread():
+    """同线程第二次 start 抛 RuntimeError，finish 后可再开。"""
     from myagentflow.session_execution.lifecycle import RunRegistry
 
     reg = RunRegistry()
@@ -3580,6 +3699,7 @@ def test_one_active_run_per_thread():
 
 
 def test_cancel_wins_over_finish():
+    """cancel 后即使再 finish，状态仍是 cancelled。"""
     from myagentflow.session_execution.lifecycle import RunRegistry
 
     reg = RunRegistry()
@@ -3587,33 +3707,103 @@ def test_cancel_wins_over_finish():
     assert reg.cancel(r.run_id) is True
     reg.finish(r.run_id, "finished")
     assert reg._runs[r.run_id].status == "cancelled"
+
+
+def test_cancel_is_per_run():
+    """取消只影响目标 run：另一个线程的 run 仍然能正常收尾。"""
+    from myagentflow.session_execution.lifecycle import RunRegistry
+
+    reg = RunRegistry()
+    r1 = reg.start("t1")
+    r2 = reg.start("t2")
+    assert reg.cancel(r1.run_id) is True
+    assert reg.is_cancelled(r1.run_id) is True
+    assert reg.is_cancelled(r2.run_id) is False
+    reg.finish(r2.run_id)
+    assert reg._runs[r2.run_id].status == "finished"
+
+
+def test_cancel_unknown_and_done():
+    """取消不存在的 run 或已收尾的 run 都返回 False。"""
+    from myagentflow.session_execution.lifecycle import RunRegistry
+
+    reg = RunRegistry()
+    assert reg.cancel("no-such-run") is False
+    r = reg.start("t3")
+    reg.finish(r.run_id)
+    assert reg.cancel(r.run_id) is False
 ```
 
 **验证**
 
 ```bash
-uv run pytest tests/chapters/test_ch02_02_lifecycle.py -v
-# 期望：2 passed
+cd /Users/main/my-agent-flow/backend
+uv run pytest tests/chapters/test_ch02_02_lifecycle.py -q
+# 期望：4 passed
 ```
 
-##### 与 EvoFlow 对照
+---
 
-| 我们的做法 | EvoFlow | 为什么 |
-|---|---|---|
-| 每线程一个活跃 run | `backend/packages/harness/myagentflow/session_execution/lifecycle.py` | 两个并发 run 写同一 thread 会互相覆盖检查点 |
-| 取消用 Event 信号 | `langgraph_cancel.py` 的取消令牌 | 取消是「请停」不是「立刻杀」 |
-| 取消过不许报成功 | 生命周期收尾处 | 否则前端看到「完成」但结果缺失 |
+##### Step 3　接到执行方（本章只给接口，不接图）
 
-##### 知识点
+执行方（未来的 chat 路由 / CLI）应该这样用：
 
-- [agent-book · LangGraph 课程](https://g0-000.github.io/agent-book/langgraph/)：图的执行与中断
-- 与 02/01 的检查点配合：取消后不再 `put`
+```python
+reg = RunRegistry()
+rec = reg.start(thread_id)
+try:
+    for event in stream_graph(...):
+        if reg.is_cancelled(rec.run_id):
+            reg.finish(rec.run_id, "cancelled")
+            break
+        yield event
+    else:
+        reg.finish(rec.run_id)
+except Exception:
+    reg.finish(rec.run_id, "error")
+    raise
+```
 
-##### 验收
+**为什么在流循环里检查**：取消要尽快生效，但不能打断一次 checkpoint 写入；每个事件边界就是安全点。
+
+#### 与 EvoFlow 的差异 / Differences
+
+| 点 | EvoFlow | 本章 | 影响 |
+|---|---|---|---|
+| 状态可见范围 | 全进程/多 worker（DB） | 当前进程 | 多 worker 部署时取消不了别的进程的 run |
+| 取消实现 | HTTP + 停止扫描 + 三态结果 | 置 `Event` | 无法取消卡在外部工具里的 run |
+| 终态判定 | `resolve_terminal_run_status()` 统一 | `finish()` 里一条 if | 规则少，够本章 |
+| 缓存失效 | `_after_run_ended()` | 无 | 没有缓存，不需要 |
+| 清理 | 结束后按策略清 | 记录一直留在 dict | 长跑进程会缓慢增长（见「已知限制」） |
+
+#### 已知限制 / Known limits
+
+- `RunRegistry._runs` 不清理已结束的记录：本章不跑长驻服务，可接受；接 Gateway 前要加保留策略或落库。
+- 没有跨进程取消；没有停止扫描；没有 LangGraph Server 的 `run_id` 对齐。
+- 取消只在执行方主动检查时生效，同步阻塞的工具调用无法中断。
+
+#### 验收 / Acceptance
 
 ```bash
-uv run pytest tests/chapters/test_ch02_02_lifecycle.py -q
+cd /Users/main/my-agent-flow/backend
+uv run pytest tests/chapters/test_ch02_02_lifecycle.py -q     # 4 passed
+uv run python -m ruff check packages tests                   # All checks passed
 ```
+
+#### 常见坑 / Troubleshooting
+
+| 症状 | 原因 | 动作 |
+|---|---|---|
+| 两个请求都 start 成功 | 检查与插入不在同一把锁里 | 整段包在 `RLock` |
+| 取消后 UI 显示成功 | `finish` 没做取消优先 | 保留 `cancelled.is_set()` 分支 |
+| 取消迟迟不生效 | 执行方没在流循环里检查 | 每个事件边界查一次 |
+| 线程一直「忙」 | `finish` 没被调用（异常路径漏了） | `try/finally` 或 `except` 里补 |
+| 换成多进程后取消失效 | 状态在进程内存 | 接 DB 状态表（第 10 部分） |
+
+#### 知识点
+
+- [agent-book · 并发与取消](https://g0-000.github.io/agent-book/)：为什么取消用信号而不是强杀
+- [Harbor404 · 推理链路延迟优化](https://harbor404.fushenlin.com/notes/llm-agent-latency-optimization/)：流式响应里的安全点
 
 
 <!-- ===== 02-持久化与运行生命周期/03-CLI与stdio-App-Server.md ===== -->
@@ -3622,129 +3812,108 @@ uv run pytest tests/chapters/test_ch02_02_lifecycle.py -q
 ### 第 3 章　CLI 与 stdio App Server
 
 
-> **EvoFlow 对照状态 / Alignment status：** 🔍 结构已核对（路径、行数、符号均取自源码实测），**行为**（调用顺序、边界条件）尚未逐行核对。
+> **本章状态**：🟡 最小实现。CLI 有 `chat` / `state` 两个子命令；stdio 有 `ping` / `state` 两个方法，**没有** `chat/send` 这类流式协议。
+> 基准：EvoFlow `f22af539`（v1.3.22）。
 
-#### 本章目标
-让同一个 Agent 内核能被 **终端、编辑器、桌面端** 复用，而不必各自重写一遍逻辑。
+#### 本章目标 / Goals
 
-#### 最小闭环
-`evoflow --chat "算一下 2+3"` → 标准输出 SSE 事件 → 退出码 0；同一套逻辑通过 stdio JSON-RPC 被宿主程序调用。
+- 同一套内核有两个入口：终端（CLI）与宿主进程（stdio），不在入口层重写业务逻辑。
+- CLI 的 `state` 子命令**不编译图**：读状态不该拉起模型和中间件。
+- stdio 一行请求一行响应；坏行只回错误，不退出进程。
+- stdout 只放协议，日志走 stderr（否则宿主解析失败）。
 
-#### 调用逻辑
+**本章不做**：JSON-RPC 的 `chat/send` / `chat/event` / `chat/resume` / `chat/cancel` 流式协议；stdio 的 TCP 监听；Windows UTF-8 包装；嵌入式 app server。这些在 EvoFlow 的 `stdio_rpc.py`（719 行）与 `chat_bridge.py`（396 行）里，属于后续「Gateway 与桌面端」范围。
+
+#### EvoFlow 源码导读 / Source reading
+
+| 文件 | 行数 | 读什么 |
+|---|---|---|
+| `backend/packages/harness/evoflow/cli/main.py` | 105 | `_peek_command`、`build_parser`、`main`：子命令怎么分发 |
+| `.../cli/common.py` | 44 | `add_json_input_flags` / `load_json_payload` / `add_output_flags`：参数与 JSON 载荷约定 |
+| `.../app_server/stdio_rpc.py` | 719 | `StdioAppServer`、`serve_stdio`、`serve_stdio_async`、`PROTOCOL_VERSION`：方法表、通知、错误码 |
+| `.../app_server/chat_bridge.py` | 396 | chat 轮次怎么把 Gateway SSE 转成 RPC 通知 |
+| `.../desktop_stdio.py` | 363 | Windows 下强制 UTF-8、禁用 ANSI 颜色 |
+
+**EvoFlow 的事实**：stdio 是「桌面客户端 ↔ Gateway」的桥，chat 事件是**通知**（无 `id`），不是请求响应；CLI 自己也通过 Gateway 跑，不是直接调 harness。
+
+#### 本章的取舍 / Scope trade-off
+
+| 能力 | EvoFlow | 本章 |
+|---|---|---|
+| CLI 跑对话 | 经 Gateway / LangGraph SSE | 直接 `build_graph().invoke()`，同步打印最后一条 |
+| CLI 读状态 | 调 Gateway API | `read_thread_state()` 本地读 saver |
+| stdio 方法 | 完整 chat 生命周期 | `ping` + `state` |
+| 传输 | stdio 或 local TCP | 仅 stdin/stdout |
+| 协议通知 | `chat/event` 流 | 无（本章没有流式 chat） |
+
+本章的选择是**先把两个入口的骨架跑通**；chat 流式协议等第 10 部分接 Gateway 时再补，避免现在造一套和最终协议不一致的消息格式。
+
+#### 调用逻辑 / Invocation logic
 
 ```mermaid
 sequenceDiagram
     participant U as 用户
     participant CLI as cli.main
-    participant GR as 图执行
-    participant H as 宿主程序
-    participant S as app_server.stdio
-    U->>CLI: evoflow --chat "算一下 2+3"
-    CLI->>GR: _chat() → 执行
-    CLI-->>U: 标准输出 SSE 事件，退出码 0
-    H->>S: JSON-RPC 请求（stdin）
-    S->>S: handle(req) → serve()
-    S-->>H: JSON-RPC 响应（stdout）
+    participant G as build_graph
+    participant S as stdio.handle
+    participant R as read_thread_state
+    U->>CLI: myaf chat "你好" --thread t1
+    CLI->>G: invoke(messages, thread_id)
+    G-->>CLI: 最后一条 AIMessage
+    CLI-->>U: print(content)
+    U->>CLI: myaf state --thread t1
+    CLI->>R: read_thread_state(cp, t1)
+    R-->>CLI: checkpoint 快照 / null
+    Note over S: 宿主进程 spawn 后走 JSONL
+    S->>S: ping → pong
+    S->>R: state(params.thread_id)
+    S-->>S: {{"id": n, "result": ...}}
 ```
 
-```text
-CLI  → 直接调用 harness 会话服务 → 流事件打印
-stdio → 宿主进程 spawn → JSON-RPC 2.0 over stdin/stdout → chat_bridge → harness
-HTTP  → Gateway（Part 10）
-```
-三者共用 `session_execution` 与 `chat_session_service`，差别只在传输层。
+#### 实现步骤 / Step by step
 
-#### 真实模块地图（已核对：路径 · 行数 · 符号）
+##### Step 1　`backend/packages/harness/myagentflow/cli/main.py`
 
-| 文件 | 行数 | 关键符号 | 模块常量 |
-|---|---|---|---|
-| `packages/harness/evoflow/cli/main.py:52` | 105 | `_peek_command`、`build_parser`、`main` | — |
-| `packages/harness/evoflow/cli/common.py:13` | 44 | `add_json_input_flags`、`load_json_payload`、`add_output_flags` | — |
-| `packages/harness/evoflow/app_server/stdio_rpc.py:26` | 719 | `StdioAppServer`；`_force_utf8_stdio`、`serve_stdio`、`serve_stdio_async` | PROTOCOL_VERSION |
-| `packages/harness/evoflow/app_server/embed.py:17` | 96 | `resolve_app_server_listen_port`、`resolve_gateway_base_url_for_embed`、`start_embedded_app_server` | — |
-| `packages/harness/evoflow/app_server/chat_bridge.py:21` | 396 | `_client_lock`、`_get_shared_gateway_client`、`reset_shared_gateway_client_for_tests` | — |
-| `packages/harness/evoflow/desktop_stdio.py:270` | 363 | `_UnclosableStdio`；`apply_windows_stdio_env`、`_stream_is_usable`、`_is_colorama_wrapped` | — |
-| `packages/harness/evoflow/app_server/stdio_rpc.py:26` | 719 | `StdioAppServer`；`_force_utf8_stdio`、`serve_stdio`、`serve_stdio_async` | PROTOCOL_VERSION |
+**职责**：解析 `chat` / `state`，各走一条路径。
 
-#### 核心概念
-- **stdio 协议要点**：stdout 只能放协议消息，日志必须走 stderr，否则宿主解析失败。
-- **一次连接一条会话**：连接即 session，断开即结束；不做隐式全局状态。
-- **背压**：宿主读得慢时，事件要排队或合并，不能阻塞执行线程。
+**逻辑**
 
-#### 自研实现要点
-```json
-{"jsonrpc":"2.0","id":1,"method":"chat/send","params":{"session":"s1","text":"hi"}}
-{"jsonrpc":"2.0","method":"chat/event","params":{"type":"delta","text":"你"}}
-```
-- 事件 `id` 单调递增，支持 `chat/resume` 从 last_id 续传。
-- 退出：`chat/cancel` → 等终态事件 → 关闭管道。
+1. `main()` 用 `argparse` 子解析器；`set_defaults(fn=...)` 把「解析」和「执行」分开，测试可以直接传 argv。
+2. `_chat()` 懒加载图与模型：只跑 `state` 的人不需要模型配置。
+3. `_state()` **绝不导入 `build_graph`**：读状态编译图会拉起中间件、模型客户端和 MCP，慢且可能报错。
+4. 默认 `--thread cli`：终端调试不用每次编一个线程名。
 
-#### 业务规则
-- 错误也走 JSON-RPC error，不往 stdout 打人类可读堆栈。
-- 未授权方法直接拒绝，不暴露内部路径。
-
-#### 常见坑
-- `print()` 调试污染 stdout。
-- 子进程未随父进程退出 → 僵尸积累。
-- 缓冲区不 flush → 宿主永远收不到最后一条事件。
-
-#### 验收
-- [ ] CLI 与 HTTP 对同一输入产生等价事件序列
-- [ ] stdout 无任何非协议输出
-- [ ] 宿主 kill 后子进程同步退出
-
-##### 源码核对记录（路径与符号实测）
-
-- `packages/harness/evoflow/cli/main.py`（105 行）；环境变量 `EVOFLOW_CONFIG_PATH`
-  - 模块自述：EvoFlow CLI — manage models, skills, agents, MCP, assets, and more.…
-- `packages/harness/evoflow/cli/common.py`（44 行）
-  - 模块自述：Shared argparse helpers for EvoFlow CLI.…
-- `packages/harness/evoflow/app_server/stdio_rpc.py`（719 行）：类 `StdioAppServer`；环境变量 `EVOFLOW_PSS_LOG`
-  - 模块自述：Newline-delimited JSON-RPC app-server (stdio or local TCP). Desktop clients use this pipe; the web UI keeps HT…
-- `packages/harness/evoflow/app_server/embed.py`（96 行）；环境变量 `EVOFLOW_APP_SERVER_HOST`、`EVOFLOW_APP_SERVER_PORT`、`EVOFLOW_GATEWAY_BIND_PORT`、`EVOFLOW_GATEWAY_PORT`
-  - 模块自述：Optional embedded app-server TCP listener inside Gateway (debug only). Desktop uses native-style: Tauri spawns…
-- `packages/harness/evoflow/app_server/chat_bridge.py`（396 行）；环境变量 `EVOFLOW_PSS_LOG`
-  - 模块自述：Proxy interactive chat turns to Gateway LangGraph SSE and re-emit as RPC notifications.…
-- `packages/harness/evoflow/desktop_stdio.py`（363 行）：类 `_UnclosableStdio`
-  - 模块自述：Windows desktop / frozen EXE: UTF-8 stdio and no ANSI colors for LangGraph logging. Chinese Windows defaults t…
-- `packages/harness/evoflow/app_server/stdio_rpc.py`（719 行）：类 `StdioAppServer`；环境变量 `EVOFLOW_PSS_LOG`
-  - 模块自述：Newline-delimited JSON-RPC app-server (stdio or local TCP). Desktop clients use this pipe; the web UI keeps HT…
-
-> 本节只证明**路径、行数、符号存在**；调用顺序与边界条件仍属「行为」，未逐行核对。
-
-#### 对照 EvoFlow 核对清单
-- [ ] `stdio_rpc.py` 的方法清单与错误码
-- [ ] CLI 是否复用 Gateway 还是直连 harness
-
-#### 从零实现（手把手）
-> 读完这章你有两个入口：一个命令行，一个 JSON-Lines 的 stdio 服务，共用同一套图。
-> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
-
-##### Step 1　新建 CLI：两个子命令
-**文件**：`backend/packages/harness/myagentflow/cli/main.py（新建）`
-**要写的逻辑**：`chat` 跑一轮并打印回复；`state` 用 02/01 的 `read_thread_state` 直接读，不编译图。
-
-**代码**
+**代码（全文，68 行）**
 
 ```python
-"""CLI：最小两个子命令。
+"""一、文件说明
+    CLI：最小两个子命令。
+    为什么 CLI 要和 Gateway 共用代码：调试时想在终端复现线上问题，
+    两条代码路径一定会分叉。
 
-为什么 CLI 要和 Gateway 共用代码：调试时想在终端复现线上问题，
-两条代码路径一定会分叉。
+二、目录结构
+    packages/harness/myagentflow/cli/
+    ├── __init__.py
+    └── main.py  ← 本文件
+
+三、关键方法
+    _chat()   命令行跑一轮对话：读一条输入、调图、打印回复。
+    _state()  打印某线程的检查点状态；刻意不编译图。
+    main()    解析 chat/state 子命令并分发。
 """
 from __future__ import annotations
 
 import argparse
 import json
 
-from myagentflow.config.app_config import get_app_config
+from myagentflow.models.factory import create_chat_model
 
 
 def _chat(args: argparse.Namespace) -> int:
+    """命令行跑一轮对话：读一条输入、调图、打印回复。"""
     from langchain_core.messages import HumanMessage
 
     from myagentflow.agents.lead_agent.graph import build_graph
-    from myagentflow.models.factory import create_chat_model
 
     graph = build_graph(create_chat_model())
     out = graph.invoke(
@@ -3756,6 +3925,7 @@ def _chat(args: argparse.Namespace) -> int:
 
 
 def _state(args: argparse.Namespace) -> int:
+    """打印某线程的检查点状态；刻意不编译图。"""
     from myagentflow.agents.checkpointer import get_checkpointer
     from myagentflow.agents.checkpointer.thread_state_reader import read_thread_state
 
@@ -3765,6 +3935,7 @@ def _state(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """解析 chat/state 子命令并分发。"""
     parser = argparse.ArgumentParser(prog="myaf")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
@@ -3788,21 +3959,42 @@ if __name__ == "__main__":
 **验证**
 
 ```bash
+cd /Users/main/my-agent-flow/backend
 uv run python -m myagentflow.cli.main state --thread demo
-# 期望：null（线程还没跑过），且不报「图编译失败」
+# 期望：null（没跑过这个线程），且没有模型相关的报错
 ```
 
-##### Step 2　新建 stdio 服务：一行一请求
-**文件**：`backend/packages/harness/myagentflow/app_server/stdio.py（新建）`
-**要写的逻辑**：从 stdin 读 JSON 行，回一行 JSON；异常也回一行（带 error 字段），绝不静默退出。
+> `chat` 需要真实模型配置（第 1 部分的 `AppConfig`）。本章验收只跑 `state`，避免测试依赖网络。
 
-**代码**
+---
+
+##### Step 2　`backend/packages/harness/myagentflow/app_server/stdio.py`
+
+**职责**：一行 JSON 进，一行 JSON 出。
+
+**逻辑**
+
+1. `handle()` 按 `method` 分派：`ping` 握手，`state` 读状态，其他一律 error（不泄露内部方法名）。
+2. `state` 的参数兼容 `thread_id` 与 `thread`，缺省 `cli`；返回 `read_thread_state()` 的结果或 `null`。
+3. `serve()` 逐行读；空行跳过；JSON 解析失败回 `{{"id": null, "error": ...}}` 并**继续下一行**。
+4. 每行 `flush()`：不 flush 父进程会一直等，看起来像「服务卡死」。
+
+**代码（全文，59 行）**
 
 ```python
-"""stdio app server：一行请求、一行响应。
+"""一、文件说明
+    stdio app server：一行请求、一行响应。
+    为什么用 JSONL 而不是 HTTP：桌面端/编辑器插件拉起子进程时没有端口可用，
+    stdin/stdout 是最稳的通道。
 
-为什么用 JSONL 而不是 HTTP：桌面端/编辑器插件拉起子进程时没有端口可用，
-stdin/stdout 是最稳的通道。
+二、目录结构
+    packages/harness/myagentflow/app_server/
+    ├── __init__.py
+    └── stdio.py  ← 本文件
+
+三、关键方法
+    handle()  处理一行 JSON-RPC 请求：ping 握手、state 读线程状态；其他方法回错误。
+    serve()   从 stdin 逐行读 JSON-RPC 并写回 stdout；坏行返回错误而不退出进程。
 """
 from __future__ import annotations
 
@@ -3812,12 +4004,29 @@ from typing import Any
 
 
 def handle(req: dict[str, Any]) -> dict[str, Any]:
-    if req.get("method") != "ping":
-        return {"id": req.get("id"), "error": f"未知方法：{req.get('method')}"}
-    return {"id": req.get("id"), "result": "pong"}
+    """处理一行 JSON-RPC 请求：ping 握手、state 读线程状态；其他方法回错误。"""
+    method = req.get("method")
+    req_id = req.get("id")
+
+    if method == "ping":
+        return {"id": req_id, "result": "pong"}
+
+    if method == "state":
+        # 懒加载：只用 ping 的宿主不该被迫初始化数据库连接
+        from myagentflow.agents.checkpointer import get_checkpointer
+        from myagentflow.agents.checkpointer.thread_state_reader import (
+            read_thread_state,
+        )
+
+        params = req.get("params") or {}
+        thread_id = str(params.get("thread_id") or params.get("thread") or "cli")
+        return {"id": req_id, "result": read_thread_state(get_checkpointer(), thread_id)}
+
+    return {"id": req_id, "error": f"未知方法：{method}"}
 
 
 def serve(stdin=sys.stdin, stdout=sys.stdout) -> None:
+    """从 stdin 逐行读 JSON-RPC 并写回 stdout；坏行返回错误而不退出进程。"""
     for line in stdin:
         line = line.strip()
         if not line:
@@ -3828,32 +4037,136 @@ def serve(stdin=sys.stdin, stdout=sys.stdout) -> None:
             resp = {"id": None, "error": str(exc)}
         stdout.write(json.dumps(resp, ensure_ascii=False) + "\n")
         stdout.flush()   # 不 flush 的话父进程会一直等
+
+
+if __name__ == "__main__":
+    serve()
 ```
 
 **验证**
 
 ```bash
-printf '{"id":1,"method":"ping"}\n' | uv run python -m myagentflow.app_server.stdio
-# 期望：{"id": 1, "result": "pong"}
+cd /Users/main/my-agent-flow/backend
+printf '{{"id":1,"method":"ping"}}\n{{"id":2,"method":"state","params":{{"thread_id":"demo"}}}}\nnot-json\n' | uv run python -m myagentflow.app_server.stdio
+# 期望三行：pong / null / error；进程不退出
 ```
 
-##### 与 EvoFlow 对照
+---
 
-| 我们的做法 | EvoFlow | 为什么 |
-|---|---|---|
-| `chat` / `state` 两个子命令 | `cli/` 的命令划分 | 读状态与跑对话是两条不同路径 |
-| JSONL stdio | `app_server/` 的 stdio 通道 | 编辑器插件拉起子进程时无端口 |
+##### Step 3　`backend/tests/chapters/test_ch02_03_cli_stdio.py`
 
-##### 知识点
+覆盖：ping、state、未知方法、坏行恢复、CLI state 输出。
 
-- [agent-book](https://g0-000.github.io/agent-book/)：CLI 与 Agent 的交互形态
-- Harbor404：进程间通信与阻塞排查
+**代码（全文，65 行）**
 
-##### 验收
+```python
+"""一、文件说明
+    02/03 CLI 与 stdio：命令行参数分发、stdin/stdout 一行一答。
+
+二、覆盖
+    test_stdio_ping()             ping 返回 pong，id 原样带回。
+    test_stdio_state_unknown()     state 读不存在的线程返回 None，不抛异常。
+    test_stdio_unknown_method()    未知方法回 error，id 不丢。
+    test_serve_bad_json()          坏行回 error，且后续好行仍能处理。
+    test_cli_state(capsys)         CLI state 子命令走通，输出 JSON null。
+
+三、运行
+    uv run pytest tests/chapters/test_ch02_03_cli_stdio.py -q
+"""
+
+from __future__ import annotations
+
+import io
+import json
+
+
+def test_stdio_ping():
+    """ping 返回 pong，id 原样带回。"""
+    from myagentflow.app_server.stdio import handle
+
+    resp = handle({"id": 1, "method": "ping"})
+    assert resp == {"id": 1, "result": "pong"}
+
+
+def test_stdio_state_unknown(monkeypatch, tmp_path):
+    """state 读不存在的线程返回 None，不抛异常。"""
+    monkeypatch.setenv("MYAF_CHECKPOINTER", "sqlite")
+    monkeypatch.setenv("MYAF_CHECKPOINT_SQLITE_PATH", str(tmp_path / "cp.sqlite"))
+    from myagentflow.app_server.stdio import handle
+
+    resp = handle({"id": 2, "method": "state", "params": {"thread_id": "no-such"}})
+    assert resp == {"id": 2, "result": None}
+
+
+def test_stdio_unknown_method():
+    """未知方法回 error，id 不丢。"""
+    from myagentflow.app_server.stdio import handle
+
+    resp = handle({"id": 3, "method": "chat/send"})
+    assert resp["id"] == 3 and "未知方法" in resp["error"]
+
+
+def test_serve_bad_json():
+    """坏行回 error，且后续好行仍能处理：一行坏不能拖垮整个管道。"""
+    from myagentflow.app_server.stdio import serve
+
+    stdin = io.StringIO('not-json\n{"id":4,"method":"ping"}\n')
+    stdout = io.StringIO()
+    serve(stdin=stdin, stdout=stdout)
+    lines = [json.loads(x) for x in stdout.getvalue().splitlines()]
+    assert "error" in lines[0] and lines[1] == {"id": 4, "result": "pong"}
+
+
+def test_cli_state(capsys, monkeypatch, tmp_path):
+    """CLI state 子命令走通，输出 JSON null。"""
+    monkeypatch.setenv("MYAF_CHECKPOINTER", "sqlite")
+    monkeypatch.setenv("MYAF_CHECKPOINT_SQLITE_PATH", str(tmp_path / "cp.sqlite"))
+    from myagentflow.cli.main import main
+
+    assert main(["state", "--thread", "no-such"]) == 0
+    assert capsys.readouterr().out.strip() == "null"
+```
+
+**验证**
 
 ```bash
-printf '{"id":2,"method":"x"}\n' | uv run python -m myagentflow.app_server.stdio
+cd /Users/main/my-agent-flow/backend
+uv run pytest tests/chapters/test_ch02_03_cli_stdio.py -q
+# 期望：5 passed
 ```
+
+#### 与 EvoFlow 的差异 / Differences
+
+| 点 | EvoFlow | 本章 | 影响 |
+|---|---|---|---|
+| CLI chat 数据流 | Gateway SSE → 事件渲染 | 同步 `invoke`，只打印最终回复 | 没有 token 流、没有工具事件 |
+| stdio chat | `chat/send` + `chat/event` 通知 | 未实现 | 宿主只能握手和读状态 |
+| 协议版本 | `PROTOCOL_VERSION` | 无 | 还没有版本协商的必要 |
+| 错误码 | JSON-RPC 标准码 | 字符串 error | 够本地调试，接宿主前要统一 |
+| 日志隔离 | stderr + `_UnclosableStdio` | 代码里不 `print`，靠调用方自觉 | Windows 下仍需 UTF-8 包装 |
+
+#### 常见坑 / Troubleshooting
+
+| 症状 | 原因 | 动作 |
+|---|---|---|
+| 宿主解析失败 | 代码里有 `print()` 混进 stdout | 日志改 `stderr`；stdout 只写协议 |
+| 最后一条永远收不到 | 没 `flush()` | 每行写完立即 flush |
+| 一行坏 JSON 导致进程退出 | `serve` 没包 `try` | 捕获后回 error，继续循环 |
+| `state` 很慢 / 报模型错误 | 误导入 `build_graph` | 只导入 `read_thread_state` |
+| `chat` 报没有 API key | 没配模型 | 先跑 `state`；`chat` 需要第 1 部分配置 |
+
+#### 验收 / Acceptance
+
+```bash
+cd /Users/main/my-agent-flow/backend
+uv run pytest tests/chapters/test_ch02_03_cli_stdio.py -q     # 5 passed
+uv run python -m ruff check packages tests                   # All checks passed
+```
+
+#### 知识点
+
+- [agent-book](https://g0-000.github.io/agent-book/)：CLI、stdio、HTTP 三种入口的分工
+- [Harbor404 · 流式输出](https://harbor404.fushenlin.com/)：为什么 stdout 只能放协议
 
 
 <!-- ===== 02-持久化与运行生命周期/04-分享生命周期.md ===== -->
@@ -3862,101 +4175,100 @@ printf '{"id":2,"method":"x"}\n' | uv run python -m myagentflow.app_server.stdio
 ### 第 4 章　分享生命周期 / Sharing
 
 
-> **EvoFlow 对照状态 / Alignment status：** 🔍 结构已核对（路径、行数、符号均取自源码实测），**行为**（调用顺序、边界条件）尚未逐行核对。
+> **本章状态**：🟡 存储层已实现并测试；HTTP 路由与只读快照**未实现**。
+> 基准：EvoFlow `f22af539`（v1.3.22）。
 
-#### 本章目标
-把「一次会话」安全地投影成「一个只读链接」，并定义它的有效期与撤销语义。
+#### 本章目标 / Goals
 
-#### 最小闭环
-创建分享 → 拿到 token 链接 → 未登录可读 → 撤销后链接 404 → 原会话不受影响。
+- 把「一个会话」投影成「一个不可猜的 token」：拿到 token 才能读。
+- token 只存哈希：数据库泄露不等于会话泄露。
+- 解析有四个状态：`ok` / `expired` / `revoked` / `missing`，调用方据此决定 404 还是 410。
+- 过期靠**时间戳比较**，不靠定时任务：省一个后台进程，也不会漏扫。
+
+**本章不做**：`POST /share`、`GET /share/{{token}}` 路由；快照内容（标题、消息列表、是否含工具输出）；鉴权中间件；分享页前端。本章只做「token 从创建到失效」的存储与判定。
+
+#### EvoFlow 源码导读 / Source reading
+
+| 文件 | 行数 | 读什么 |
+|---|---|---|
+| `backend/app/gateway/routers/share.py` | 154 | `create_share` 里 `secrets.token_urlsafe(24)`；`get_share` 按 token 明文查；`revoke_share` 只置 `revoked_at` |
+| `backend/packages/harness/evoflow/persistence/chat_share_repositories.py` | 311 | `create_share(*, token, session_key, title, messages, include_tools, expires_in_days=7, created_by)`：**快照直接落库** |
+| `backend/app/gateway/auth.py` | 164 | 分享读路径是否走鉴权 |
+| `backend/packages/harness/evoflow/authz/http_guard.py` | 549 | 可见性校验、防 IDOR |
+
+**EvoFlow 的事实**：
+
+1. token 在路由层生成，**明文存进 `evoflow_chat_shares.token`**；撤销置 `revoked_at`，不删行。
+2. 分享是**不可变快照**：创建时把 `title` / `messages` / `include_tools` 一起写入，读分享不查原会话。
+3. 默认有效期 7 天（`expires_in_days=7`）。
+4. 读路径按 token 明文等值查，没有哈希。
+
+#### 本章的取舍 / Scope trade-off
+
+| 点 | EvoFlow | 本章 | 为什么 |
+|---|---|---|---|
+| token 存储 | 明文 | `sha256(token)` | 库泄露时明文 token 等于把所有会话送出去 |
+| 主键 | 自增 / token | `token_hash` 主键 | 一个 token 只能对应一条分享，天然防重复 |
+| 快照 | 建分享时写消息 | 只存 `thread_id` | 本章只做 token 生命周期；快照读取下一章接消息表 |
+| 过期 | 字段 + 读取时判断 | 同 | 都不依赖定时任务 |
+| 撤销 | 置 `revoked_at` | 同 | 保留审计，不删行 |
+
+**这是设计选择，不是 EvoFlow 行为**：哈希存储让我们多一层不可逆性，但也意味着「按 token 前缀查分享」这类运维操作做不了。
 
 #### 调用逻辑 / Invocation logic
 
 ```mermaid
 sequenceDiagram
-    participant A as API
+    participant A as 调用方
     participant S as ShareStore
     participant H as _hash
     participant V as 访客
-    A->>S: create(session_id)
-    S->>H: _hash(token)
-    S-->>A: ShareResult(token, url)
+    A->>S: create(thread_id, ttl_seconds)
+    S->>H: sha256(token)
+    S-->>A: 明文 token（只出现这一次）
     V->>S: resolve(token)
-    S-->>V: 只读视图 / None(已撤销)
+    S->>H: sha256(token)
+    S->>S: 查行 → revoked? → expired? → ok
+    S-->>V: ShareResult(status, thread_id)
     A->>S: revoke(token)
-    V->>S: resolve(token) → None
+    V->>S: resolve(token)
+    S-->>V: revoked
 ```
 
-- **入口（EvoFlow 实际行为）**：token 在路由层生成——`app/gateway/routers/share.py:71` `secrets.token_urlsafe(24)`；落库是 `persistence/chat_share_repositories.py:121` `create_share(*, token, session_key, title, messages, include_tools, expires_in_days=7, created_by)`，**token 原样明文写入 `evoflow_chat_shares`，没有 hash**（列里有 `token` 也有 `revoked_at`，`:172` 的 INSERT 语句可直接看到）。**没有 `ShareStore` 这个类**。本复刻改用 `token_hash TEXT PRIMARY KEY` + `sha256`（`backend/packages/harness/myagentflow/collab/shares.py:32`）——这是我们的设计选择，不是 EvoFlow 行为。
-- **关键节点**：EvoFlow 的读路径是 `routers/share.py:124` 的 `get_share(token)` → `share_repo.get_public_share(token)`，按 token 明文等值查；撤销是 `routers/share.py:143` `revoke_share()` → `share_repo.revoke_share(token)`，先把 `revoked_at` 置位再返回 `{"ok": true, "revoked": true}`。本复刻的 `resolve()` 多一步「先 hash 再查行」，所以多一层不可逆性。
-- **出口**：`revoke_share()` 只改状态不删行（这一条 EvoFlow 与我们的实现一致）；区别是 EvoFlow 直接把 token 串返回给调用方（`:157`），我们只返回 ok。
-- **最容易断的地方**：撤销直接删行，导致审计断链；以及 token 用 `uuid1` 泄露时间与机器信息。
+**状态判定顺序必须是 revoked → expired → ok**：用户点了撤销，即使还没到期也必须立刻失效；反过来先判过期，撤销后仍可能显示「过期」而不是「已撤销」，审计语义就乱了。
 
-#### 真实模块地图（已核对：路径 · 行数 · 符号）
+#### 实现步骤 / Step by step
 
-| 文件 | 行数 | 关键符号 | 模块常量 |
-|---|---|---|---|
-| `app/gateway/routers/share.py` | 154 | `CreateShareBody`、`CreateShareResponse`、`PublicShareResponse`；`create_share`、`latest_share_for_session`、`get_share` | — |
-| `packages/harness/evoflow/persistence/chat_share_repositories.py:18` | 311 | `_utc_now_iso`、`_parse_iso`、`_extract_text_from_content` | — |
-| `app/gateway/auth.py` | 164 | `CallerCtx`；`verify_bearer_token`、`verify_capability_bearer_token`、`verify_app_bearer_token` | — |
-| `packages/harness/evoflow/authz/http_guard.py:10` | 549 | `resolve_authz_from_request`、`require_thread_visible`、`_has_auth_signals` | — |
+##### Step 1　`backend/packages/harness/myagentflow/collab/shares.py`
 
-#### 核心概念
-- **分享是投影不是副本**：读的是被授权的快照/只读视图，避免数据漂移。
-- **token 不是身份**：token 只授予「读这个分享」的最小权限。
-- **撤销要级联**：撤销后缓存、CDN、SSE 长连接都要失效。
+**职责**：建表、创建 token、解析、撤销。
 
-#### 自研实现要点
-```text
-shares(share_id, session_id, token_hash, scope, created_at, expires_at, revoked_at)
-```
-- token 只存哈希；校验走常量时间比较。
-- `scope` 决定是否暴露工具输出、附件、思考过程。
+**逻辑**
 
-#### 业务规则
-- 分享页不返回工作区绝对路径、环境变量、模型密钥。
-- 过期与撤销返回同一状态码，避免探测。
+1. `_SCHEMA` 五列：`token_hash`（主键）、`thread_id`、`created_at`、`expires_at`、`revoked_at`。
+2. `create()` 用 `secrets.token_urlsafe(24)`（约 192 bit 熵），返回明文；库里只写哈希。
+3. `resolve()` 先哈希再查；没有行 → `missing`；`revoked_at` 非空 → `revoked`；`now > expires_at` → `expired`；否则 `ok`。
+4. `resolve()` 的 `now` 参数是给测试用的注入点：不 mock 系统时钟也能测过期。
+5. `revoke()` 只 `UPDATE revoked_at`，不删行：删了就无法回答「这个 token 什么时候被撤销的」。
+6. 连接 `check_same_thread=False`：Gateway 的读请求可能来自不同线程；本章不做连接池。
 
-#### 常见坑
-- 把 session_id 直接当 token（可枚举）。
-- 分享页复用管理端接口 → 越权。
-
-#### 验收
-- [ ] 未授权访问 404/403 一致
-- [ ] 撤销后旧链接立即失效
-- [ ] 分享内容不含敏感字段
-
-##### 源码核对记录（路径与符号实测）
-
-- `app/gateway/routers/share.py`（154 行）：类 `CreateShareBody`、`CreateShareResponse`、`PublicShareResponse`
-  - 模块自述：Read-only chat session share links (immutable snapshots).…
-- `packages/harness/evoflow/persistence/chat_share_repositories.py`（311 行）
-  - 模块自述：CRUD for evoflow_chat_shares (immutable transcript snapshots).…
-- `app/gateway/auth.py`（164 行）：类 `CallerCtx`
-  - 模块自述：Bearer-token authentication dependency for the open-capability gateway. Exposes :func:`verify_bearer_token` — …
-- `packages/harness/evoflow/authz/http_guard.py`（549 行）
-  - 模块自述：HTTP request guards for resource visibility (anti-IDOR).…
-
-> 本节只证明**路径、行数、符号存在**；调用顺序与边界条件仍属「行为」，未逐行核对。
-
-#### 对照 EvoFlow 核对清单
-- [ ] `chat_share_repositories` 的字段与过期策略
-- [ ] 分享是否支持按消息区间
-
-#### 从零实现（手把手）
-> 读完这章你能把自己的会话分享出去，并且分享链接会过期、可撤销。
-> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
-
-##### Step 1　新建 shares.py：三分支状态
-**文件**：`backend/packages/harness/myagentflow/collab/shares.py（新建）`
-**要写的逻辑**：只存 sha256(token) 不存明文；`resolve()` 三态：有效 / 过期 / 撤销；过期用时间戳比较，避免定时任务。
-
-**代码**
+**代码（全文，84 行）**
 
 ```python
-"""分享链接：创建、解析、撤销。
+"""一、文件说明
+    分享链接：创建、解析、撤销。
+    为什么存 hash 不存 token：数据库泄露时明文 token 等于把所有人的会话送出去。
 
-为什么存 hash 不存 token：数据库泄露时明文 token 等于把所有人的会话送出去。
+二、目录结构
+    packages/harness/myagentflow/collab/
+    ├── __init__.py
+    ├── ledger.py  协作账本：任务认领与心跳。
+    └── shares.py  ← 本文件
+
+三、关键方法
+    ShareResult  分享 token 的解析结果：状态与对应线程。
+    _hash()      对分享 token 做 SHA-256；库里只存哈希，不存明文。
+    ShareStore   分享记录的 SQLite 存储：创建、解析、吊销。
 """
 from __future__ import annotations
 
@@ -3967,6 +4279,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+# 分享表只存 token 的哈希，不存明文：库泄露也拿不到可用链接（明文下发仅一次）。
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS shares (
     token_hash TEXT PRIMARY KEY,
@@ -3980,15 +4293,18 @@ CREATE TABLE IF NOT EXISTS shares (
 
 @dataclass(frozen=True)
 class ShareResult:
+    """分享 token 的解析结果：状态与对应线程。"""
     status: str          # ok | expired | revoked | missing
     thread_id: str | None = None
 
 
 def _hash(token: str) -> str:
+    """对分享 token 做 SHA-256；库里只存哈希，不存明文。"""
     return hashlib.sha256(token.encode()).hexdigest()
 
 
 class ShareStore:
+    """分享记录的 SQLite 存储：创建、解析、吊销。"""
     def __init__(self, db_path: str | Path):
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(db_path), check_same_thread=False)
@@ -4028,62 +4344,119 @@ class ShareStore:
 **验证**
 
 ```bash
+cd /Users/main/my-agent-flow/backend
 uv run python -c "
 from myagentflow.collab.shares import ShareStore
 s = ShareStore('/tmp/myaf-share.sqlite')
 t = s.create('t1', ttl_seconds=10)
 print(s.resolve(t))
-print(s.resolve(t, now=10**12))   # 过期
+s.revoke(t)
+print(s.resolve(t))
 "
+# 期望：ShareResult(status='ok', thread_id='t1') / ShareResult(status='revoked', thread_id=None)
 ```
 
-##### Step 2　写测试：三态齐全
-**文件**：`backend/tests/chapters/test_ch02_04_shares.py（新建）`
-**要写的逻辑**：有效、过期、撤销、缺失各一条断言。
+---
 
-**代码**
+##### Step 2　`backend/tests/chapters/test_ch02_04_shares.py`
+
+三个用例分开写，避免「撤销 + 过期」混在一个断言里导致过期分支没被真正执行。
+
+**代码（全文，48 行）**
 
 ```python
+"""一、文件说明
+    02/04 分享：ok / missing / revoked / expired 四种状态。
+
+二、覆盖
+    test_share_ok_and_missing()   有效 token 能解析到线程；乱码 token 是 missing。
+    test_share_revoked()          撤销后旧 token 立即变成 revoked。
+    test_share_expired()          ttl 到期后变成 expired，且不依赖撤销。
+
+三、运行
+    uv run pytest tests/chapters/test_ch02_04_shares.py -q
+"""
+
 from __future__ import annotations
 
 
-def test_share_states(tmp_path):
+def test_share_ok_and_missing(tmp_path):
+    """有效 token 能解析到线程；乱码 token 是 missing。"""
     from myagentflow.collab.shares import ShareStore
 
     store = ShareStore(tmp_path / "s.sqlite")
     token = store.create("t1", ttl_seconds=60)
-    assert store.resolve(token).status == "ok"
+    result = store.resolve(token)
+    assert result.status == "ok"
+    assert result.thread_id == "t1"
     assert store.resolve("bogus").status == "missing"
 
+
+def test_share_revoked(tmp_path):
+    """撤销后旧 token 立即变成 revoked。"""
+    from myagentflow.collab.shares import ShareStore
+
+    store = ShareStore(tmp_path / "s.sqlite")
+    token = store.create("t1", ttl_seconds=60)
     store.revoke(token)
     assert store.resolve(token).status == "revoked"
-    assert store.resolve(token, now=10**12).status in {"revoked", "expired"}
+
+
+def test_share_expired(tmp_path):
+    """ttl 到期后变成 expired：时间戳比较，不靠定时任务。"""
+    from myagentflow.collab.shares import ShareStore
+
+    store = ShareStore(tmp_path / "s.sqlite")
+    token = store.create("t1", ttl_seconds=50)
+    expires_at = store._conn.execute(
+        "SELECT expires_at FROM shares WHERE thread_id = ?", ("t1",)
+    ).fetchone()[0]
+    # 把「现在」推到过期之后一秒；没有撤销，状态必须自己走到 expired
+    assert store.resolve(token, now=expires_at + 1).status == "expired"
 ```
 
 **验证**
 
 ```bash
-uv run pytest tests/chapters/test_ch02_04_shares.py -v
-# 期望：1 passed
+cd /Users/main/my-agent-flow/backend
+uv run pytest tests/chapters/test_ch02_04_shares.py -q
+# 期望：3 passed
 ```
 
-##### 与 EvoFlow 对照
+#### 与 EvoFlow 的差异 / Differences
 
-| 我们的做法 | EvoFlow | 为什么 |
+| 点 | EvoFlow | 本章 | 影响 |
+|---|---|---|---|
+| token 明文/哈希 | 明文 | 哈希 | 运维不能按 token 查；安全更好 |
+| 快照内容 | 建分享时写消息 | 未实现 | 访客拿到 token 后还要另行查消息表 |
+| 过期单位 | `expires_in_days` | `ttl_seconds` | 测试好用；路由层要换算 |
+| 撤销返回 | `{{"ok": true, "revoked": true}}` | 无返回值 | 路由层自己组装响应 |
+| 鉴权 | `auth.py` / `http_guard.py` | 未实现 | 本章只有存储层，不能直接暴露给公网 |
+
+#### 常见坑 / Troubleshooting
+
+| 症状 | 原因 | 动作 |
 |---|---|---|
-| 只存 token hash | `collab/` 的分享表 | 数据库泄露不等于会话泄露 |
-| 撤销优先于过期 | 解析顺序 revoked → expired | 用户点撤销后不该再能用 |
+| 撤销后还能读 | 判定顺序把 expired 放在 revoked 前 | 先判 `revoked_at` |
+| token 可枚举 | 用了自增 id / `uuid1` | 用 `secrets.token_urlsafe` |
+| 重启后分享全没了 | 用了 `:memory:` | 落文件或 DB |
+| 同一 token 建出两条 | 没把 `token_hash` 设主键 | 主键 + `INSERT` 冲突即报错 |
+| 过期时间不准 | 客户端传本地时间 | 服务端 `time.time()`，客户端只传 ttl |
 
-##### 知识点
-
-- [幂等性设计：分享链接重复创建为什么不能产生两份](https://harbor404.fushenlin.com/notes/idempotency-design/)
-- [系统课入口：会话隔离与权限](https://g0-000.github.io/agent-book/)
-
-##### 验收
+#### 验收 / Acceptance
 
 ```bash
-uv run pytest tests/chapters/test_ch02_04_shares.py -q
+cd /Users/main/my-agent-flow/backend
+uv run pytest tests/chapters/test_ch02_04_shares.py -q     # 3 passed
+uv run python -m ruff check packages tests                # All checks passed
 ```
+
+**行为验收**（手工）：创建 → 解析 ok → 撤销 → 解析 revoked；另建一个 ttl=1 的 token，睡 2 秒后解析 expired。
+
+#### 知识点
+
+- [agent-book · 会话与权限](https://g0-000.github.io/agent-book/)：为什么分享要用不可猜 token
+- [Harbor404 · 幂等设计](https://harbor404.fushenlin.com/notes/idempotency-design/)：重复创建分享怎么避免多份
 
 
 ## 03-工具深化与上下文控制

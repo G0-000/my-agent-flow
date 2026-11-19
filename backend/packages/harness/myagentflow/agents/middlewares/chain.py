@@ -1,17 +1,18 @@
 """一、文件说明
-    中间件链：进正序、出逆序。
-    为什么 after 要逆序：它是「清理」语义——后申请的资源先释放，
-    否则 A 依赖 B 的资源时，A 先清理会让 B 拿到已失效的对象。
+    工具调用中间件链：洋葱式包裹，列表第一个在最外层。
+    为什么不用「before 列表 + after 列表」：EvoFlow 的中间件统一实现
+    `wrap_tool_call(request, handler)`，进入顺序与退出顺序由嵌套自然保证，
+    不会出现「after 忘了逆序」这种低级错误。
 
 二、目录结构
     packages/harness/myagentflow/agents/middlewares/
     ├── __init__.py
-    ├── audit.py  审计中间件：每次工具调用留一行。
-    └── chain.py  ← 本文件
+    ├── audit.py  工具审计：工具名、参数摘要、耗时、成功/失败
+    └── chain.py  ← 本文件：中间件基类与链组装
 
 三、关键方法
-    Middleware   中间件基类：工具前后各一个钩子，默认原样放行。
-    run_chain()  顺序跑 before_tool、执行工具、逆序跑 after_tool；异常时只回滚已进入的中间件。
+    Middleware            中间件基类：默认直接放行，子类覆盖 wrap_tool_call。
+    run_chain()           把中间件按列表顺序包成洋葱，执行最外层。
 """
 from __future__ import annotations
 
@@ -20,27 +21,40 @@ from typing import Any
 
 
 class Middleware:
-    """中间件基类：工具前后各一个钩子，默认原样放行。"""
+    """中间件基类：默认直接放行，子类覆盖 wrap_tool_call。"""
     name: str = "middleware"
 
-    def before_tool(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
-        return args              # 默认不改参数
+    def wrap_tool_call(
+        self,
+        request: Any,
+        handler: Callable[[Any], Any],
+    ) -> Any:
+        """包住一次工具调用；默认不改请求，直接交给下一层。"""
+        return handler(request)
 
-    def after_tool(self, name: str, args: dict[str, Any], result: Any) -> Any:
-        return result            # 默认不改结果
+
+def run_chain(
+    middlewares: Iterable[Middleware],
+    request: Any,
+    call: Callable[[Any], Any],
+) -> Any:
+    """把中间件按列表顺序包成洋葱，执行最外层。
+
+    列表 [m0, m1, m2] 的执行顺序：
+        m0 进入 → m1 进入 → m2 进入 → 真正工具 → m2 退出 → m1 退出 → m0 退出
+
+    第一个中间件在最外层：它能最早改写请求、最晚看到结果（典型审计/计时）。
+    """
+    handler = call
+    for mw in reversed(list(middlewares)):
+        # 默认参数绑定：不绑的话闭包会共享最后一个 handler
+        handler = _wrap_one(mw, handler)
+    return handler(request)
 
 
-def run_chain(mws: Iterable[Middleware], name: str, args: dict[str, Any],
-              call: Callable[[str, dict[str, Any]], Any]) -> Any:
-    """顺序跑 before_tool、执行工具、逆序跑 after_tool；异常时只回滚已进入的中间件。"""
-    entered: list[Middleware] = []
-    current = args
-    try:
-        for mw in mws:
-            current = mw.before_tool(name, current)
-            entered.append(mw)
-        result = call(name, current)
-    finally:
-        for mw in reversed(entered):     # 逆序收尾
-            result = mw.after_tool(name, current, locals().get("result"))
-    return result
+def _wrap_one(mw: Middleware, inner: Callable[[Any], Any]) -> Callable[[Any], Any]:
+    """把单个中间件包在 inner 外面；抽出来是为了避免闭包捕获错层。"""
+    def wrapped(request: Any) -> Any:
+        return mw.wrap_tool_call(request, inner)
+
+    return wrapped

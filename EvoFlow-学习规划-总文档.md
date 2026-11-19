@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-19 17:50　源提交：`8cbd984`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-19 18:51　源提交：`f2cd44e`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -27,10 +27,10 @@
 | 17 | | 第 3 章　CLI 与 stdio App Server |
 | 18 | | 第 4 章　分享生命周期 / Sharing |
 | 19 | **03-工具深化与上下文控制** | 第 3 部分　工具深化与上下文控制 / Tool Depth and Context Control |
-| 20 | | 第 1 章　文件/终端与宿主边界 |
-| 21 | | 第 2 章　后台命令、浏览器桥与 Computer Use |
+| 20 | | 第 1 章　路径守卫与宿主边界 |
+| 21 | | 第 2 章　后台命令与桥接鉴权 |
 | 22 | | 第 3 章　Middleware 调用链与工具审计 |
-| 23 | | 第 4 章　上下文预算、压缩与自动后续动作 |
+| 23 | | 第 4 章　上下文预算、截断与超大结果落盘 |
 | 24 | **04-记忆与长期资产** | 第 4 部分　记忆与长期资产 / Memory and Long-Term Assets |
 | 25 | | 第 1 章　会话短期记忆与长期记忆 |
 | 26 | | 第 2 章　记忆巩固、知识图谱与提示注入防御 |
@@ -144,11 +144,11 @@
   - 第 2 章　运行生命周期与取消 Run lifecycle（../02-持久化与运行生命周期/02-运行生命周期与取消.md）
   - 第 3 章　CLI 与 stdio App Server（../02-持久化与运行生命周期/03-CLI与stdio-App-Server.md）
   - 第 4 章　分享生命周期 Sharing（../02-持久化与运行生命周期/04-分享生命周期.md）
-- **第 3 部分　工具深化与上下文控制 / Tool Depth and Context Control** — ⬜ 待材料
-  - 第 1 章　文件/终端与宿主边界
-  - 第 2 章　后台命令、浏览器桥与 Computer Use
-  - 第 3 章　Middleware 调用链与工具审计
-  - 第 4 章　上下文预算、压缩与自动后续动作
+- **第 3 部分　工具深化与上下文控制 / Tool Depth and Context Control** — ✅ 最小实现完成（15 测试）
+  - 第 1 章　路径守卫与宿主边界（../03-工具深化与上下文控制/01-文件终端与宿主边界.md）
+  - 第 2 章　后台命令与桥接鉴权（../03-工具深化与上下文控制/02-后台命令浏览器桥与Computer-Use.md）
+  - 第 3 章　Middleware 调用链与工具审计（../03-工具深化与上下文控制/03-Middleware调用链与工具审计.md）
+  - 第 4 章　上下文预算、截断与超大结果落盘（../03-工具深化与上下文控制/04-上下文预算压缩与自动后续.md）
 - **第 4 部分　记忆与长期资产 / Memory and Long-Term Assets** — ⬜ 待材料
   - 第 1 章　会话短期记忆与长期记忆
   - 第 2 章　记忆巩固、知识图谱与提示注入防御
@@ -4727,218 +4727,170 @@ uv run python -m ruff check packages tests                # All checks passed
 ### 第 3 部分　工具深化与上下文控制 / Tool Depth and Context Control
 
 
-> 状态：🟡→✅ 推进中。第 3 章（Middleware 链）已核对源码；第 1、2、4 章仍为骨架。这一部分决定 **能力上限** 与 **稳定性上限**，是 EvoFlow 与玩具 Agent 的真正分水岭。
+> 状态：✅ 四章最小实现均已落地并有测试（15 passed）。  
+> 边界：本部分只实现「可运行的最小闭环」，不把 EvoFlow 的 70 个中间件、浏览器桥、CUA 全量抄进来；未实现项在每章「未实现」小节列明。
+
+#### 这部分解决什么
+
+前两部分解决「能跑、能存、能停」。这一部分解决三个更容易把 Agent 拖垮的问题：
+
+1. **工具碰宿主**：路径能不能出工作区？命令跑太久怎么办？
+2. **工具调用治理**：一次调用经过哪些层？失败会不会吞掉？审计留什么？
+3. **上下文预算**：结果太大是截断还是落盘？预算超了怎么压缩？
 
 #### 章节
 
-| 章 | 主题 | 真实模块 |
-|---|---|---|
-| 1（01-文件终端与宿主边界.md） | 文件/终端与宿主边界 | `tools/tools.py`、`tools/host_direct/`、`tools/builtins/` |
-| 2（02-后台命令浏览器桥与Computer-Use.md） | 后台命令、浏览器桥、Computer Use | `plugins/`、`routers/browser_bridge.py`、`routers/cua_bridge.py` |
-| 3（03-Middleware调用链与工具审计.md） ✅ | Middleware 调用链与工具审计 | `agents/middlewares/`（70 个 `.py`）、`agents/tool_approval_*.py` |
-| 4（04-上下文预算压缩与自动后续.md） | 上下文预算、压缩、自动后续动作 | `context/`、`agents/context_compaction_core.py`、`tools/tool_output_truncation.py` |
+| 章 | 主题 | 本项目文件 | 状态 |
+|---|---|---|---|
+| 1（01-文件终端与宿主边界.md） | 路径守卫与宿主边界判定 | `tools/host_direct/workspace_path_guard.py` | ✅ 4 测试 |
+| 2（02-后台命令浏览器桥与Computer-Use.md） | 后台任务表与桥接 token | `tools/host_direct/background_bash.py`、`bridge_auth.py` | ✅ 4 测试 |
+| 3（03-Middleware调用链与工具审计.md） | 洋葱式中间件链与审计 | `agents/middlewares/chain.py`、`audit.py` | ✅ 3 测试 |
+| 4（04-上下文预算压缩与自动后续.md） | 预算、截断、超大结果落盘 | `context/budget.py`、`context/tool_tokens.py`、`tools/tool_output_truncation.py`、`tools/large_result_store.py` | ✅ 4 测试 |
 
-#### 关键认知
+#### 统一口径
 
-1. **真实 Agent 循环不是 while 循环**，而是 LangGraph 图 + 中间件链；工具调用的「治理」几乎全在 middleware 里。
-2. **大结果一定落盘**：`<persisted-output>` 信封 + 截断，是上下文不爆的核心手段。
-3. **上下文是有预算的资源**：token 估算、压缩、老化、离线转存，是一整套机制而不是一个 `if len > N`。
-4. **宿主边界必须显式**：哪些工具在宿主执行、哪些进沙箱、哪些需要审批。
+- 代码根：`/Users/main/my-agent-flow/backend`
+- 包根：`/Users/main/my-agent-flow/backend/packages/harness/myagentflow`
+- EvoFlow 基准：`f22af53910a470ddba633be35e25878214c2984ec`（v1.3.22，PolyForm Noncommercial）
+- 测试：`cd /Users/main/my-agent-flow/backend && uv run pytest tests/chapters/test_ch03_*.py -q`
+- 静态检查：`uv run ruff check packages tests`
 
 #### 验收口径
-- 工具失败不污染后续轮次（悬空 tool_call 能被修复）。
-- 单次工具输出 1MB 时不撑爆上下文。
-- 上下文超预算时自动压缩且不丢关键结论。
-- 每个工具调用都可审计到「谁、何时、参数摘要、结果摘要」。
+
+- `confine` 下相对路径、`..`、软链逃逸都能给出正确结论。
+- 后台任务可登记、查询、停止；输出快照最多回灌 8KB。
+- 中间件顺序可预测；工具异常不被审计层吞掉。
+- 单次 20K 字符工具结果落盘，模型只收到信封与路径。
 
 
 <!-- ===== 03-工具深化与上下文控制/01-文件终端与宿主边界.md ===== -->
 
 
-### 第 1 章　文件/终端与宿主边界
+### 第 1 章　路径守卫与宿主边界
 
 
-> **EvoFlow 对照状态 / Alignment status：** ✅ **已核对源码**（`workspace_path_guard.py` 286 行全文、`workspace_guard_middleware.py` 35 行全文、`tool_catalog.py` 常量表）。
->
-> ::: danger 先纠正一个常见误解
-> 本章旧稿写「EvoFlow 用中间件做路径围栏，`realpath` + 前缀校验防 `..` 逃逸」——**这是错的**。
-> `WorkspaceGuardMiddleware` 是**空实现**（模块 docstring 原文：`Legacy workspace preflight (disabled: host-direct tools resolve paths without blocking)`），`wrap_tool_call` 直接 `return handler(request)`。
-> 真正的路径解析在 `backend/packages/harness/myagentflow/tools/host_direct/workspace_path_guard.py`，而它自己的 docstring 写的是：`no confinement to workspace root`。
-> :::
+> **状态：** ✅ 本章代码与测试已落地：`workspace_path_guard.py` + 4 个测试用例。  
+> **范围：** 只做「路径解析与越界判定」。文件读写工具、终端工具不在本章实现；原因见文末「本章不做什么」。
 
-#### 本章目标
-定义「工具跑在哪台机器、以什么权限、能碰哪些路径」，并把这条边界写成配置而不是口头约定。
+#### 1. 先想清楚：路径为什么会逃出去
 
-#### 最小闭环
-读文件 → 列出目录 → 执行一条只读命令 → 写文件被策略拒绝（或要求审批）。
+模型给工具一个 `path`，工具最终要落到 `open()` / `Path.read_text()`。如果直接把字符串拼一拼就打开，至少有三条逃逸路径：
 
-#### 调用逻辑 / Invocation logic
+| 输入 | 直接拼接的后果 |
+|---|---|
+| `../../etc/passwd` | `..` 把目录跳到工作区外 |
+| `link/secret.txt`，`link` 是指向区外的软链 | 字符串前缀看着在区内，实际落点在外面 |
+| `a.txt` | 相对路径按进程 cwd 解析，换个启动目录就换了一个文件 |
 
-```mermaid
-sequenceDiagram
-    participant T as 工具 · read/write/bash
-    participant R as resolve
-    participant P as Policy
-    participant H as 宿主文件系统
-    T->>R: resolve(path, workspace, policy)
-    R->>P: 取 allow_write / follow_symlink
-    R->>R: realpath + 前缀比对
-    R-->>T: Resolution(allowed, reason, path)
-    T->>H: 允许才真正 open/exec
-```
+所以一个可用的守卫必须按顺序做三件事：
 
-- **入口**：所有宿主工具第一步都调 `resolve()`，不允许各工具自己拼路径。
-- **关键节点**：先 `realpath` 再比对前缀，顺序反了 `../` 和 symlink 都能逃逸；`Resolution` 带 `reason` 是为了让拒绝可解释。
-- **出口**：`allowed=False` 时工具直接返回结构化拒绝，不抛异常（抛异常会被模型当成工具坏了反复重试）。
-- **最容易断的地方**：只查 `..` 字符串不查 realpath；以及 `policy` 默认放开（本章刻意默认收口，与 EvoFlow 的 `disabled` 语义对齐）。
+1. 相对路径先拼到 workspace，消灭「cwd 漂移」；
+2. 用 `realpath` 折平 `..`、软链、重复分隔符；
+3. 折平后的路径再做「是否在 root 之下」判定。
 
-#### 真实模块地图（已核对：路径 · 行数 · 符号）
-
-| 文件 | 行数 | 关键符号 | 模块常量 |
-|---|---|---|---|
-| `packages/harness/evoflow/tools/tools.py:240` | 649 | `_LazyToolSequence`；`_tool_name`、`_drop_removed_tools`、`_read_tool_aliases` | REMOVED_LEGACY_TOOL_NAMES、BUILTIN_TOOLS、SUBAGENT_TOOLS |
-| `packages/harness/evoflow/tools/tool_catalog.py:126` | 358 | `_core_tool_names`、`_plan_scenario_extra_tools`、`_workspace_scenario_extra_tools` | TOOL_TIER_ORDER、TOOL_TIER_LABELS_ZH、ROLE_EDITOR_CONFIGURABLE_TOOL_TIERS |
-| `packages/harness/evoflow/tools/tool_aliases.py:59` | 136 | `augment_process_tools`、`augment_worker_tool_allowlist`、`canonical_tool_name` | PROCESS_TOOL_SUITE |
-| `packages/harness/evoflow/tools/arg_coerce.py:12` | 228 | `parse_search_path_prefix`、`split_pipe_terms`、`coerce_str_list` | — |
-| `packages/harness/evoflow/tools/minimal_schema.py` | 53 |  | READ_TOOL_DESCRIPTION、WRITE_TOOL_DESCRIPTION、REPLACE_TOOL_DESCRIPTION |
-| `packages/harness/evoflow/tools/builtins/plan_tool.py:143` | 585 | `PlanStepInput`、`PlanInput`；`_json_loads_if_string`、`_coerce_string_list_field`、`_coerce_to_str` | — |
-| `packages/harness/evoflow/tools/tool_result_shaper.py:40` | 230 | `_split_preserved_read_blocks`、`_split_post_search_reads`、`_attach_preserved_read_blocks` | — |
-| `packages/harness/evoflow/tools/tool_activity_ui.py:70` | 154 | `_normalize_key`、`_parse_tool_call_args`、`_label` | — |
-
-#### 核心概念
-- **宿主（host）≠ 沙箱（sandbox）**：宿主工具直接操作真实文件系统，风险最高。
-- **EvoFlow 的真实做法：不围栏，只解析**。`workspace_path_guard.py` 只负责「把用户给的路径变成可用的绝对路径」：
-  1. `skill:` 开头 → 走 `resolve_skill_uri(require_enabled=True)`；
-  2. **绝对路径按原样使用**（绑定 workspace 也只做别名展平，不做 `..` 拦截）；
-  3. 相对路径：绑定了 workspace 就拼到 root 下，未绑定就落 `Path.cwd()`；
-  4. `outputs/`、`uploads/` 两个前缀走 `resolve_bound_workspace_file` 别名解析；
-  5. Windows 上先过 `from_bash_posix_path`，把 Git Bash 的 `/d/...`、WSL 的 `/mnt/d/...` 归一到 `D:/...`，否则会读到幽灵目录 `D:\d\...`。
-- **围栏常量是残留的**：`NO_WORKSPACE_BOUND`、`PATH_ESCAPE`、`WORKDIR_ESCAPE` 三个错误常量还在，但 `PATH_ESCAPE` 旁边就写着 `Kept for compatibility; path confinement is disabled.`
-- **命令分类**：只读 / 可写 / 危险；bash 的只读策略决定是否免审批（详见 03/02（02-后台命令浏览器桥与Computer-Use.md））。
-
-#### 自研实现要点（**我们的设计**，EvoFlow 没有这一层）
-EvoFlow 选择「不围栏」，代价由审批与沙箱兜；我们复刻时**建议补一层真正的围栏**，因为它是最便宜的安全下限：
+#### 2. 文件放在哪
 
 ```text
-ToolSpec(name, schema, scope=host|sandbox, danger=read|write|exec, approval=auto|ask)
-execute(name, args, ctx):
-  1) resolve: 相对 → 拼 workspace root；绝对 → 直接接受（与 EvoFlow 一致）
-  2) guard:   realpath 后校验是否仍在 root 内，含符号链接解析（EvoFlow 缺这一步）
-  3) policy:  danger=write/exec → 走审批；只读白名单内 → 放行
-  4) exec:    argv 数组，禁止 shell 字符串拼接
-  5) shape:   结果截断 + 摘要 + 落盘引用
+/Users/main/my-agent-flow/backend/packages/harness/myagentflow/tools/host_direct/
+├── __init__.py
+├── background_bash.py        第 2 章：后台任务表
+├── bridge_auth.py            第 2 章：桥接 token
+└── workspace_path_guard.py   ← 本章
 ```
 
-#### 业务规则
-- 写操作默认 `ask`；只读命令在只读白名单内可 `auto`。
-- 禁止把整段 shell 字符串直接拼给 `shell=True`；用 argv 数组。
-- 工具输出统一信封：`{ok, data, truncated, persisted_path?}`。
+测试：
 
-#### 常见坑
-- **把 `WorkspaceGuardMiddleware` 当成围栏**：它是空实现，写了也不会拦路径。
-- 以为绝对路径会被限制在 workspace 内：不会，`Path(expanded).resolve()` 直接用。
-- Windows 上不归一 Git Bash 路径 → 写入落到 `D:\d\workspace\...` 这种幽灵目录。
-- 未绑定 workspace 时不报错而静默落 `cwd`，复刻版必须显式报 `NO_WORKSPACE_BOUND`。
-- 用 `str.startswith` 判路径 → `/data-evil` 通过 `/data` 检查。
-- 符号链接绕过围栏。
-- 工具异常直接抛给模型 → 模型开始编造结果。
+```text
+/Users/main/my-agent-flow/backend/tests/chapters/test_ch03_01_guard.py
+```
 
-#### 验收
-- [ ] 路径逃逸用例全部被拒
-- [ ] 危险命令必须审批
-- [ ] 工具失败返回结构化错误而非堆栈
+#### 3. 调用逻辑与 EvoFlow 源码导读
 
-##### 源码核对记录（路径与符号实测）
+**调用逻辑（我们的最小实现）：**
 
-- `packages/harness/evoflow/tools/tools.py`（649 行）：类 `_LazyToolSequence`
-- `packages/harness/evoflow/tools/tool_catalog.py`（358 行）
-  - 模块自述：Builtin tool tier/type catalog for DB sync, Gateway metadata, and EvoPanel UI. Tiers (工具类型): - runtime: 系统核心 —…
-- `packages/harness/evoflow/tools/tool_aliases.py`（136 行）
-  - 模块自述：Normalize plan / agent YAML tool names to the host-direct tool catalog.…
-- `packages/harness/evoflow/tools/arg_coerce.py`（228 行）
-  - 模块自述：Coerce LLM tool arguments (models often pass JSON strings instead of lists).…
-- `packages/harness/evoflow/tools/minimal_schema.py`（53 行）
-  - 模块自述：Short wire descriptions for workspace / host-direct tools (no Args docstring bloat).…
-- `packages/harness/evoflow/tools/builtins/plan_tool.py`（585 行）：类 `PlanStepInput`、`PlanInput`
-  - 模块自述：Submit structured plan for collaboration gates (has_plan / plan_guard).…
-- `packages/harness/evoflow/tools/tool_result_shaper.py`（230 行）
-  - 模块自述：Unified write-time shaping for tool results (runtime-aligned inline truncation).…
-- `packages/harness/evoflow/tools/tool_activity_ui.py`（154 行）
-  - 模块自述：Human-friendly stream activity labels (match evopanel tool-display icons/short labels).…
+```text
+工具层（未来）
+  └─ resolve(path, workspace, policy)
+       ├─ workspace → realpath(root)
+       ├─ 相对路径 → root / path
+       ├─ candidate → realpath(target)
+       ├─ inside = target == root or root in target.parents
+       └─ policy=disabled → allowed；policy=confine → resolved / escaped
+```
 
-> 本节只证明**路径、行数、符号存在**；调用顺序与边界条件仍属「行为」，未逐行核对。
+入口是 `resolve()`，出口是 `Resolution(path, inside, decision)`。没有异常分支：路径不存在也会返回一个折平后的目标，判定与「文件是否存在」解耦。
 
-#### 对照 EvoFlow 核对清单
-- [ ] `host_direct` 的路径围栏实现
-- [ ] bash 只读策略的判定规则（`test_bash_readonly_policy`）
+**EvoFlow 源码读法：**
 
-#### 从零实现（手把手）
-> 读完这章你能写一个「路径策略可切换」的守卫：既能全放开、也能把路径锁在 workspace 内。
-> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
+1. `/Users/main/EvoFlow/backend/packages/harness/evoflow/tools/host_direct/workspace_path_guard.py`
+   - 先读模块 docstring，确认它声明「no confinement to workspace root」；
+   - 再读 `_is_absolute_path`、`_resolve_relative_under_root`、`resolve_tool_path`，看它如何从 `ToolRuntime` 取 workspace root；
+   - 最后看返回类型：成功返回 `Path`，失败返回错误字符串。
+2. `/Users/main/EvoFlow/backend/packages/harness/evoflow/agents/middlewares/workspace_guard_middleware.py`
+   - 看 `wrap_tool_call`：直接 `return handler(request)`，说明这个中间件是空壳，不要把它当护栏。
 
-##### Step 1　新建 workspace_path_guard.py：解析 + 策略
-**文件**：`backend/packages/harness/myagentflow/tools/host_direct/workspace_path_guard.py（新建）`
-**要写的逻辑**：先 `realpath` 解析（消掉 `..` 与软链），再按策略判断：`disabled` 全放行、`confine` 必须在 root 下。EvoFlow 默认是 `disabled`，我们把它做成显式开关。
+**调用顺序上的差异：** EvoFlow 的 `resolve_tool_path` 依赖 `ToolRuntime`，路径策略由运行时决定；本章把 workspace 与 policy 显式传入，先保证判定逻辑本身可测。等工具装配层就绪后，再由工具层从 runtime 取 workspace，再调用本章函数。
 
-**代码**
+#### 4. 第一步：定义策略与结果形状
+
+先写两个小类型，后面所有函数都围绕它们：
 
 ```python
-"""宿主路径守卫：解析 + 可切换策略。
-
-EvoFlow 的实现把 confinement 关掉了（docstring 明写 no confinement），
-这里保留同样行为，但把它变成一个显式开关，避免「以为有护栏」。
-"""
-from __future__ import annotations
-
-import os
-from dataclasses import dataclass
-from enum import Enum
-from pathlib import Path
-
-
 class Policy(str, Enum):
-    disabled = "disabled"   # 原样使用，绝对路径也放行（EvoFlow 默认）
+    """路径策略：disabled 原样放行，confine 限制在工作区内。"""
+    disabled = "disabled"   # 原样使用，绝对路径也放行（默认策略）
     confine = "confine"     # 必须落在 workspace 之下
 
 
 @dataclass(frozen=True)
 class Resolution:
+    """路径解析结果：实际路径、是否在区内、结论。"""
     path: Path
     inside: bool
     decision: str          # allowed | escaped | resolved
+```
 
+为什么用 `str, Enum`：配置里写 `"confine"` 能直接转成枚举，日志里打印又是可读字符串。
 
+为什么 `frozen=True`：解析结果一旦产出就不该被下游偷偷改路径，冻结能防这一类事故。
+
+#### 5. 第二步：一个函数做完「拼 root → 折平 → 判定」
+
+完整实现（与仓库源码逐字一致）：
+
+```python
 def resolve(path: str, workspace: str | Path, policy: Policy = Policy.disabled) -> Resolution:
+    """相对路径先拼 workspace，再 realpath 折平 .. 与软链，按策略给出结论。
+
+    相对路径必须以 workspace 为基准：否则进程 cwd 不同，同一输入会落到不同文件，
+    confine 的判断也跟着漂移。
+    """
     root = Path(os.path.realpath(str(workspace)))
+    candidate = Path(os.path.expanduser(path))
+    if not candidate.is_absolute():
+        candidate = root / candidate
     # realpath 先把 `..`、软链、重复分隔符全部折平，再做前缀比较
-    target = Path(os.path.realpath(os.path.expanduser(path)))
+    target = Path(os.path.realpath(str(candidate)))
     inside = target == root or root in target.parents
     if policy is Policy.disabled:
         return Resolution(target, inside, "allowed")
     return Resolution(target, inside, "resolved" if inside else "escaped")
 ```
 
-**验证**
+逐行解释：
 
-```bash
-uv run python -c "
-from myagentflow.tools.host_direct.workspace_path_guard import resolve, Policy
-print(resolve('/etc/passwd', '/tmp/ws').decision)          # allowed
-print(resolve('/tmp/ws/../x', '/tmp/ws', Policy.confine).decision)  # escaped
-"
-```
+- `root = realpath(workspace)`：workspace 自己也可能是软链，先把它折成真实目录，否则后面的前缀比较基准是假的。
+- `expanduser`：把 `~/x` 展开；这一步不做，`~` 会被当成普通相对目录名。
+- `if not candidate.is_absolute(): candidate = root / candidate`：相对路径的唯一合法基准是 workspace。**这是本章修过的一个真实 bug**：旧实现直接 `realpath(path)`，进程 cwd 一变，`a.txt` 就指到别处。
+- `target = realpath(candidate)`：`..` 与软链在这里被折平；注意必须在拼完 root 之后做，顺序反了会先按 cwd 解析。
+- `inside = target == root or root in target.parents`：`target == root` 单独判，因为目录自身不在自己的 `parents` 里。
+- `disabled` 返回 `allowed`，但 `inside` 仍然如实计算：策略放行不等于事实在区内，面板/日志需要这个事实。
 
-##### Step 2　写测试：软链与 .. 都要被测
-**文件**：`backend/tests/chapters/test_ch03_01_guard.py（新建）`
-**要写的逻辑**：`confine` 下 `/tmp/ws/a` 允许、`/tmp/ws/../x` 拒绝；`disabled` 下两者都允许。
-
-**代码**
+#### 6. 第三步：写测试，先测逃逸再测放行
 
 ```python
-from __future__ import annotations
-
-
 def test_confine_policy(tmp_path):
+    """confine 下区内文件 resolved，`..` 越界判 escaped。"""
     from myagentflow.tools.host_direct.workspace_path_guard import Policy, resolve
 
     ws = tmp_path / "ws"
@@ -4950,286 +4902,536 @@ def test_confine_policy(tmp_path):
     assert outside.decision == "escaped"
 
 
+def test_relative_path_uses_workspace(tmp_path):
+    """相对路径拼到 workspace，不受进程 cwd 影响。"""
+    from myagentflow.tools.host_direct.workspace_path_guard import Policy, resolve
+
+    ws = tmp_path / "ws"
+    (ws / "sub").mkdir(parents=True)
+    result = resolve("sub/a.txt", ws, Policy.confine)
+    assert result.inside is True
+    assert result.path == (ws / "sub" / "a.txt").resolve()
+
+
+def test_symlink_escape(tmp_path):
+    """软链指向区外时必须判 escaped：只查字符串前缀拦不住。"""
+    from myagentflow.tools.host_direct.workspace_path_guard import Policy, resolve
+
+    ws = tmp_path / "ws"
+    outside = tmp_path / "outside"
+    ws.mkdir()
+    outside.mkdir()
+    (outside / "secret.txt").write_text("x", encoding="utf-8")
+    (ws / "link").symlink_to(outside)
+
+    result = resolve("link/secret.txt", ws, Policy.confine)
+    assert result.inside is False
+    assert result.decision == "escaped"
+
+
 def test_disabled_follows_evoflow(tmp_path):
+    """disabled 不限制路径，绝对路径照常放行。"""
     from myagentflow.tools.host_direct.workspace_path_guard import Policy, resolve
 
     assert resolve("/etc/passwd", tmp_path, Policy.disabled).decision == "allowed"
 ```
 
-**验证**
+每个用例对应一条真实逃逸路径：
+
+- `test_confine_policy`：最普通的 `..`；
+- `test_relative_path_uses_workspace`：cwd 漂移（旧实现会挂）；
+- `test_symlink_escape`：字符串前缀骗过检查；
+- `test_disabled_follows_evoflow`：默认策略确实放行，避免「以为有护栏」。
+
+#### 7. 手把手从零做一遍
+
+在 `backend` 目录执行：
 
 ```bash
-uv run pytest tests/chapters/test_ch03_01_guard.py -v
-# 期望：2 passed
+cd /Users/main/my-agent-flow/backend
+mkdir -p packages/harness/myagentflow/tools/host_direct
+touch packages/harness/myagentflow/tools/host_direct/__init__.py
 ```
 
-##### 与 EvoFlow 对照
+新建 `packages/harness/myagentflow/tools/host_direct/workspace_path_guard.py`，把第 4、5 节的代码按顺序粘进去，文件头补上「文件说明 / 目录结构 / 关键方法」三段注释。
 
-| 我们的做法 | EvoFlow | 为什么 |
-|---|---|---|
-| `realpath` 先解析再判断 | `backend/packages/harness/myagentflow/tools/host_direct/workspace_path_guard.py:125` 行的解析段 | 软链与 `..` 不解析就判前缀等于没判 |
-| 默认不限制 | 该文件 docstring：`path confinement is disabled` | 复刻要如实，不能写成「有防护」 |
-
-##### 知识点
-
-- [Harbor404](https://harbor404.fushenlin.com/)：路径逃逸类问题的真实案例
-- agent-book：工具沙箱章节
-
-##### 验收
+新建 `tests/chapters/test_ch03_01_guard.py`，粘第 5 节测试，然后跑：
 
 ```bash
 uv run pytest tests/chapters/test_ch03_01_guard.py -q
 ```
 
+实测输出：
+
+```text
+4 passed, 13 warnings in 0.03s
+```
+
+再跑静态检查：
+
+```bash
+uv run ruff check packages tests
+```
+
+实测输出：
+
+```text
+All checks passed!
+```
+
+#### 8. 本章不做什么（必须如实说）
+
+- **没有** `read_file_hd` / `write_file_hd`。EvoFlow 的这两个入口依赖 `ToolRuntime`、`read_file_state`、流式写进度，属于另一条工具装配链；本章不伪造它们。
+- **没有** `resolve_tool_path(path, runtime)`。它需要从 runtime 取 workspace root；本章用显式 `workspace` 参数替代，避免为了「同名」造一个假的 runtime。
+- **没有** `WorkspaceGuardMiddleware`。EvoFlow 的这个中间件本身是空实现，直接把请求交给 handler；本章不重复造一个空壳。
+
+#### 9. EvoFlow 对照与差异（文件级）
+
+| EvoFlow 文件 | 本项目文件 | 本章实现的符号/字段 | 未实现部分 |
+|---|---|---|---|
+| `tools/host_direct/workspace_path_guard.py` | `tools/host_direct/workspace_path_guard.py` | `Policy`、`Resolution`、`resolve` | `resolve_tool_path`、runtime 取 workspace、错误字符串返回 |
+| `agents/middlewares/workspace_guard_middleware.py` | 未创建 | — | 整文件；EvoFlow 自身也是空实现，本章不复制空壳 |
+| `tools/host_direct/read_file.py` / `write_file.py` | 未创建 | — | 整文件；依赖 `ToolRuntime`、读状态、流式写进度 |
+
+**有意省略的原因：** 本章目标是「路径判定可测」，不是「工具全链路可运行」。把 `ToolRuntime` 提前造出来会引入一个假运行时，测试会变成测假对象。
+
+#### 10. 验收
+
+- [x] `confine` 下区内文件 `resolved`
+- [x] `..` 越界 `escaped`
+- [x] 相对路径按 workspace 解析
+- [x] 软链逃逸 `escaped`
+- [x] `disabled` 放行但 `inside` 仍如实
+- [x] `4 passed`，ruff 通过
+
+#### 11. 下一章衔接
+
+路径守卫只回答「这个路径能不能碰」。下一章回答「命令跑起来之后怎么管」：后台任务登记、停止、输出快照，以及桥接调用的 token 校验。
+
+#### 附：源码基准
+
+- EvoFlow baseline：`f22af53910a470ddba633be35e25878214c2984ec`（v1.3.22，PolyForm Noncommercial）。
+- 参考文件：`/Users/main/EvoFlow/backend/packages/harness/evoflow/tools/host_direct/workspace_path_guard.py`。
+- 许可：EvoFlow 为 PolyForm Noncommercial；本章只做学习性转述与自有实现，不复制其大段源码。
+
 
 <!-- ===== 03-工具深化与上下文控制/02-后台命令浏览器桥与Computer-Use.md ===== -->
 
 
-### 第 2 章　后台命令、浏览器桥与 Computer Use
+### 第 2 章　后台命令与桥接鉴权
 
 
-> **EvoFlow 对照状态 / Alignment status：** 🔍 结构已核对（路径、行数、符号均取自源码实测），**行为**（调用顺序、边界条件）尚未逐行核对。
+> **状态：** ✅ 本章代码与测试已落地：`background_bash.py` + `bridge_auth.py` + 4 个测试用例。  
+> **范围：** 后台任务表（登记/查询/停止/输出快照）与桥接 token 校验。浏览器桥、CUA、HTTP 路由不在本章实现；原因见文末。
 
-#### 本章目标
-让 Agent 能操作**长时间运行的进程**和**图形界面**，同时不把主对话阻塞。
+#### 1. 为什么需要「后台任务表」
 
-#### 最小闭环
-启动后台命令 → 轮询输出 → 结束后读取完整日志；打开浏览器 → 截图 → 点击。
+一条 `npm install` 可能跑 3 分钟，一条 `pytest` 可能跑 10 分钟。同步等待会带来三个问题：
 
-#### 调用逻辑 / Invocation logic
+1. 主对话被阻塞，用户看不到任何进度；
+2. 网关/客户端超时，任务被误判失败；
+3. 进程还在跑，但调用栈已经没了，之后没人能停它。
 
-```mermaid
-sequenceDiagram
-    participant T as 工具
-    participant B as BgManager
-    participant P as BgProc
-    participant A as verify_bridge_token
-    participant H as 宿主进程/浏览器
-    T->>B: start(cmd)
-    B->>P: Popen(..., stdout=PIPE)
-    B-->>T: proc_id
-    T->>B: poll(proc_id)
-    P-->>T: 增量输出 / exit_code
-    T->>B: kill(proc_id)（超时或取消）
-    T->>A: verify_bridge_token(token, secret)
-    A-->>T: True/False → 放行桥接请求
-```
+正确做法是：**命令一启动就登记成一条任务**，调用方立刻拿到 `task_id`；之后通过任务表查询、停止、读输出。
 
-- **入口**：`BgManager.start()` 起进程并立刻返回 id，工具层拿 id 轮询，不阻塞事件循环。
-- **关键节点**：`poll()` 要能返回「还没结束」和「已结束+退出码」两种状态；桥接侧每个请求先过 `verify_bridge_token`，不信任来源 IP。
-- **出口**：`kill()` 负责收割进程组，`close()` 前必须全部 kill，否则测试结束残留子进程。
-- **最容易断的地方**：只 kill 父进程不管子进程；token 用固定字符串或漏校验重放。
+本章先实现任务表本身，不实现进程启动。进程启动属于工具层（拿到 argv、cwd、环境变量之后 `Popen`，再 `register_task`），本章只保证「登记之后生命周期可控」。
 
-#### 真实模块地图（已核对：路径 · 行数 · 符号）
-
-| 文件 | 行数 | 关键符号 | 模块常量 |
-|---|---|---|---|
-| `app/gateway/routers/background_bash.py` | 50 | `list_background_bash`、`background_bash_output`、`background_bash_stop` | — |
-| `app/gateway/routers/browser_bridge.py` | 145 | `BrowserExecuteRequest`、`BrowserLogEntry`、`BrowserLogBatch`；`_org_admin_guard`、`_bridge_token_guard`、`append_browser_log` | — |
-| `packages/harness/evoflow/tools/builtins/browser_stream.py:23` | 137 | `browser_session_name`、`browser_live_ws_path`、`_engine_screencast_active` | — |
-| `app/gateway/routers/browser_snapshots.py` | 38 | `get_browser_screenshot` | — |
-| `app/gateway/routers/browser_embed.py` | 63 | `BrowserEmbedCdpBody`；`put_browser_embed_cdp`、`delete_browser_embed_cdp`、`get_browser_embed_cdp` | — |
-| `app/gateway/routers/cua_bridge.py` | 327 | `CuaExecuteRequest`、`AppIconLocator`、`AppIconRequestBody`；`_org_admin_guard`、`_bridge_token_guard`、`_resolve_ps1` | — |
-| `packages/harness/evoflow/plugins/cua_helper.py:40` | 162 | `_helper_entry`、`_helper_addon`、`is_helper_runtime` | HELPER_RUNTIME_DIRNAME、HELPER_ENTRY_REL、HELPER_ADDON_REL |
-| `packages/harness/evoflow/plugins/bridge_auth.py:33` | 94 | `_token_file_path`、`reset_bridge_token_cache`、`get_bridge_token` | — |
-| `packages/harness/evoflow/plugins/runtime.py:41` | 342 | `_ulog`、`_iter_enabled_plugins`、`enabled_plugin_roots` | — |
-| `packages/harness/evoflow/plugins/node_repl.py:30` | 1111 | `_ulog`、`_sanitize_model_browser_js`、`_meta_envelope` | — |
-| `packages/harness/evoflow/plugins/node_repl_tool.py:111` | 564 | `NodeReplJsInput`；`_maybe_compact_browser_docs_dump`、`_get_thread_id`、`_decode_image` | — |
-| `packages/harness/evoflow/plugins/cua_helper.py:40` | 162 | `_helper_entry`、`_helper_addon`、`is_helper_runtime` | HELPER_RUNTIME_DIRNAME、HELPER_ENTRY_REL、HELPER_ADDON_REL |
-
-#### 已核对的行为事实（REST 层）
-
-| 能力 | 真实入口 | 关键行为 |
-|---|---|---|
-| 后台命令 | `app/gateway/routers/background_bash.py`（50 行） | `GET /api/background-bash`（`running_only` 默认 `True`）；`GET /{work_id}/output`；`POST /{work_id}/stop`。任务不存在 → **404**；任务不在 running → **409** `Task ... is not running (status: ...)`。后端实现在 `tools/zcode_port/background.py`（`list_tasks` / `get_task` / `read_output_snapshot` / `stop_task` / `task_to_summary`） |
-| 浏览器桥 | `app/gateway/routers/browser_bridge.py`（145 行） | 所有执行/查询路由都挂 `_bridge_token_guard`：`verify_bridge_token(request)` 失败即 **403** `browser bridge token required`。token 由 node-repl 内核桥**通过环境变量注入**，不是用户登录态 |
-| 桌面操作（Computer-Use） | `app/gateway/routers/cua_bridge.py`（327 行） | 同样有 `_bridge_token_guard` + `_org_admin_guard` 双重守卫；Windows 侧通过 `_run_ps_action` 调 PowerShell 脚本（`_resolve_ps1`），并支持取应用图标 `_read_icon_via_powershell` |
-
-> 结论：**桥接层不是「谁登录谁能用」，而是「谁拿到注入 token 谁能用」**。这是刻意的：内核桥是本地进程，无法走用户 JWT。
-
-#### 核心概念
-- **会话级资源**：浏览器/桌面会话必须挂在 session 上，随 session 关闭而回收。
-- **桥接不是 RCE**：bridge 必须带随机 token + 只绑定 127.0.0.1，否则本机任意程序可驱动。
-- **截图是带宽大户**：需要缩放、裁切、按需截取区域。
-
-#### 自研实现要点
-- 后台进程：`Popen(argv, stdout=PIPE)`，输出写文件 + 头部 ring buffer；工具只返回尾部 N 行。
-- 浏览器：CDP/Playwright 会话池，key = session_id；空闲 5 分钟回收。
-- CUA：动作序列（move/click/type/key）+ 每步截图校验。
-
-#### 业务规则
-- 后台命令必须有超时与最大输出上限。
-- 浏览器会话不能被两个 run 并发驱动。
-- CUA 不操作敏感应用（支付、密码管理器）。
-
-#### 常见坑
-- `subprocess` 未 `start_new_session` → Ctrl-C 杀不掉。
-- 浏览器 buffer 未消费导致进程阻塞。
-- 截图原图直传模型 → token 爆炸 + 超时。
-
-#### 验收
-- [ ] 后台任务可查、可停、可读尾部
-- [ ] 浏览器会话随 session 回收
-- [ ] 桥接端口仅本机可达
-
-##### 源码核对记录（路径与符号实测）
-
-- `app/gateway/routers/background_bash.py`（50 行）
-  - 模块自述：REST surface for ZCode-aligned background Bash tasks (status panel + detail + stop).…
-- `app/gateway/routers/browser_bridge.py`（145 行）：类 `BrowserExecuteRequest`、`BrowserLogEntry`、`BrowserLogBatch`
-  - 模块自述：Browser bridge HTTP surface — exposes the EvoFlow browser engine to the node-repl-host kernel bridge (browser-…
-- `packages/harness/evoflow/tools/builtins/browser_stream.py`（137 行）；环境变量 `EVOFLOW_BROWSER_CDP_URL`、`EVOFLOW_BROWSER_HEADED`
-  - 模块自述：Browser live-view metadata for EvoPanel. ZCode parity: there is no separate screencast and no persistent Chrom…
-- `app/gateway/routers/browser_snapshots.py`（38 行）
-  - 模块自述：Serve persisted browser screenshot PNGs (UI only; not sent to the model).…
-- `app/gateway/routers/browser_embed.py`（63 行）：类 `BrowserEmbedCdpBody`
-  - 模块自述：EvoPanel embedded WebView2 — per-thread CDP registration for agent-browser.…
-- `app/gateway/routers/cua_bridge.py`（327 行）：类 `CuaExecuteRequest`、`AppIconLocator`、`AppIconRequestBody`
-  - 模块自述：Computer Use (CUA) bridge HTTP surface. The node-repl-host kernel's ``computer-use-bridge`` global (overridden…
-- `packages/harness/evoflow/plugins/cua_helper.py`（162 行）；环境变量 `EVOFLOW_CUA_HELPER_ROOT`、`EVOFLOW_NODE_COMMAND`
-- `packages/harness/evoflow/plugins/bridge_auth.py`（94 行）；环境变量 `EVOFLOW_BRIDGE_TOKEN_FILE`、`EVOFLOW_BROWSER_BRIDGE_TOKEN`
-  - 模块自述：Browser/CUA bridge token（对齐 ZCode broker-token 鉴权语义）. node-repl 内核桥经本地 HTTP 调 Gateway 的浏览器/CUA 命令面（``/api/brow…
-- `packages/harness/evoflow/plugins/runtime.py`（342 行）
-  - 模块自述：Plugin runtime integration — exposes installed plugins to the agent runtime. This module is the bridge between…
-- `packages/harness/evoflow/plugins/node_repl.py`（1111 行）；环境变量 `EVOFLOW_BROWSER_BRIDGE_TOKEN`、`EVOFLOW_BROWSER_DOCS_ROOT`、`EVOFLOW_GATEWAY_PORT`、`EVOFLOW_GATEWAY_URL`
-  - 模块自述：EvoFlow host for the ZCode ``node_repl`` kernel (Browser Use / Computer Use). The official plugins' skills (``…
-- `packages/harness/evoflow/plugins/node_repl_tool.py`（564 行）：类 `NodeReplJsInput`
-  - 模块自述：``mcp__node_repl__js`` — Browser Use / Computer Use kernel tool. Registered only when one of the dependent off…
-- `packages/harness/evoflow/plugins/cua_helper.py`（162 行）；环境变量 `EVOFLOW_CUA_HELPER_ROOT`、`EVOFLOW_NODE_COMMAND`
-
-> 本节只证明**路径、行数、符号存在**；调用顺序与边界条件仍属「行为」，未逐行核对。
-
-#### 对照 EvoFlow 核对清单
-- [x] 后台命令的 404/409 语义与三个 REST 入口（50 行全文已读）
-- [x] 浏览器桥与 CUA 桥的 `_bridge_token_guard` / `_org_admin_guard` 双层守卫
-- [ ] `tools/zcode_port/background.py` 的任务对象与输出截断细节（未读）
-- [ ] `cua_bridge` 的 PowerShell 脚本清单与权限要求（未读）
-- [ ] `browser_stream.py` 的流式截图策略
-- [ ] `cua_helper.py` 支持的动作集合
-
-#### 从零实现（手把手）
-> 读完这章你能把「长时间运行的命令」和「需要鉴权的桥接调用」做出来：进程可查、token 不对就 403。
-> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
-
-##### Step 1　新建后台命令管理：三入口 + 404/409
-**文件**：`backend/packages/harness/myagentflow/tools/host_direct/background_bash.py（新建）`
-**要写的逻辑**：`start` 起子进程并登记；`poll` 不存在给 404、未在运行给 409；`kill` 幂等。
-
-**代码**
+#### 2. 一条后台任务要记什么
 
 ```python
-"""后台命令：启动、查询、终止。
-
-为什么 poll 要区分 404/409：
-404 = 你问的这个 id 我从没见过（客户端 bug）；
-409 = 见过但已经退出（正常的生命周期结束）。两者混在一起就没法排查。
-"""
-from __future__ import annotations
-
-import subprocess
-from dataclasses import dataclass, field
-from typing import Any
-
-
 @dataclass
-class BgProc:
-    proc: subprocess.Popen
-    stdout_path: str
-    _log: list[str] = field(default_factory=list)
-
-
-class BgManager:
-    def __init__(self) -> None:
-        self._procs: dict[str, BgProc] = {}
-
-    def start(self, cmd: str, stdout_path: str) -> str:
-        import uuid
-
-        run_id = uuid.uuid4().hex[:8]
-        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        self._procs[run_id] = BgProc(proc=proc, stdout_path=stdout_path)
-        return run_id
-
-    def poll(self, run_id: str) -> dict[str, Any]:
-        rec = self._procs.get(run_id)
-        if rec is None:
-            raise LookupError("no such background process")     # → 404
-        if rec.proc.poll() is None:
-            return {"status": "running", "pid": rec.proc.pid, "stdout": rec.stdout_path}
-        return {"status": "exited", "code": rec.proc.returncode}  # → 409 语义
-
-    def kill(self, run_id: str) -> None:
-        rec = self._procs.get(run_id)
-        if rec is None:
-            raise LookupError("no such background process")
-        if rec.proc.poll() is None:
-            rec.proc.terminate()
+class BackgroundBashTask:
+    """一次后台命令的事实：id、命令、输出文件、状态、进程。"""
+    task_id: str
+    command: str
+    description: str
+    output_path: Path
+    status: str = "running"          # running | completed | failed | stopped | cancelled
+    exit_code: int | None = None
+    error: str = ""
+    proc: object | None = None
+    started_at: float = field(default_factory=time.time)
+    ended_at: float | None = None
+    thread_id: str = ""
 ```
 
-**验证**
+字段逐个解释：
 
-```bash
-uv run python -c "
-from myagentflow.tools.host_direct.background_bash import BgManager
-m = BgManager(); rid = m.start('sleep 2', '/tmp/bg.log')
-print(m.poll(rid)['status'])
-"
+| 字段 | 为什么必须有 |
+|---|---|
+| `task_id` | 调用方之后只能拿这个 id 来查/停，必须短且唯一 |
+| `command` | 面板要展示「到底跑了什么」 |
+| `output_path` | 进程输出写文件，内存里不堆全量日志 |
+| `status` | 状态机：`running` → `completed` / `failed` / `cancelled` |
+| `exit_code` | 失败排查的第一现场；被停止时用 `-1` 区分 |
+| `proc` | 停止时要 `kill()` 的那个句柄 |
+| `started_at` / `ended_at` | 面板排序、耗时统计 |
+| `thread_id` | 多会话共用进程时，按会话过滤 |
+
+`proc` 用 `object` 而不是 `subprocess.Popen`：测试里可以塞任何带 `kill()` 的假对象，也避免类型层把实现绑死。
+
+#### 3. 调用逻辑与 EvoFlow 源码导读
+
+**调用逻辑（我们的最小实现）：**
+
+```text
+工具层（未来）
+  ├─ Popen(argv, stdout=file, stderr=file)
+  ├─ register_task(task)
+  └─ 返回 task_id
+        │
+        ├─ 面板/接口：list_tasks() → task_to_summary()
+        ├─ 轮询输出：read_output_snapshot() → 尾部 8KB + truncated
+        └─ 用户取消：stop_task(task_id) → kill() → status=cancelled
 ```
 
-##### Step 2　新建桥接鉴权：token 比对 + 常量时间
-**文件**：`backend/packages/harness/myagentflow/tools/host_direct/bridge_auth.py（新建）`
-**要写的逻辑**：token 从环境变量注入；比较用 `secrets.compare_digest`，防止时序侧信道。
+入口是工具层的 `Popen`，出口是 `task_id`。本章的任务表不负责启动进程；它只保证「登记之后，查询/停止/读输出都有唯一事实来源」。
 
-**代码**
+**EvoFlow 源码读法：**
+
+1. `/Users/main/EvoFlow/backend/packages/harness/evoflow/tools/zcode_port/background.py`
+   - 先读 `BackgroundBashTask` 字段，确认任务事实包含哪些内容；
+   - 再读 `register_task` / `get_task` / `mark` / `stop_task` / `list_tasks` / `task_to_summary` / `read_output_snapshot`，注意它是函数式 API，不是 `Manager` 类。
+2. `/Users/main/EvoFlow/backend/packages/harness/evoflow/tools/zcode_port/bash_tool.py`
+   - 读 `_promote_to_background`：`Popen` 之后如何写输出文件、`register_task`、起 pump 线程、返回 `status: backgrounded`；
+   - 注意它还会 `_emit("background", ...)`，把任务状态推给前端；本章没有事件总线，所以未实现。
+3. 浏览器桥 / CUA 桥的 token 校验位置只做定位，未逐行核对；本章只实现两者共用的 `verify_bridge_token`，不声称已覆盖路由。
+
+**调用顺序上的差异：** EvoFlow 的 `_promote_to_background` 是「命令超时后转后台」，进程已经在跑；本章把「登记」抽出来单独实现，启动方式留给工具层。这样测试不需要真的等一条命令超时。
+
+#### 4. 登记、查询、改状态
 
 ```python
-"""桥接鉴权：浏览器桥 / CUA 桥共用的 token 校验。
+_LOCK = threading.Lock()
+_TASKS: dict[str, BackgroundBashTask] = {}
 
-为什么不用 ==：字符串比较会在第一个不同字符处提前返回，
-攻击者能靠响应时间逐位猜出 token。
-"""
-from __future__ import annotations
 
-import hmac
-import os
+def new_task_id() -> str:
+    """生成 12 位十六进制任务 id。"""
+    return uuid.uuid4().hex[:12]
 
+
+def register_task(task: BackgroundBashTask) -> None:
+    """登记任务；同 id 覆盖（重放/恢复时用）。"""
+    with _LOCK:
+        _TASKS[task.task_id] = task
+
+
+def get_task(task_id: str) -> BackgroundBashTask | None:
+    """按 id 取任务；不存在返回 None。"""
+    with _LOCK:
+        return _TASKS.get(task_id)
+
+
+def mark(
+    task: BackgroundBashTask,
+    *,
+    status: str,
+    exit_code: int | None = None,
+    error: str = "",
+) -> None:
+    """改状态与退出码，只在首次结束时写 ended_at。"""
+    task.status = status
+    task.exit_code = exit_code
+    if error:
+        task.error = error
+    if status != "running" and task.ended_at is None:
+        task.ended_at = time.time()
+```
+
+关键点：
+
+- **锁只包字典操作**，不包进程 `kill()`。否则一个慢 `kill` 会把所有查询卡住。
+- `register_task` 允许同 id 覆盖：恢复/重放时，旧记录可能已经不在，覆盖比报错更符合实际。
+- `mark` 只在第一次进入终态时写 `ended_at`：重复上报（例如 pump 线程和停止操作同时到达）不会把结束时间改来改去。
+
+#### 5. 停止：只停 running，重复停止幂等
+
+```python
+def stop_task(task_id: str) -> BackgroundBashTask | None:
+    """杀进程并置 cancelled；不存在返回 None。
+
+    只停止 running 的任务：已结束的任务再 stop 是 no-op，不该改掉真实退出码。
+    """
+    task = get_task(task_id)
+    if task is None:
+        return None
+    proc = task.proc
+    if proc is not None and task.status == "running":
+        try:
+            proc.kill()  # type: ignore[attr-defined]
+        except Exception as exc:
+            task.error = str(exc)
+        mark(task, status="cancelled", exit_code=-1)
+    return task
+```
+
+为什么不做「不存在就抛异常」：调用方通常在 finally 里清理，任务已结束是正常情况，抛异常会打断清理。
+
+为什么先判 `status == "running"`：已经 `completed` 的任务再 `kill()` 没有意义，还会把真实 `exit_code=0` 改成 `-1`，把成功写成失败。
+
+#### 6. 列表与摘要：给面板的最小形状
+
+```python
+def list_tasks(*, running_only: bool = False, thread_id: str | None = None) -> list[BackgroundBashTask]:
+    """列任务，可按 running_only / thread_id 过滤。"""
+    with _LOCK:
+        items = list(_TASKS.values())
+    if thread_id:
+        tid = thread_id.strip()
+        items = [t for t in items if not t.thread_id or t.thread_id == tid]
+    if running_only:
+        items = [t for t in items if t.status == "running"]
+    items.sort(key=lambda t: t.started_at)
+    return items
+
+
+def task_to_summary(task: BackgroundBashTask) -> dict:
+    """给状态面板的最小摘要。"""
+    return {
+        "workId": task.task_id,
+        "kind": "bash",
+        "title": (task.description or task.command or task.task_id)[:200],
+        "status": "running" if task.status == "running" else (
+            "cancelled" if task.status in {"stopped", "cancelled"} else (
+                "failed" if task.status == "failed" else "resultPending"
+            )
+        ),
+        "startedAt": int(task.started_at * 1000),
+        "endedAt": int(task.ended_at * 1000) if task.ended_at else None,
+        "cancellable": bool(task.status == "running"),
+        "command": task.command,
+        "outputPath": str(task.output_path),
+        "exitCode": task.exit_code,
+    }
+```
+
+`task_to_summary` 的 `status` 不是直接回传内部状态，而是映射成 UI 契约：
+
+- `running` → `running`
+- `completed` → `resultPending`（进程结束不等于结果已经展示给用户）
+- `failed` → `failed`
+- `stopped` / `cancelled` → `cancelled`
+
+`thread_id` 过滤里保留 `not t.thread_id`：没有绑定会话的任务（例如系统级任务）对所有会话可见，否则会出现「任务在跑但列表里看不到」。
+
+#### 7. 输出快照：只回尾部 8KB
+
+常量定义在文件头：`BACKGROUND_BASH_OUTPUT_MAX_BYTES = 8192`。改这个值只改一处，快照函数与测试都引用它。
+
+```python
+def read_output_snapshot(task: BackgroundBashTask) -> dict:
+    """读输出文件尾部（最多 8192 字节），标是否截断。"""
+    text = ""
+    truncated = False
+    try:
+        raw = task.output_path.read_bytes() if task.output_path.is_file() else b""
+        if len(raw) > BACKGROUND_BASH_OUTPUT_MAX_BYTES:
+            truncated = True
+            raw = raw[-BACKGROUND_BASH_OUTPUT_MAX_BYTES:]
+        text = raw.decode("utf-8", errors="replace")
+    except OSError as exc:
+        return {"kind": "read_failed", "workId": task.task_id, "code": str(exc)}
+
+    status_map = {
+        "running": "running",
+        "completed": "completed",
+        "failed": "failed",
+        "stopped": "cancelled",
+        "cancelled": "cancelled",
+    }
+    return {
+        "kind": "output",
+        "workId": task.task_id,
+        "status": status_map.get(task.status, "completed"),
+        "output": text,
+        "truncated": truncated,
+        "outputPath": str(task.output_path),
+    }
+```
+
+为什么读尾部而不是头部：后台任务的价值通常是「最新进展 / 最新报错」，头部早就被调用方看过。
+
+为什么标 `truncated`：模型必须知道「这不是全部」，否则会基于半截日志下结论。
+
+为什么 `errors="replace"`：进程输出可能是任意字节，解码失败不能让整个查询接口 500。
+
+#### 8. 桥接 token：默认拒绝，常量时间比较
+
+```python
 BRIDGE_TOKEN_ENV = "MYAF_BRIDGE_TOKEN"
 
 
 def verify_bridge_token(provided: str | None) -> bool:
+    """校验宿主桥接 token；没配 token 一律拒绝，不「没配就放行」。"""
     expected = os.getenv(BRIDGE_TOKEN_ENV, "")
     if not expected or not provided:
         return False          # 没配 token 一律拒绝，不能「没配就放行」
     return hmac.compare_digest(provided, expected)
 ```
 
-**验证**
+两个安全点：
 
-```bash
-MYAF_BRIDGE_TOKEN=abc uv run python -c "
-from myagentflow.tools.host_direct.bridge_auth import verify_bridge_token
-print(verify_bridge_token('abc'), verify_bridge_token('abd'), verify_bridge_token(None))
-"
-# 期望：True False False
+1. **fail-closed**：`expected` 为空时返回 `False`。很多桥接实现为了「本地开发方便」在没配 token 时直接放行，这等于把本机执行权限裸露给任意能访问端口的进程。
+2. **`hmac.compare_digest`**：普通 `==` 会在第一个不同字符处提前返回，攻击者能用响应时间逐位猜 token。
+
+#### 9. 测试
+
+```python
+def test_register_get_list(tmp_path):
+    """任务登记、按 id 取、running_only 过滤、摘要形状。"""
+    from myagentflow.tools.host_direct.background_bash import (
+        BackgroundBashTask,
+        get_task,
+        list_tasks,
+        mark,
+        new_task_id,
+        register_task,
+        task_to_summary,
+    )
+
+    task = BackgroundBashTask(
+        task_id=new_task_id(),
+        command="sleep 1",
+        description="demo",
+        output_path=tmp_path / "out.log",
+        thread_id="t1",
+    )
+    register_task(task)
+    assert get_task(task.task_id) is task
+    assert task in list_tasks(running_only=True)
+    summary = task_to_summary(task)
+    assert summary["status"] == "running" and summary["cancellable"] is True
+
+    mark(task, status="completed", exit_code=0)
+    assert list_tasks(running_only=True) == []
+    assert task_to_summary(task)["status"] == "resultPending"
+
+
+def test_stop_task(tmp_path):
+    """停止运行中的进程并置 cancelled，重复 stop 幂等。"""
+    from myagentflow.tools.host_direct.background_bash import (
+        BackgroundBashTask,
+        new_task_id,
+        register_task,
+        stop_task,
+    )
+
+    proc = subprocess.Popen(["sleep", "5"])
+    task = BackgroundBashTask(
+        task_id=new_task_id(),
+        command="sleep 5",
+        description="stop me",
+        output_path=tmp_path / "out.log",
+        proc=proc,
+    )
+    register_task(task)
+
+    stopped = stop_task(task.task_id)
+    assert stopped is not None
+    assert stopped.status == "cancelled"
+    proc.wait(timeout=5)
+    assert proc.returncode is not None
+
+    # 再停一次：已经是终态，不能再改退出码
+    assert stop_task(task.task_id).exit_code == -1
+
+
+def test_read_output_snapshot(tmp_path):
+    """输出超过 8KB 只回尾部并标 truncated。"""
+    from myagentflow.tools.host_direct.background_bash import (
+        BACKGROUND_BASH_OUTPUT_MAX_BYTES,
+        BackgroundBashTask,
+        new_task_id,
+        read_output_snapshot,
+    )
+
+    out = tmp_path / "out.log"
+    payload = "a" * (BACKGROUND_BASH_OUTPUT_MAX_BYTES + 100)
+    out.write_text(payload, encoding="utf-8")
+    task = BackgroundBashTask(
+        task_id=new_task_id(), command="echo", description="big", output_path=out
+    )
+    snap = read_output_snapshot(task)
+    assert snap["truncated"] is True
+    assert len(snap["output"]) == BACKGROUND_BASH_OUTPUT_MAX_BYTES
+    assert snap["output"].endswith("a")
+
+
+def test_bridge_token(monkeypatch):
+    """没配 token 一律拒绝；配了才按常量时间比对。"""
+    from myagentflow.tools.host_direct.bridge_auth import verify_bridge_token
+
+    monkeypatch.delenv("MYAF_BRIDGE_TOKEN", raising=False)
+    assert verify_bridge_token("anything") is False
+
+    monkeypatch.setenv("MYAF_BRIDGE_TOKEN", "s3cret")
+    assert verify_bridge_token("s3cret") is True
+    assert verify_bridge_token("wrong") is False
+    assert verify_bridge_token(None) is False
 ```
 
-##### 与 EvoFlow 对照
+`test_stop_task` 用真实 `sleep 5` 而不是假进程：要验证 `kill()` 之后进程确实退出，假对象验证不了这一点。
 
-| 我们的做法 | EvoFlow | 为什么 |
-|---|---|---|
-| 404 / 409 语义分开 | `app/gateway/routers/background_bash.py`（50 行） | 客户端 bug 与正常退出必须能区分 |
-| `_bridge_token_guard` → `verify_bridge_token` | `browser_bridge.py` / `cua_bridge.py` | 桥没有 token 等于任意本机进程都能调 |
-
-##### 知识点
-
-- [agent-book](https://g0-000.github.io/agent-book/)：工具与进程管理
-- Harbor404：进程泄漏与端口占用排查
-
-##### 验收
+#### 10. 手把手从零做一遍
 
 ```bash
-uv run python -c "from myagentflow.tools.host_direct.bridge_auth import verify_bridge_token; print('ok')"
+cd /Users/main/my-agent-flow/backend
+touch packages/harness/myagentflow/tools/host_direct/background_bash.py
+touch packages/harness/myagentflow/tools/host_direct/bridge_auth.py
 ```
+
+先写 `background_bash.py`：按第 2、4→7 节顺序放 `BackgroundBashTask`、全局表、`new_task_id` / `register_task` / `get_task` / `mark` / `stop_task` / `list_tasks` / `task_to_summary` / `read_output_snapshot`。
+
+再写 `bridge_auth.py`：只有 `BRIDGE_TOKEN_ENV` 与 `verify_bridge_token` 两个符号。
+
+最后写 `tests/chapters/test_ch03_02_host_direct.py`，跑：
+
+```bash
+uv run pytest tests/chapters/test_ch03_02_host_direct.py -q
+```
+
+实测输出：
+
+```text
+4 passed, 13 warnings in 0.05s
+```
+
+#### 11. 本章不做什么（必须如实说）
+
+- **没有** `start_background_bash()`。进程启动要处理 argv、cwd、环境变量、pump 线程、退出通知，属于工具装配层；本章只做登记之后的生命周期。
+- **没有** HTTP `GET/DELETE /api/tasks/{id}`。没有路由层，404/409 无从谈起；本章用 `None` 表示「没见过」，用 `status` 表示「见过但已结束」。
+- **没有** 浏览器桥、CUA 桥、截图/点击。它们需要真实设备/浏览器会话，本章只实现两者共用的 token 校验。
+- **没有** 落库。任务表是进程内 `dict`，进程重启即丢；跨进程查询属于后续 Gateway 章节。
+
+#### 12. EvoFlow 对照与差异（文件级）
+
+| EvoFlow 文件 | 本项目文件 | 本章实现的符号/字段 | 未实现部分 |
+|---|---|---|---|
+| `tools/zcode_port/background.py` | `tools/host_direct/background_bash.py` | `BackgroundBashTask`、`BACKGROUND_BASH_OUTPUT_MAX_BYTES`、`new_task_id`、`register_task`、`get_task`、`mark`、`stop_task`、`list_tasks`、`task_to_summary`、`read_output_snapshot` | 落库、跨进程查询、事件推送 |
+| `tools/zcode_port/bash_tool.py` | 未创建 | — | `_promote_to_background`、pump 线程、`_emit` |
+| `routers/browser_bridge.py` / `routers/cua_bridge.py` | `tools/host_direct/bridge_auth.py` | `BRIDGE_TOKEN_ENV`、`verify_bridge_token` | 路由、截图、点击、设备会话 |
+
+**有意省略的原因：** 本章要验证的是「任务事实模型 + 输出边界 + 鉴权失败关闭」，不是完整后台执行器。把 `Popen`/pump/事件总线提前塞进来，测试会变成集成测试，失败定位会很慢。
+
+#### 13. 验收
+
+- [x] 登记后可查、可按 running / thread 过滤
+- [x] 停止运行中进程并置 `cancelled`
+- [x] 重复停止幂等，不改真实退出码
+- [x] 输出超过 8KB 只回尾部并标 `truncated`
+- [x] 没配 token 一律拒绝；正确/错误/None 三种输入判定正确
+- [x] `4 passed`，ruff 通过
+
+#### 14. 下一章衔接
+
+任务表解决「命令跑起来之后」。下一章解决「工具调用本身经过哪些层」：洋葱式中间件链、顺序保证、异常不被吞、审计留痕。
+
+#### 附：源码基准
+
+- EvoFlow baseline：`f22af53910a470ddba633be35e25878214c2984ec`（v1.3.22，PolyForm Noncommercial）。
+- 参考文件：`/Users/main/EvoFlow/backend/packages/harness/evoflow/tools/zcode_port/background.py`。
+- 许可：EvoFlow 为 PolyForm Noncommercial；本章为学习性转述与自有最小实现。
 
 
 <!-- ===== 03-工具深化与上下文控制/03-Middleware调用链与工具审计.md ===== -->
@@ -5238,513 +5440,601 @@ uv run python -c "from myagentflow.tools.host_direct.bridge_auth import verify_b
 ### 第 3 章　Middleware 调用链与工具审计
 
 
-> **对照状态** ✅ **已核对源码**：`agents/middlewares/`（70 个 `.py` 条目）、`agents/lead_agent/agent.py`（2002 行，装配函数 `_build_middlewares` 在 `:685`–`:941`）。**顺序注释来自 EvoFlow 源码；「after_model 逆序执行」不是 EvoFlow 写的，是 LangChain `create_agent` 编译图时连边连出来的**——见下方第 9 条。
+> **状态：** ✅ 本章代码与测试已落地：`agents/middlewares/chain.py`、`audit.py` + 3 个测试用例。  
+> **范围：** 只实现「工具调用」这一层的洋葱链与审计。模型前后钩子、审批、循环检测、澄清拦截不在本章实现。
 
-#### 本章目标
-看懂 EvoFlow 的「Agent 循环」其实是一条**约 60 个中间件组成的流水线**，并理解注册顺序与执行顺序**方向相反**这一关键事实。
+#### 1. 先纠正一个容易写错的模型
 
-#### 最小闭环
-模型请求前注入动态 prompt → 工具调用前走审批 → 工具报错转成 ToolMessage → 循环检测 → 预算耗尽中止 → 澄清请求最后拦截。
-
-#### 调用逻辑 / Invocation logic
-
-```mermaid
-sequenceDiagram
-    participant G as graph 执行器
-    participant CH as run_chain
-    participant M as Middleware(before_tool
-    participant AU as AuditMiddleware
-    participant T as 实际工具
-    G->>CH: run_chain(mws, "before_tool", ctx)
-    CH->>M: before_tool(ctx) 依次
-    CH->>AU: before_tool → 记录 tool/args
-    CH-->>G: 可能改写/拦截
-    G->>T: 执行
-    G->>CH: run_chain(mws, "after_tool", ctx) 逆序
-```
-
-- **入口**：图执行器只认 `run_chain()`，中间件顺序由列表决定，新增中间件不改执行器。
-- **关键节点**：`before_tool` 顺序执行、`after_tool` **逆序**执行——逆序是为了让审计包住真实耗时；`AuditMiddleware` 只记录 `_brief(args)`，不落全量参数。
-- **出口**：链可以返回「拦截」结果替代工具输出，此时工具根本不执行。
-- **最容易断的地方**：把 `after_tool` 也顺序跑，导致外层中间件看不到内层异常；以及审计把密钥写进日志。
-
-#### 1. 先纠正一个数字
-
-`agents/middlewares/` 下有 **70 个 `.py`**，但不是 70 个中间件（有些是模块级工具函数，不是 `AgentMiddleware` 子类）：
-
-| 类别 | 举例 | 说明 |
-|---|---|---|
-| 真中间件 | `context_compaction_middleware.py`、`loop_detection_middleware.py`、`tool_approval_middleware.py` | 实现 `AgentMiddleware` 钩子 |
-| 一个文件多个类 | `tool_approval_middleware.py`（1553 行） | `ToolApprovalMiddleware`、`ToolApprovalReplayMiddleware`、`ToolApprovalDenyContinueMiddleware`、`ToolApprovalAnswersMiddleware` |
-| 一个文件多个类 | `run_latency_timing_middleware.py` | `RunLatencyCycleMiddleware`、`RunLatencyWrapMiddleware`、`LiveActivityToolMiddleware` |
-| 工具/辅助模块 | `middleware_timing.py`、`message_usage_helpers.py`、`stream_accumulator.py`、`model_request_messages.py`、`tool_approval_executor.py` | 被中间件调用，不是中间件 |
-| 目录垃圾 | `__pycache__` | — |
-
-**结论**：实际中间件类数量在 60 上下，数量本身没有意义，**顺序约束才是设计资产**。
-
-#### 2. 已核对的事实
-
-| # | 事实 | 证据 |
-|---|---|---|
-| 1 | 运行时公共链由一个函数产出 | `build_lead_runtime_middlewares(lazy_init=True)`（在 `agents/middlewares/tool_error_handling_middleware.py:1087`） |
-| 2 | 子代理用另一套：不带 uploads、不带 dangling patch | `build_subagent_runtime_middlewares()` |
-| 3 | `after_model` 按列表**逆序**执行 | 源码注释：「after_model runs in reverse list order」 |
-| 4 | 因此「要最后跑的 after_model」必须放在链**最前面** | `CheckpointTranscriptSlimMiddleware` 用 `insert(0, ...)`，注释写明「First in chain ⇒ after_agent runs last」 |
-| 5 | 状态瘦身中间件放在最前，是为了让最终检查点丢掉 transcript | 同注释：「final checkpoint (esp. durability=exit) drops transcript blobs」 |
-| 6 | 转写落库（Transcript）放得「早」，是为了它的 after_model 最后跑 | 注释：「Placed early so its after_model runs last ... capturing the final state」 |
-| 7 | TokenUsage 在子代理链最后 append，所以它最先执行 | 注释：「after_model runs in reverse list order, so TokenUsageMiddleware (appended last) runs first」 |
-| 8 | 澄清（Clarification）必须最后拦截 | `agent.py:939` 最后一句 `middlewares.append(ClarificationMiddleware())`，上一条注释「ClarificationMiddleware should always be last」 |
-| 9 | **逆序不是 EvoFlow 实现的**，是 LangChain 编译图时接的边 | `langchain/agents/factory.py:1551`：`graph.add_edge("model", f"{middleware_w_after_model[-1].name}.after_model")`，随后 `for idx in range(len(...)-1, 0, -1)` 逐条倒着连 |
-| 9 | Todo 必须排在澄清之前，否则待办管理被拦掉 | 注释：「TodoListMiddleware should be before ClarificationMiddleware」 |
-| 10 | 图片细节注入必须早于澄清 | `ViewImageMiddleware` 注释 |
-| 11 | 工具异常必须早于澄清转成 ToolMessage | `ToolErrorHandlingMiddleware` 注释 |
-| 12 | 悬空 tool_call 必须在模型看到历史之前补上 | `DanglingToolCallMiddleware` 注释 |
-| 13 | 上下文压缩在「hydrate + 工具过滤 + 计划守卫」之后，并且是**wrap_model_call 临时折叠、不写检查点** | 注释：`folds ephemerally at wrap_model_call (not checkpoint)` |
-| 14 | UI 转写与压缩摘要只存 `evoflow_chat_messages` | 同注释 |
-| 15 | ThreadData 必须早于 Sandbox，Uploads 必须在 ThreadData 之后 | 注释（thread_id 依赖） |
-| 16 | 每个中间件带计时探针，阈值由 `EVOFLOW_MW_TIMING_MS` 控制 | `_instrument_middleware_timing_all()` |
-
-#### 3. 链的执行方向（关键）
+很多教程把中间件写成两个列表：
 
 ```text
-注册列表 [ m0, m1, m2, ..., mN ]
-
-before_model   : m0 → m1 → m2 → ... → mN     （正序，逐层改写请求）
-wrap_model_call: 嵌套，越靠后越在内层（包裹执行）
-after_model    : mN → ... → m2 → m1 → m0     （逆序！）
-wrap_tool_call : 嵌套，典型的「洋葱」结构
+for mw in middlewares:
+    args = mw.before_tool(name, args)
+result = call(name, args)
+for mw in reversed(middlewares):
+    result = mw.after_tool(name, args, result)
 ```
 
-**这就是为什么**：
-- 想让某个 after 钩子「最后说话（看到最终状态）」，就把它放在**列表最前面**；
-- 想让某个 after 钩子「最先跑（拿到原始 usage）」，就把它**最后 append**。
+这套写法有三个坑：
 
-#### 4. 真实链路骨架（按源码装配顺序摘录）
+1. `after_tool` 必须手动逆序，写成正序就会出现「后申请的资源先失效」；
+2. 工具抛异常时，`result` 未绑定，`after_tool` 要么拿 `None`，要么直接再抛一个异常把原始错误盖掉；
+3. 中间件想「不改参数、只改结果」或「短路不调用工具」时，两个钩子表达不了。
+
+EvoFlow 用的是另一种模型：每个中间件实现一个 `wrap_tool_call(request, handler)`，自己决定什么时候调用 `handler`。链在装配时嵌套起来，进入和退出顺序由嵌套结构保证，不靠人记得逆序。
+
+#### 2. 调用逻辑与 EvoFlow 源码导读
+
+**调用逻辑（我们的最小实现）：**
 
 ```text
-[insert(0)] CheckpointTranscriptSlimMiddleware   # after_agent 最后跑 → 最终检查点瘦身
-build_lead_runtime_middlewares()                 # ThreadData → Sandbox → Uploads → DanglingToolCall → …
-TurnContextMiddleware                            # 每轮上下文
-SessionTranscriptHydrationMiddleware             # hydrate（从消息表灌历史）
-UploadsMiddleware / ContextFilesMiddleware       # 上传元数据、本地路径
-GoalAutoContinue / GoalContinuationAssembler      # 目标续跑
-[gating] TodoMiddleware                          # 按 agent 工具白名单挂载
-ContextCompactionMiddleware                      # 排在工具过滤 + 计划守卫之后注册
-PlanGuardMiddleware / PlanDocMiddleware          # 计划阶段只读约束 / 计划落 outputs/plan.md
-ToolApprovalMiddleware(+Replay/DenyContinue/Answers)
-ClarificationMiddleware                          # 最后，拦截澄清请求
-[append] RunLatencyCycleMiddleware               # 模型周期计时
-[append] TranscriptMiddleware                    # after_model 最后跑 → 落最终转写
+调用方
+  └─ run_chain([outer, inner], request, call)
+       ├─ outer.wrap_tool_call(request, handler=inner)
+       │    ├─ inner.wrap_tool_call(request, handler=call)
+       │    │    └─ call(request) → 工具结果
+       │    └─ inner 返回（可改结果）
+       └─ outer 返回（可改结果/记录耗时）
 ```
 
-#### 5. 工具审计与审批
+入口是 `run_chain()`，出口是工具结果（或中间件短路返回的值）。异常路径：工具抛异常 → 内层 `finally` 先退出 → 外层 `finally` 再退出 → 异常继续上抛。
 
-| 职责 | 路径 | 要点 |
-|---|---|---|
-| 审批主流程 | `middlewares/tool_approval_middleware.py`（1553 行，4 个类） | 拦截 → 挂起 → 恢复 → 重放 |
-| 审批执行/落库 | `middlewares/tool_approval_executor.py`、`agents/tool_approval_service.py` | 决策与副作用分离 |
-| 暂停注册 | `agents/tool_approval_pause_registry.py` | run 挂起态登记 |
-| 轨迹 | `agents/tool_approval_trace_log.py` | 谁批的、批了什么 |
-| 黑名单 | `agents/tool_approval_denylist.py` | 永不批准的工具 |
-| 会话工具锁定 | `middlewares/tool_surface_lock_middleware.py`、`tool_binding_sync_middleware.py` | 工具面固定，防运行中扩权 |
+**EvoFlow 源码读法：**
 
-**审计三件套**：`run_id` + 工具名 + **参数摘要**（不是全参数，防泄密），决策与 actor 分列。
+1. `/Users/main/EvoFlow/backend/packages/harness/evoflow/agents/lead_agent/agent.py`
+   - 读 `_build_middlewares`（约 `:685`–`:941`），看中间件列表的装配顺序；
+   - 注意列表顺序与执行顺序不是同一个方向：LangChain 编译图时把 `wrap_tool_call` 嵌套起来，列表第一个通常在最外层。
+2. `/Users/main/EvoFlow/backend/packages/harness/evoflow/agents/middlewares/tool_error_handling_middleware.py`
+   - 读 `wrap_tool_call`：工具名/参数从 `request.tool_call` 取，异常在这里被转成 `ToolMessage(status="error")`；
+   - 这是「审计」和「错误处理」分开的典型：审计只记录，错误处理才改写结果。
+3. 任意一个中间件文件（如 `loop_detection_middleware.py`）确认钩子签名统一为 `wrap_tool_call(request, handler)`，没有 `before_tool` / `after_tool`。
 
-#### 6. 自研实现要点
+**调用顺序上的差异：** EvoFlow 的链由 `create_agent`/LangGraph 编译，`request` 是真实 `ToolCallRequest`；本章的 `run_chain` 是独立最小链，`request` 允许鸭子类型，便于单测。接入工具节点后，把真实请求传进来即可，链的嵌套语义不变。
 
-```python
-class Chain:
-    def before(self, req):
-        for m in self.before_list: req = m(req)      # 正序
-        return req
-    def after(self, resp):
-        for m in reversed(self.after_list): resp = m(resp)   # 逆序，刻意与注册顺序相反
-        return resp
-    def wrap_tool(self, call, run):
-        f = run
-        for m in reversed(self.wrap_list): f = m(f)   # 洋葱：最后注册的最外层
-        return f(call)
+#### 3. 洋葱链长什么样
+
+列表 `[outer, inner]` 装配后等价于：
+
+```text
+outer.wrap_tool_call(request, handler=inner_wrapped)
+  └─ inner.wrap_tool_call(request, handler=call)
+       └─ call(request)          真正执行工具
 ```
 
-- 每个中间件**只做一件事**，用显式 `order` 而不是「看别人有没有改」。
-- 把顺序约束写成注释/断言（EvoFlow 用注释，容易腐化；建议用 `test_middleware_order` 固化）。
-- `lazy_init=True`：中间件按需实例化，避免启动加载全部依赖。
+执行顺序：
 
-#### 7. 业务规则
+```text
+outer 进入 → inner 进入 → 工具 → inner 退出 → outer 退出
+```
 
-- 澄清必须最后拦；待办、图片、工具异常都必须在它之前。
-- 悬空 tool_call 必须在 hydrate 之后、模型调用之前修复。
-- 压缩只能临时折叠，不得写进检查点（否则不可逆）。
-- 审批挂起时 run 进 `waiting_approval`，恢复必须带同一 `approval_id` 且参数摘要一致。
+列表第一个在最外层。这样审计/计时中间件放在列表第一个，就能「最早看到请求、最晚看到结果」。
 
-#### 8. 常见坑
-
-| 坑 | 后果 | 对策 |
-|---|---|---|
-| 以为 after 是正序 | 数据被后跑的中间件覆盖 | 记住逆序；用测试断言 |
-| 两个中间件改同一 prompt 字段 | 顺序敏感 bug，难复现 | 单一职责 + 明确 order |
-| 压缩写进检查点 | 历史被永久删减 | 只在 wrap_model_call 折叠 |
-| 澄清不在最后 | 澄清请求被其他钩子吞掉 | 固定为链尾 |
-| 悬空 tool_call 未修 | 模型下一轮直接报错 | hydrate 后立即 patch |
-| 中间件抛异常被吞 | 表现为「模型不回复」 | 异常必须转成可观测事件 |
-
-#### 9. 验收
-
-- [ ] 顺序断言测试存在（改顺序即失败）
-- [ ] 悬空 tool_call 可自愈
-- [ ] 审批挂起/恢复严格一次
-- [ ] 压缩不改变检查点内容
-- [ ] 每轮有 per-middleware 耗时（可用 `EVOFLOW_MW_TIMING_MS` 打开）
-
-#### 10. 对照 EvoFlow 核对清单
-
-- [x] after_model 逆序执行
-- [x] 链头 insert 与链尾 append 的意图
-- [x] 澄清/待办/图片/异常的相对顺序约束
-- [x] 压缩「临时折叠不写检查点」
-- [ ] `_build_runtime_middlewares()` 完整列表（本次只读注释与装配片段，未逐行确认全部 40+ 项）
-- [ ] `checkpoint_transcript_slim_middleware.py` 与 `OmitTranscriptCheckpointer` 是否重复
-- [ ] 中间件数量按类精确统计（需按 `class .*Middleware` 计数）
-
-#### 从零实现（手把手）
-> 读完这章你知道中间件「谁先谁后」为什么重要，并写出一个能记录每次工具调用的审计中间件。
-> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
-
-##### Step 1　新建 chain.py：顺序 + 反向收尾
-**文件**：`backend/packages/harness/myagentflow/agents/middlewares/chain.py（新建）`
-**要写的逻辑**：`before` 正序、`after` 逆序（洋葱模型）；任何一层抛异常都要保证已进入的层能收尾。
-
-**代码**
+#### 4. 写基类：默认放行
 
 ```python
-"""中间件链：进正序、出逆序。
-
-为什么 after 要逆序：它是「清理」语义——后申请的资源先释放，
-否则 A 依赖 B 的资源时，A 先清理会让 B 拿到已失效的对象。
-"""
-from __future__ import annotations
-
-from collections.abc import Callable, Iterable
-from typing import Any
-
-
 class Middleware:
+    """中间件基类：默认直接放行，子类覆盖 wrap_tool_call。"""
     name: str = "middleware"
 
-    def before_tool(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
-        return args              # 默认不改参数
-
-    def after_tool(self, name: str, args: dict[str, Any], result: Any) -> Any:
-        return result            # 默认不改结果
-
-
-def run_chain(mws: Iterable[Middleware], name: str, args: dict[str, Any],
-              call: Callable[[str, dict[str, Any]], Any]) -> Any:
-    entered: list[Middleware] = []
-    current = args
-    try:
-        for mw in mws:
-            current = mw.before_tool(name, current)
-            entered.append(mw)
-        result = call(name, current)
-    finally:
-        for mw in reversed(entered):     # 逆序收尾
-            result = mw.after_tool(name, current, locals().get("result"))
-    return result
+    def wrap_tool_call(
+        self,
+        request: Any,
+        handler: Callable[[Any], Any],
+    ) -> Any:
+        """包住一次工具调用；默认不改请求，直接交给下一层。"""
+        return handler(request)
 ```
 
-**验证**
+`request` 这里用 `Any` 而不是写死 LangChain 的 `ToolCallRequest`：本章的审计只读 `request.tool_call`，测试里可以用 `SimpleNamespace` 构造同样形状的请求。等真正接上 LangGraph 工具节点时，传进来的就是真实 `ToolCallRequest`，鸭子类型照样工作。
 
-```bash
-uv run python -c "from myagentflow.agents.middlewares.chain import Middleware, run_chain; print('import ok')"
-```
-
-##### Step 2　加审计中间件：记录谁调了什么
-**文件**：`backend/packages/harness/myagentflow/agents/middlewares/audit.py（新建）`
-**要写的逻辑**：只记录工具名、参数摘要、耗时、成功与否；参数要截断，避免把密钥写进日志。
-
-**代码**
+#### 5. 组装链：一个循环 + 一个小函数
 
 ```python
-"""审计中间件：每次工具调用留一行。"""
-from __future__ import annotations
+def run_chain(
+    middlewares: Iterable[Middleware],
+    request: Any,
+    call: Callable[[Any], Any],
+) -> Any:
+    """把中间件按列表顺序包成洋葱，执行最外层。
 
-import json
-import logging
-import time
-from typing import Any
+    列表 [m0, m1, m2] 的执行顺序：
+        m0 进入 → m1 进入 → m2 进入 → 真正工具 → m2 退出 → m1 退出 → m0 退出
 
-from myagentflow.agents.middlewares.chain import Middleware
+    第一个中间件在最外层：它能最早改写请求、最晚看到结果（典型审计/计时）。
+    """
+    handler = call
+    for mw in reversed(list(middlewares)):
+        # 默认参数绑定：不绑的话闭包会共享最后一个 handler
+        handler = _wrap_one(mw, handler)
+    return handler(request)
 
-logger = logging.getLogger("myaf.audit")
 
+def _wrap_one(mw: Middleware, inner: Callable[[Any], Any]) -> Callable[[Any], Any]:
+    """把单个中间件包在 inner 外面；抽出来是为了避免闭包捕获错层。"""
+    def wrapped(request: Any) -> Any:
+        return mw.wrap_tool_call(request, inner)
 
+    return wrapped
+```
+
+为什么从 `reversed` 开始包：
+
+- 先包最后一个中间件，它最靠近工具；
+- 再包前一个，它套在外面；
+- 循环结束时，列表第一个自然成为最外层。
+
+如果正序包，列表第一个会变成最内层，审计只能看到「工具执行完」而看不到「请求原始参数」。
+
+为什么把 `_wrap_one` 抽出来：直接在循环里写闭包，`mw` 和 `inner` 会捕获循环变量，最后所有层都指向同一个中间件。抽成函数后，参数按调用时绑定，每一层各拿各的。
+
+#### 6. 审计中间件：失败也留痕，但异常继续抛
+
+```python
 def _brief(args: dict[str, Any], limit: int = 120) -> str:
+    """把工具参数压成一行短文本并截断，供审计日志用。"""
     text = json.dumps(args, ensure_ascii=False, default=str)
     return text if len(text) <= limit else text[:limit] + "…"   # 截断：日志里不该出现完整密钥
 
 
+def _tool_name(request: Any) -> str:
+    """从 ToolCallRequest 里取工具名；结构不对时给 unknown_tool。"""
+    tool_call = getattr(request, "tool_call", None)
+    if isinstance(tool_call, dict):
+        return str(tool_call.get("name") or "unknown_tool")
+    return "unknown_tool"
+
+
+def _tool_args(request: Any) -> dict[str, Any]:
+    """从 ToolCallRequest 里取参数；非 dict 一律当空参数。"""
+    tool_call = getattr(request, "tool_call", None)
+    if isinstance(tool_call, dict):
+        args = tool_call.get("args") or {}
+        return args if isinstance(args, dict) else {}
+    return {}
+
+
 class AuditMiddleware(Middleware):
+    """记录每次工具调用的参数、耗时与结果的中间件。"""
     name = "audit"
 
-    def __init__(self) -> None:
-        self._t0: dict[str, float] = {}
-
-    def before_tool(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
-        self._t0[name] = time.time()
-        return args
-
-    def after_tool(self, name: str, args: dict[str, Any], result: Any) -> Any:
-        cost = time.time() - self._t0.pop(name, time.time())
-        logger.info("tool=%s args=%s cost=%.3fs ok=%s", name, _brief(args), cost,
-                    not isinstance(result, Exception))
+    def wrap_tool_call(self, request: Any, handler: Any) -> Any:
+        name = _tool_name(request)
+        args = _tool_args(request)
+        t0 = time.perf_counter()
+        try:
+            result = handler(request)
+        except Exception as exc:
+            # 失败也要留痕，但异常必须继续抛：审计层不负责吞错
+            cost = time.perf_counter() - t0
+            logger.info(
+                "tool=%s args=%s cost=%.3fs ok=False error=%s",
+                name, _brief(args), cost, exc.__class__.__name__,
+            )
+            raise
+        cost = time.perf_counter() - t0
+        logger.info("tool=%s args=%s cost=%.3fs ok=True", name, _brief(args), cost)
         return result
 ```
 
-**验证**
+三个设计选择：
 
-```bash
-uv run python -c "
-from myagentflow.agents.middlewares.audit import AuditMiddleware
-from myagentflow.agents.middlewares.chain import run_chain
-print(run_chain([AuditMiddleware()], 'echo', {'text':'hi'}, lambda n,a: a['text']))
-"
+1. **计时用 `perf_counter`**：`time.time()` 会被系统时钟调整影响，耗时统计应该用单调时钟。
+2. **参数摘要截断到 120 字符**：完整参数可能带 API key、完整文件内容；日志不是转录。
+3. **异常只记录、不吞**：审计层把 `Exception` 转成「成功」或空结果是反模式，调用方会以为工具真的返回了空。
+
+#### 7. 测试：顺序、异常、审计
+
+```python
+def test_chain_is_onion():
+    """列表第一个在最外层：进正序、出逆序。"""
+    from myagentflow.agents.middlewares.chain import Middleware, run_chain
+
+    events: list[str] = []
+
+    class Rec(Middleware):
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        def wrap_tool_call(self, request, handler):
+            events.append(f"{self.name}:in")
+            try:
+                return handler(request)
+            finally:
+                events.append(f"{self.name}:out")
+
+    result = run_chain(
+        [Rec("outer"), Rec("inner")],
+        _request(),
+        lambda req: events.append("call") or "ok",
+    )
+    assert result == "ok"
+    assert events == ["outer:in", "inner:in", "call", "inner:out", "outer:out"]
 ```
 
-##### 与 EvoFlow 对照
+`Rec` 用 `try/finally` 记录退出：这样即使工具抛异常，也能验证退出顺序。`lambda req: events.append("call") or "ok"` 是先记录再返回 `"ok"`，因为 `append` 返回 `None`，`or` 会继续取 `"ok"`。
 
-| 我们的做法 | EvoFlow | 为什么 |
-|---|---|---|
-| 进正序 / 出逆序 | `lead_agent/agent.py` 的中间件装配顺序 | 顺序错会导致资源提前释放 |
-| 参数截断后入日志 | 工具审计日志 | 全量参数会把 token/密钥写进日志 |
-| finally 里逆序收尾 | 中间件异常处理 | 抛异常也要保证清理 |
+异常传播测试：
 
-##### 知识点
+```python
+def test_chain_propagates_error():
+    """工具抛异常时，中间件仍退出且异常不被吞。"""
+    import pytest
+    from myagentflow.agents.middlewares.chain import Middleware, run_chain
 
-- [LangGraph 课程：图、节点与执行顺序（正序进/逆序出的前提）](https://g0-000.github.io/agent-book/langgraph/)
-- [日志分析平台的演变：审计日志该记什么、怎么留](https://harbor404.fushenlin.com/notes/note-b7134f72/)
+    events: list[str] = []
 
-##### 验收
+    class Rec(Middleware):
+        def wrap_tool_call(self, request, handler):
+            events.append("in")
+            try:
+                return handler(request)
+            finally:
+                events.append("out")
+
+    def boom(req):
+        events.append("call")
+        raise ValueError("tool failed")
+
+    with pytest.raises(ValueError):
+        run_chain([Rec()], _request(), boom)
+    assert events == ["in", "call", "out"]
+```
+
+审计测试：
+
+```python
+def test_audit_logs_success(caplog):
+    """审计记录工具名、参数摘要、耗时、ok=True。"""
+    from myagentflow.agents.middlewares.audit import AuditMiddleware
+    from myagentflow.agents.middlewares.chain import run_chain
+
+    with caplog.at_level("INFO", logger="myaf.audit"):
+        run_chain(
+            [AuditMiddleware()],
+            _request("echo", {"text": "hi"}),
+            lambda req: "pong",
+        )
+    assert any("tool=echo" in r.message and "ok=True" in r.message for r in caplog.records)
+```
+
+#### 8. 手把手从零做一遍
 
 ```bash
-uv run python -c "from myagentflow.agents.middlewares.chain import run_chain; print('ok')"
+cd /Users/main/my-agent-flow/backend
+mkdir -p packages/harness/myagentflow/agents/middlewares
+touch packages/harness/myagentflow/agents/middlewares/__init__.py
 ```
+
+新建 `chain.py`：先写 `Middleware` 基类，再写 `run_chain`，最后写 `_wrap_one`。建议顺序不要反：先有基类，测试才能构造 `Rec`。
+
+新建 `audit.py`：先写 `_brief` / `_tool_name` / `_tool_args` 三个纯函数，再写 `AuditMiddleware.wrap_tool_call`。纯函数先写的好处是，审计逻辑不需要构造完整请求就能测。
+
+新建 `tests/chapters/test_ch03_03_middleware.py`，跑：
+
+```bash
+uv run pytest tests/chapters/test_ch03_03_middleware.py -q
+```
+
+实测输出：
+
+```text
+3 passed, 13 warnings in 0.02s
+```
+
+#### 9. 本章不做什么（必须如实说）
+
+- **没有** `AgentMiddleware` 全量实现。EvoFlow 的中间件有 70 个文件，覆盖模型前后、审批、循环检测、预算、澄清；本章只做工具调用这一层。
+- **没有** 接 `create_agent` / `ToolNode`。本章的 `run_chain` 是独立可测的最小链；真正接入时由工具节点把 `request` 传进来。
+- **没有** 审批与拦截。`wrap_tool_call` 允许中间件不调用 `handler` 直接返回，但本章没有实现审批 UI/策略。
+- **没有** 日志落盘。审计输出走标准 `logging`，是否写文件由部署侧配置。
+
+#### 10. EvoFlow 对照与差异（文件级）
+
+| EvoFlow 文件 | 本项目文件 | 本章实现的符号/字段 | 未实现部分 |
+|---|---|---|---|
+| `agents/middlewares/`（约 70 个文件） | `agents/middlewares/chain.py`、`agents/middlewares/audit.py` | `Middleware`、`run_chain`、`AuditMiddleware`、`_brief` | 审批、循环检测、预算、澄清、模型前后钩子 |
+| `agents/lead_agent/agent.py` | 未创建 | — | `_build_middlewares`、LangGraph 图装配 |
+| `agents/middlewares/tool_error_handling_middleware.py` | `agents/middlewares/audit.py` | 异常记录 + 继续抛 | 把异常转成 `ToolMessage(status="error")` |
+
+**有意省略的原因：** 本章要证明「嵌套顺序 + 异常语义 + 审计职责」三件事；把 70 个中间件抄进来会掩盖主线。错误转 `ToolMessage` 属于工具装配层，等接上 LangGraph 再加。
+
+#### 11. 验收
+
+- [x] 列表第一个在最外层，进入正序、退出逆序
+- [x] 工具异常继续上抛，不被审计层吞掉
+- [x] 中间件退出在异常路径上仍然执行
+- [x] 审计记录工具名、参数摘要、耗时、成功标记
+- [x] `3 passed`，ruff 通过
+
+#### 12. 下一章衔接
+
+中间件链解决「调用经过哪些层」。下一章解决「结果太大、上下文超预算」：token 估算、内联截断、超大结果落盘。
+
+#### 附：源码基准
+
+- EvoFlow baseline：`f22af53910a470ddba633be35e25878214c2984ec`（v1.3.22，PolyForm Noncommercial）。
+- 参考文件：`/Users/main/EvoFlow/backend/packages/harness/evoflow/agents/middlewares/`（工具钩子统一为 `wrap_tool_call`）。
+- 许可：EvoFlow 为 PolyForm Noncommercial；本章为学习性转述与自有最小实现。
 
 
 <!-- ===== 03-工具深化与上下文控制/04-上下文预算压缩与自动后续.md ===== -->
 
 
-### 第 4 章　上下文预算、压缩与自动后续动作
+### 第 4 章　上下文预算、截断与超大结果落盘
 
 
-> **EvoFlow 对照状态 / Alignment status：** ✅ **已核对源码**（`compaction_trigger.py` 660 行、`utils/model_context_length.py`、`context_compaction_core.py` 关键段）。
+> **状态：** ✅ 本章代码与测试已落地：`context/budget.py`、`context/tool_tokens.py`、`tools/tool_output_truncation.py`、`tools/large_result_store.py`，4 个测试用例通过。  
+> **范围：** 预算阈值、内联截断、超大结果落盘。自动压缩、自动后续动作、LLM 摘要不在本章实现；原因见文末。
 
-#### 本章目标
-把上下文当作**有预算的资源**管理：估算、截断、压缩、离线转存、自动续跑。
+#### 1. 上下文不是「能塞多少塞多少」
 
-#### 最小闭环
-工具返回 1MB → 落盘 + 只回灌摘要 → token 超阈值 → 触发压缩 → 压缩后仍能回答原问题。
+模型窗口写着 256K，不代表可以塞满。两个现实约束：
 
-#### 调用逻辑 / Invocation logic
+1. **延迟**：上下文越长，TTFT（首 token 时间）越高；实测 334K 时 TTFT 会到 10 秒级。
+2. **成本**：输入 token 按量计费，长上下文每轮都在重复付费。
 
-```mermaid
-sequenceDiagram
-    participant G as graph 节点
-    participant B as budget
-    participant L as 模型
-    G->>B: estimate_tokens(messages)
-    B-->>G: 当前占用
-    G->>B: should_compact(tokens, ctx_len, ratio)
-    B->>B: compact_threshold(ctx_len) / refill_target()
-    B-->>G: True → 触发压缩
-    G->>L: 压缩后重新请求
-```
+所以需要三层控制：
 
-- **入口**：每轮请求模型前先 `estimate_tokens()`，估算放在调用前而不是超限后。
-- **关键节点**：阈值有两个来源——比例（`ratio=0.9`）和绝对上限（cap），**cap 胜**（本复刻测试 `tests/chapters/test_ch03_04_budget.py::test_cap_beats_ratio` 钉死这条）；压缩后**不是立刻又能压**：真实实现是「压缩后 token 得再涨回去才允许再压」——`agents/compaction_trigger.py:20` `POST_COMPRESS_REFILL_RATIO = 1.22`（跨轮），`:24` `SAME_TURN_REFILL_RATIO = 1.5`（同一轮/tool 跳，防止 compress→main→compress 抖动），门槛 = `after_gate_tokens × 比例`（`:148`–`:149`）。**注意：没有名为 `refill_target()` 的函数**，原文这里写错了。
-- **出口**：`should_compact` 返回布尔，压缩动作由外层执行，`budget.py` 本身不调模型。
-- **最容易断的地方**：把估算做成精确 tokenizer（慢十倍且和模型不完全一致）；压缩后再塞回全部历史，等于没压。
+| 层 | 问题 | 本章实现 |
+|---|---|---|
+| 预算 | 什么时候该压缩？ | `compact_threshold()` / `should_compact()` |
+| 内联截断 | 单条工具结果太长怎么办？ | `truncate_text_to_token_budget()` |
+| 落盘 | 截断会丢信息，怎么找回？ | `maybe_persist()` + `<persisted-output>` 信封 |
 
-#### 真实模块地图（已核对：路径 · 行数 · 符号）
+#### 2. 调用逻辑与 EvoFlow 源码导读
 
-| 文件 | 行数 | 关键符号 | 模块常量 |
-|---|---|---|---|
-| `packages/harness/evoflow/context/model_request_token_estimate.py:37` | 191 | `ModelCallOverheadEstimate`；`set_gate_overhead_meta`、`reset_gate_overhead_meta`、`current_gate_overhead_meta` | — |
-| `packages/harness/evoflow/context/capability_token_estimate.py:23` | 167 | `_skill_catalog_xml_item`、`estimate_named_skills_tokens`、`estimate_named_tools_tokens` | — |
-| `packages/harness/evoflow/context/tool_tokens.py:20` | 27 | `count_tool_tokens` | — |
-| `packages/harness/evoflow/context/working_memory.py:22` | 356 | `ReadEntry`、`WriteEntry`、`_ThreadMemory`；`_normalize_path_key`、`_entry_key`、`_line_hint` | — |
-| `packages/harness/evoflow/context/tool_history_ager_queue.py:31` | 138 | `ToolHistorySummaryQueue`；`get_tool_history_summary_queue` | — |
-| `packages/harness/evoflow/context/tool_history_merge.py:58` | 299 | `ToolRoundEntry`、`_ColdScan`；`_evict_last_merge_locked`、`merge_cooldown_elapsed`、`mark_merge_cooldown` | — |
-| `packages/harness/evoflow/context/tool_timeline.py:14` | 116 | `_extract_persisted_path`、`search_tool_timeline`、`format_tool_timeline_for_agent` | — |
-| `packages/harness/evoflow/context/tool_result_summarizer.py:42` | 281 | `is_frozen_tool_history`、`is_already_shaped`、`format_structured_summary` | TOOL_HISTORY_PREFIX |
-| `packages/harness/evoflow/context/tool_summary_prompts.py:20` | 132 | `_tool_family`、`build_single_tool_summary_prompt`、`build_tool_history_batch_prompt` | — |
-| `packages/harness/evoflow/agents/context_compaction_core.py:1201` | 2963 | `CompactionPlan`、`ContextCompactionEngine`；`_compaction_tool_truncate_tokens`、`_compaction_moderate_truncate_tokens`、`_multimodal_extras_tokens` | MAIN_SUMMARY_PREFIX、LEGACY_SUMMARY_MARKERS、TURNS |
-| `packages/harness/evoflow/agents/context_compaction_events.py:15` | 316 | `_emit`、`_inject_compaction_stream_event`、`_try_stream_writer` | — |
-| `packages/harness/evoflow/agents/manual_context_compaction.py:26` | 175 | `ManualCompactionError`、`_ManualCompactionRuntime`；`_resolve_session_model_name`、`run_manual_context_compaction` | — |
-| `packages/harness/evoflow/tools/large_result_store.py:18` | 188 | `_get_store_dir`、`_prune_old_files`、`build_head_summary` | — |
-| `packages/harness/evoflow/tools/tool_output_truncation.py:11` | 62 | `truncate_text_to_token_budget`、`formatted_truncate_tool_output` | — |
-| `packages/harness/evoflow/context/context_ref_lru.py:14` | 55 | `register_ref`、`_evict_locked`、`list_refs` | — |
-| `packages/harness/evoflow/context/file_read_cache.py:17` | 83 | `_cache_key`、`get_cached_text`、`store_cached_text` | — |
-| `packages/harness/evoflow/agents/context_compaction_core.py:1201` | 2963 | `CompactionPlan`、`ContextCompactionEngine`；`_compaction_tool_truncate_tokens`、`_compaction_moderate_truncate_tokens`、`_multimodal_extras_tokens` | MAIN_SUMMARY_PREFIX、LEGACY_SUMMARY_MARKERS、TURNS |
-| `packages/harness/evoflow/tools/large_result_store.py:18` | 188 | `_get_store_dir`、`_prune_old_files`、`build_head_summary` | — |
+**调用逻辑（我们的最小实现）：**
 
-#### 核心概念（以下均为源码核对结论）
-- **只按 token 判定，不按消息数**：`message_count_triggers_compaction()` 恒返回 `False`，`round_trigger_rearmed()` 也恒为 `False`。配置项 `compaction_trigger_message_count` 保留但被显式忽略（源码注释：消息数「must not allow or force a compress LLM call」）。
-- **阈值三件套**：`compression_threshold_tokens(context_length, threshold_ratio, aggressive_ratio)`。`context_length` 取自模型表的 `context_length` 列，缺失时 `DEFAULT_CONTEXT_LENGTH = 256_000`；`AUTO_COMPACT_RATIO = 0.9`。
-- **非激进阈值有绝对上限**：`_ABSOLUTE_COMPACT_CAP_DEFAULT = 150_000`，可用 `EVOFLOW_COMPACT_ABSOLUTE_TOKENS` 覆盖（下限 20K）。原因写在注释里：大窗口模型按 0.9 比例会在 334K ctx / 10.9s TTFT 之后才触发，太晚。
-- **压缩后要「回填」才允许再压**：`POST_COMPRESS_REFILL_RATIO = 1.22`；**同一用户轮内**要求更高，`SAME_TURN_REFILL_RATIO = 1.5`（注释：1.22 在小窗口下几轮工具结果就撞到，导致 compress→main→compress 抖动）。
-- **单飞与冷却**：`CompactionTriggerCache.try_acquire_compress()` 保证同 thread 同时只有一次压缩；快照 TTL `7200s`、最多 `1024` 条，超了按时间淘汰。
-- **一次 hop 只判一次**：模型调用路径 `build_ephemeral_model_messages → compaction_gate_status → evaluate()`；从该管线调用 `compress_messages` 时必须传 `skip_trigger_check=True`。
-- **截断策略**：摘要截断按 head/tail = **70/30** token 预算切（`head_budget = budget * 0.70`）；图片块按 `_IMAGE_BLOCK_TOKEN_EST = 3000` 计，避免图片消息从阈值下溜走。
-- **可观测**：每次判定打一行 `[context-compaction] 压缩判定 tokens=%d/%d (%.1f%%) need_compress=%s threshold=%d reason=%s phase=%s`，并写入 `context-compaction.log`。
-- **信封机制**：大结果落盘后只回灌摘要（`large_result_store.py`、`tool_result_summarizer.py`）。
-
-#### 自研实现要点
 ```text
-1) tokens = estimate(messages) + gate_overhead
-2) threshold = min(context_length * 0.9, 150_000)      # 与 EvoFlow 的封顶一致
-3) 若 in_cooldown 或 try_acquire 失败 → 直接返回            # 单飞 + 冷却
-4) 压缩顺序：工具原始结果 → 老化历史 → 合并同类 → LLM 摘要
-5) 记录 after_gate_tokens；下次要长到 after*1.22（同轮 1.5）才允许再压
-6) 丢弃项写 persisted store，追加一条合成消息说明「丢了什么、从哪取回」
+工具返回 content
+  ├─ 小结果：原样交给模型
+  ├─ 中等结果：truncate_text_to_token_budget() / formatted_truncate_tool_output()
+  └─ 超大结果：maybe_persist()
+        ├─ 写 $MYAF_DATA_DIR/large_tool_results/<tool>_<call_id>_<hash>.txt
+        └─ 返回 <persisted-output> 信封（大小 + 路径 + 2KB 预览）
+
+模型调用前
+  └─ count_tool_tokens(messages) → should_compact() → True 则进入压缩管线
 ```
 
-#### 业务规则
-- 压缩必须幂等：同一状态重复压缩不产生额外消耗（EvoFlow 用 thread 级快照 + in-flight 标记实现）。
-- 别用消息数当触发条件：EvoFlow 明确把这条路径关掉了，靠它只会制造假触发。
-- 永不压缩 system prompt 与安全规则。
-- 落盘文件按 session 分目录，随 session 清理。
+入口有两个：工具结果返回时走「截断/落盘」；模型调用前走「预算判定」。本章只实现这两个入口的判定与结果治理，不实现压缩管线本身。
 
-#### 常见坑
-- 按字符数估算 token（中文差 2–3 倍）。
-- 压缩后丢了工具返回的关键字段，模型开始编。
-- 落盘文件不清理 → 磁盘打满。
+**EvoFlow 源码读法：**
 
-#### 验收
-- [ ] 1MB 工具输出不导致上下文溢出
-- [ ] 压缩后原问题仍可答
-- [ ] 重复压缩无副作用（同 thread 并发只有一次真正压缩）
+1. `/Users/main/EvoFlow/backend/packages/harness/evoflow/tools/large_result_store.py`
+   - 先读 `_get_store_dir` / `_prune_old_files` / `build_head_summary` / `format_decimal_bytes`；
+   - 再读 `_format_persisted_output_envelope` 与 `maybe_persist`，看信封字段与落盘失败降级。
+2. `/Users/main/EvoFlow/backend/packages/harness/evoflow/tools/tool_output_truncation.py`
+   - 读 `truncate_text_to_token_budget` 的二分逻辑与 `formatted_truncate_tool_output` 的告警头。
+3. `/Users/main/EvoFlow/backend/packages/harness/evoflow/context/tool_tokens.py`
+   - 确认 token 计数统一走 `count_text_tokens`，不要在截断/落盘各写一套。
+4. `/Users/main/EvoFlow/backend/packages/harness/evoflow/context/compaction_trigger.py` 与 `context_compaction_core.py`
+   - 只读「何时触发」与「压缩后回填」的入口，本章不实现其消息替换/摘要生成。
 
-##### 源码核对记录（路径与符号实测）
+**调用顺序上的差异：** EvoFlow 的 `maybe_persist` 读 `tool_results_config`，并按 `thread_id` 登记上下文引用 LRU；本章用模块常量 + 环境变量决定目录，`thread_id` 只占位。EvoFlow 的压缩是完整流水线，本章只有阈值函数。
 
-- `packages/harness/evoflow/context/model_request_token_estimate.py`（191 行）：类 `ModelCallOverheadEstimate`
-  - 模块自述：Estimate model-call overhead tokens (system prompt + bound tools) from wire shapes. Uses LangChain's ``convert…
-- `packages/harness/evoflow/context/capability_token_estimate.py`（167 行）
-  - 模块自述：Per-skill / per-tool context token estimates (same path as model-bind overhead). Skills: token cost of each ``…
-- `packages/harness/evoflow/context/tool_tokens.py`（27 行）
-  - 模块自述：Token counting helpers for tool-result tiering. Thin wrapper that delegates to :mod:`evoflow.context.compactio…
-- `packages/harness/evoflow/context/working_memory.py`（356 行）：类 `ReadEntry`、`WriteEntry`、`_ThreadMemory`
-  - 模块自述：Per-thread read registry (sync); rendered inside ``<mission_state>`` — no separate LLM digest.…
-- `packages/harness/evoflow/context/tool_history_ager_queue.py`（138 行）：类 `ToolHistorySummaryQueue`
-  - 模块自述：Background LLM refinement for aged tool summaries (debounced per thread).…
-- `packages/harness/evoflow/context/tool_history_merge.py`（299 行）：类 `ToolRoundEntry`、`_ColdScan`
-  - 模块自述：Batch-merge cold-zone tool rounds into a single frozen [tool:history] block.…
-- `packages/harness/evoflow/context/tool_timeline.py`（116 行）
-  - 模块自述：Unified tool-call timeline for agents (observability SQLite + JSONL fallback).…
-- `packages/harness/evoflow/context/tool_result_summarizer.py`（281 行）
-  - 模块自述：Dedicated model summaries for tool outputs (medium tier + history aging).…
-- `packages/harness/evoflow/context/tool_summary_prompts.py`（132 行）
-  - 模块自述：Tool-type-aware prompts for tool result summarization.…
-- `packages/harness/evoflow/agents/context_compaction_core.py`（2963 行）：类 `CompactionPlan`、`ContextCompactionEngine`
-  - 模块自述：Hermes-style context compaction for LangChain message lists (main agent).…
-- `packages/harness/evoflow/agents/context_compaction_events.py`（316 行）；环境变量 `EVOFLOW_GATEWAY_URL`
-  - 模块自述：Stream custom events so the UI can show context compaction status.…
-- `packages/harness/evoflow/agents/manual_context_compaction.py`（175 行）：类 `ManualCompactionError`、`_ManualCompactionRuntime`
-  - 模块自述：Manual context compaction for Gateway API (same engine as model-call middleware).…
-- `packages/harness/evoflow/tools/large_result_store.py`（188 行）；环境变量 `EVOFLOW_DATA_DIR`、`EVOFLOW_HOME`
-  - 模块自述：Large tool result persistence — saves oversized outputs to files.…
-- `packages/harness/evoflow/tools/tool_output_truncation.py`（62 行）
-  - 模块自述：runtime-aligned inline tool output truncation (middle omit + warning header).…
-- `packages/harness/evoflow/context/context_ref_lru.py`（55 行）
-  - 模块自述：Per-thread LRU registry for persisted tool-result file references.…
-- `packages/harness/evoflow/context/file_read_cache.py`（83 行）
-  - 模块自述：In-process LRU cache for text file reads (path + mtime).…
-- `packages/harness/evoflow/agents/context_compaction_core.py`（2963 行）：类 `CompactionPlan`、`ContextCompactionEngine`
-  - 模块自述：Hermes-style context compaction for LangChain message lists (main agent).…
-- `packages/harness/evoflow/tools/large_result_store.py`（188 行）；环境变量 `EVOFLOW_DATA_DIR`、`EVOFLOW_HOME`
-  - 模块自述：Large tool result persistence — saves oversized outputs to files.…
-
-> 本节只证明**路径、行数、符号存在**；调用顺序与边界条件仍属「行为」，未逐行核对。
-
-#### 对照 EvoFlow 核对清单
-- [x] 触发只按 token，消息数触发被显式禁用（`message_count_triggers_compaction` 恒 False）
-- [x] 阈值公式与 150K 绝对封顶（`EVOFLOW_COMPACT_ABSOLUTE_TOKENS`）
-- [x] 回填比例 1.22 / 同轮 1.5，以及为什么需要两个数
-- [x] 单飞 `try_acquire_compress()` + 冷却 + 快照 TTL 7200s / 1024 条
-- [x] 摘要头尾 70/30 切分、图片块 3000 token 估算
-- [ ] `context_compaction_core.py` 内部的具体裁剪顺序（2963 行，仅读了阈值与截断相关段）
-- [ ] `large_result_store.py` 的引用信封格式（188 行，未展开）
-
-#### 从零实现（手把手）
-> 读完这章你能算出「这轮还剩多少 token」，并在超阈值时触发压缩、压缩后回填。
-> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
-
-##### Step 1　新建 budget.py：估算 + 阈值 + 硬上限
-**文件**：`backend/packages/harness/myagentflow/context/budget.py（新建）`
-**要写的逻辑**：按字符估 token；阈值 = 上下文 * 0.9；但再乘一个绝对上限 150K（EvoFlow 的实测取舍），取两者更小。
-
-**代码**
+#### 3. 预算：比例阈值 + 绝对上限
 
 ```python
-"""上下文预算：估算、阈值、封顶。
-
-为什么要有绝对上限：
-模型窗口写着 256K，但实测 334K ctx 时 TTFT 会飙到 10.9s，
-所以「比例阈值」必须再被一个绝对值压住。
-"""
-from __future__ import annotations
-
+# 模型没写 context_length 时按 256K 估：宁可高估窗口，也不要低估后把请求截断
 DEFAULT_CONTEXT = 256_000
+# 用到窗口 90% 就触发压缩：留 10% 给「压缩本身也要占上下文」
 AUTO_COMPACT_RATIO = 0.9
+# 绝对上限 150K：实测超过这个量 TTFT 会从 2s 级飙到 10s 级
 ABSOLUTE_CAP = 150_000          # 对应 EVOFLOW_COMPACT_ABSOLUTE_TOKENS
+# 压缩后把上下文回填到目标值的 122%（多留一点，减少连续压缩次数）
 POST_COMPRESS_REFILL = 1.22     # 压缩后回填到目标的 122%
+# 同一轮内再次回填的放大系数：1.5 倍，避免「刚压缩完又立刻超阈值」
 SAME_TURN_REFILL = 1.5
+```
+
+`estimate_tokens` 放在下一节单独讲；下面是三个阈值函数：
+
+```python
+def compact_threshold(context_length: int = DEFAULT_CONTEXT) -> int:
+    """压缩触发阈值：上下文比例与绝对上限取较小值。"""
+    by_ratio = int(context_length * AUTO_COMPACT_RATIO)
+    return min(by_ratio, ABSOLUTE_CAP)   # 两者取小：绝对上限永远生效
 
 
+def should_compact(tokens: int, context_length: int = DEFAULT_CONTEXT) -> bool:
+    """当前 token 数是否达到压缩阈值。"""
+    return tokens >= compact_threshold(context_length)
+
+
+def refill_target(threshold: int, same_turn: bool = False) -> int:
+    """压缩后的回填目标：按同轮/跨轮比例把阈值换算成可用预算。"""
+    ratio = SAME_TURN_REFILL if same_turn else POST_COMPRESS_REFILL
+    return int(threshold / ratio)
+```
+
+为什么比例和上限要取 `min`：
+
+- 小窗口模型（100K）按 90% 算是 90K；
+- 大窗口模型（256K）按 90% 算是 230K，但绝对上限 150K 会把它压住；
+- 不加上限，大窗口模型会「看起来还有空间」一直塞到延迟爆炸。
+
+为什么回填目标小于阈值：压缩本身也要占上下文（摘要、系统提示、工具定义）。回填到阈值 100% 等于刚压缩完就再次触发。
+
+#### 4. token 估算：先统一口径
+
+```python
 def estimate_tokens(text: str) -> int:
     """粗估：中文约 1 字 1 token，英文约 4 字符 1 token。宁可高估。"""
     if not text:
         return 0
     cjk = sum(1 for ch in text if ord(ch) > 0x2E80)
     return cjk + max(1, (len(text) - cjk) // 3)
-
-
-def compact_threshold(context_length: int = DEFAULT_CONTEXT) -> int:
-    by_ratio = int(context_length * AUTO_COMPACT_RATIO)
-    return min(by_ratio, ABSOLUTE_CAP)   # 两者取小：绝对上限永远生效
-
-
-def should_compact(tokens: int, context_length: int = DEFAULT_CONTEXT) -> bool:
-    return tokens >= compact_threshold(context_length)
-
-
-def refill_target(threshold: int, same_turn: bool = False) -> int:
-    ratio = SAME_TURN_REFILL if same_turn else POST_COMPRESS_REFILL
-    return int(threshold / ratio)
 ```
 
-**验证**
+`ord(ch) > 0x2E80` 是 CJK 区的大致边界。中文按 1 字 1 token，英文按 3 字符 1 token（比常见的 4 更保守），因为低估会导致「以为没超、实际超」。
 
-```bash
-uv run python -c "
-from myagentflow.context.budget import estimate_tokens, compact_threshold, should_compact
-print(estimate_tokens('你好 world'))       # 3~4
-print(compact_threshold())                  # 150000（被绝对上限压住）
-print(should_compact(160_000))              # True
-"
-```
-
-##### Step 2　写测试：绝对上限必须压过比例
-**文件**：`backend/tests/chapters/test_ch03_04_budget.py（新建）`
-**要写的逻辑**：256K 上下文下阈值是 150K 而不是 230K；同轮回填比值更大（回填更少）。
-
-**代码**
+工具结果与上下文预算必须用同一个口径，否则会出现「截断说没超、压缩说超了」的分裂。所以单独一层：
 
 ```python
-from __future__ import annotations
+def count_tool_tokens(text: str, *, model: str | None = None) -> int:
+    """估算工具结果 token 数；当前用 budget.estimate_tokens。"""
+    del model  # 当前不按模型路由 tokenizer，先统一口径
+    return estimate_tokens(text)
+```
+
+#### 5. 内联截断：保留头尾
+
+```python
+def truncate_text_to_token_budget(text: str, max_tokens: int) -> str:
+    """中间截断到 max_tokens：保留头尾，中间放省略标记。"""
+    raw = str(text or "")
+    if not raw or max_tokens <= 0:
+        return ""
+    if count_tool_tokens(raw) <= max_tokens:
+        return raw
+
+    # 预算小到连头尾都放不下：退化成「取头部固定字符 + 提示」，别返回空串
+    if len(raw) <= _CHARS_PER_TOKEN * max_tokens // 2:
+        half = max(128, len(raw) // 2)
+        return raw[:half] + "\n\n[Truncated for tool output budget.]"
+
+    omitted = max(0, count_tool_tokens(raw) - max_tokens)
+    marker = _OMITTED_MARKER_TEMPLATE.format(omitted=omitted)
+
+    # 二分「头尾各留多少字符」：token 估算随字符单调增，适合二分
+    lo, hi = 0, len(raw)
+    head_len = 0
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        head = raw[:mid]
+        tail = raw[len(raw) - mid :] if mid < len(raw) else ""
+        candidate = f"{head}\n\n{marker}\n\n{tail}" if tail else f"{head}\n\n{marker}"
+        if count_tool_tokens(candidate) <= max_tokens:
+            head_len = mid
+            lo = mid + 1
+        else:
+            hi = mid - 1
+
+    if head_len <= 0:
+        return raw[: max(128, _CHARS_PER_TOKEN * max_tokens // 4)] + "\n\n[Truncated for tool output budget.]"
+
+    head = raw[:head_len]
+    tail = raw[-head_len:] if head_len < len(raw) else ""
+    if tail and tail != head:
+        return f"{head}\n\n{marker}\n\n{tail}"
+    return f"{head}\n\n{marker}"
+```
+
+为什么保留头尾：头是命令开头、文件前几行、错误摘要；尾是最新输出。只留头会丢掉「刚刚发生了什么」，只留尾会丢掉上下文。
+
+为什么用二分：token 估算随字符数单调增加，可以二分「头尾各留多少字符」，比按固定比例切更贴近预算。
+
+外层再加一个「让模型知道不完整」的头：
+
+```python
+def formatted_truncate_tool_output(text: str, max_tokens: int) -> str:
+    """截断并加「原始 token/行数」头，让模型知道内容不完整。"""
+    raw = str(text or "")
+    if not raw:
+        return raw
+    original_token_count = count_tool_tokens(raw)
+    if original_token_count <= max_tokens:
+        return raw
+    total_lines = len(raw.splitlines()) or 1
+    body = truncate_text_to_token_budget(raw, max_tokens)
+    return (
+        f"Warning: truncated output (original token count: {original_token_count})\n"
+        f"Total output lines: {total_lines}\n\n{body}"
+    )
+```
+
+#### 6. 落盘：超过 10K 字符转成信封
+
+```python
+_PERSISTED_DIR_NAME = "large_tool_results"
+# 超过 10K 字符才落盘：低于这个量直接内联，落盘反而多一次磁盘往返
+THRESHOLD_CHARS = 10_000
+# 旧文件保留 24h：排查当天问题够用，又不至于把磁盘吃满
+MAX_AGE_HOURS = 24
+SUMMARY_HEAD_LINES = 20
+SUMMARY_MAX_CHARS = 2_000
+_PERSISTED_OUTPUT_OPEN_TAG = "<persisted-output>"
+_PERSISTED_OUTPUT_CLOSE_TAG = "</persisted-output>"
+_PERSISTED_OUTPUT_PREVIEW_CHARS = 2_000
 
 
+def _get_store_dir() -> Path:
+    """落盘目录：$MYAF_DATA_DIR/large_tool_results。"""
+    base = Path(os.environ.get("MYAF_DATA_DIR") or (Path.home() / ".myagentflow"))
+    store_dir = base / _PERSISTED_DIR_NAME
+    store_dir.mkdir(parents=True, exist_ok=True)
+    return store_dir
+```
+
+核心函数：
+
+```python
+def maybe_persist(
+    content: str,
+    tool_name: str,
+    tool_call_id: str,
+    *,
+    thread_id: str | None = None,
+) -> str:
+    """超阈值时落盘并返回信封，否则原样返回。
+
+    文件名 = 工具名 + tool_call_id + 内容哈希前 12 位：
+    同一调用重放会命中同一文件，不同内容不会互相覆盖。
+    """
+    del thread_id  # 上下文引用登记（context_ref_lru）尚未实现
+    n = len(content)
+    if n <= THRESHOLD_CHARS or is_persisted_output_content(content):
+        return content
+
+    content_hash = hashlib.md5(content.encode("utf-8")).hexdigest()[:12]
+    safe_name = tool_name.replace("/", "_").replace(" ", "_")
+    filename = f"{safe_name}_{tool_call_id}_{content_hash}.txt"
+    store_dir = _get_store_dir()
+    filepath = store_dir / filename
+
+    try:
+        _prune_old_files(store_dir)
+        filepath.write_text(content, encoding="utf-8")
+        logger.info("Persisted large tool result (%d chars) to %s", n, filepath)
+        return _format_persisted_output_envelope(
+            tool_name=tool_name,
+            content=content,
+            original_chars=n,
+            persisted_path=str(filepath),
+        )
+    except OSError as exc:
+        logger.warning("Failed to persist large tool result to %s: %s", filepath, exc)
+        return content[:SUMMARY_MAX_CHARS] + f"\n\n… [persist failed, total {n:,} chars]"
+```
+
+信封长这样：
+
+```text
+<persisted-output>
+Output too large (20 KB chars). Full output saved to: /tmp/.../bash_call-1_<hash>.txt
+
+Preview (first 2 KB):
+line
+line
+...
+</persisted-output>
+
+Use read with path='...' and offset/limit for on-demand loading.
+```
+
+四个细节：
+
+1. **先判 `is_persisted_output_content`**：避免把已经是信封的内容再包一层，出现「信封套信封」。
+2. **文件名带内容哈希**：同一 `tool_call_id` 重放但内容不同，不会互相覆盖。
+3. **落盘失败降级为头部截断**：磁盘满/权限错时不能让工具直接失败，至少回一段可读内容并注明总字符数。
+4. **`thread_id` 当前只占位**：EvoFlow 会把它登记到上下文引用 LRU；本章没有该模块，所以显式 `del` 并在文档写明。
+
+#### 7. 测试
+
+```python
 def test_cap_beats_ratio():
+    """大窗口被绝对上限截住，小窗口按比例算。"""
     from myagentflow.context.budget import ABSOLUTE_CAP, compact_threshold
 
     assert compact_threshold(256_000) == ABSOLUTE_CAP
@@ -5752,37 +6042,128 @@ def test_cap_beats_ratio():
 
 
 def test_refill():
+    """回填目标小于阈值，同轮回填比跨轮更保守。"""
     from myagentflow.context.budget import refill_target
 
     assert refill_target(150_000) < 150_000
     assert refill_target(150_000, same_turn=True) < refill_target(150_000)
+
+
+def test_truncate_middle():
+    """超预算时保留头尾、中间出现省略标记，且 token 不超预算。"""
+    from myagentflow.context.tool_tokens import count_tool_tokens
+    from myagentflow.tools.tool_output_truncation import (
+        formatted_truncate_tool_output,
+        truncate_text_to_token_budget,
+    )
+
+    text = "HEAD\n" + "x" * 20_000 + "\nTAIL"
+    out = truncate_text_to_token_budget(text, 200)
+    assert out.startswith("HEAD")
+    assert out.endswith("TAIL")
+    assert "tokens truncated" in out
+    assert count_tool_tokens(out) <= 200
+
+    formatted = formatted_truncate_tool_output(text, 200)
+    assert formatted.startswith("Warning: truncated output")
+    assert "Total output lines:" in formatted
+
+
+def test_persist_large(monkeypatch, tmp_path):
+    """超阈值落盘并返回信封，小结果原样返回。"""
+    from myagentflow.tools import large_result_store as store
+
+    monkeypatch.setenv("MYAF_DATA_DIR", str(tmp_path))
+    content = "line\n" * 4_000                  # 20K 字符，超过 10K 阈值
+    envelope = store.maybe_persist(content, "bash", "call-1")
+    assert store.is_persisted_output_content(envelope)
+    assert "<persisted-output>" in envelope and "</persisted-output>" in envelope
+    assert str(tmp_path / "large_tool_results") in envelope
+
+    files = list((tmp_path / "large_tool_results").iterdir())
+    assert len(files) == 1
+    assert files[0].read_text(encoding="utf-8") == content
+
+    assert store.maybe_persist("small", "bash", "call-2") == "small"
 ```
 
-**验证**
+`test_persist_large` 用 `monkeypatch.setenv` 把落盘目录指到 `tmp_path`：不能写进用户真实 `~/.myagentflow`，测试必须可重复、可清理。
+
+#### 8. 手把手从零做一遍
 
 ```bash
-uv run pytest tests/chapters/test_ch03_04_budget.py -v
-# 期望：2 passed
+cd /Users/main/my-agent-flow/backend
+touch packages/harness/myagentflow/context/tool_tokens.py
+touch packages/harness/myagentflow/tools/tool_output_truncation.py
+touch packages/harness/myagentflow/tools/large_result_store.py
 ```
 
-##### 与 EvoFlow 对照
+顺序建议：
 
-| 我们的做法 | EvoFlow | 为什么 |
-|---|---|---|
-| 比例阈值 0.9 | `utils/model_context_length.py` 的 `AUTO_COMPACT_RATIO` | 留 10% 给输出与新消息 |
-| 绝对封顶 150K | 同文件 `_ABSOLUTE_COMPACT_CAP_DEFAULT=150_000` | 生产见过 334K ctx / 10.9s TTFT |
-| 回填 1.22 / 同轮 1.5 | compaction 里的两个 RATIO 常量 | 一次压太狠会立刻再触发压缩 |
-
-##### 知识点
-
-- [Harbor404 · 推理链路延迟优化](https://harbor404.fushenlin.com/notes/llm-agent-latency-optimization/)：上下文长度与 TTFT 的关系
-- agent-book：上下文压缩策略
-
-##### 验收
+1. 先补 `budget.py` 的常量与三个函数（如果还没有）；
+2. 写 `tool_tokens.py`，只做一层转调，保证口径统一；
+3. 写 `tool_output_truncation.py`，先做「不超预算原样返回」，再做二分截断，最后加格式化头；
+4. 写 `large_result_store.py`，先做目录/预览/大小格式化，再写 `maybe_persist`；
+5. 写 `tests/chapters/test_ch03_04_budget.py`，跑：
 
 ```bash
 uv run pytest tests/chapters/test_ch03_04_budget.py -q
 ```
+
+实测输出：
+
+```text
+4 passed, 13 warnings in 0.03s
+```
+
+#### 9. 本章不做什么（必须如实说）
+
+- **没有** 自动压缩。`should_compact()` 只回答「是否超阈值」，真正调用模型生成摘要、替换消息、写回 checkpoint 属于压缩管线，本章未实现。
+- **没有** 自动后续动作（auto follow-up）。标题里的「自动后续」是 EvoFlow 的完整能力，本章只做预算与结果治理。
+- **没有** LLM 摘要。`large_result_store.py` 只做头部预览，不调用模型总结；调用模型会引入额外成本与失败点，本章不假装有。
+- **没有** 上下文引用 LRU。`thread_id` 参数保留但未登记，等 `context_ref_lru` 章节实现后再接。
+- **没有** 按模型路由 tokenizer。`count_tool_tokens` 忽略 `model` 参数，统一用字符启发式。
+
+#### 10. EvoFlow 对照与差异（文件级）
+
+| EvoFlow 文件 | 本项目文件 | 本章实现的符号/字段 | 未实现部分 |
+|---|---|---|---|
+| `tools/large_result_store.py` | `tools/large_result_store.py` | `_get_store_dir`、`build_head_summary`、`format_decimal_bytes`、`maybe_persist`、`is_persisted_output_content` | `tool_results_config`、`_llm_summary`、上下文引用 LRU |
+| `tools/tool_output_truncation.py` | `tools/tool_output_truncation.py` | `truncate_text_to_token_budget`、`formatted_truncate_tool_output` | 按模型路由 tokenizer |
+| `context/tool_tokens.py` | `context/tool_tokens.py` | `count_tool_tokens`、`_CHARS_PER_TOKEN` | `compaction_token_utils` 的 tiktoken 路由 |
+| `config/tool_results_config.py` | 未创建 | — | 阈值、保留时长、摘要行数全部改成模块常量 |
+| `context/compaction_trigger.py` / `context_compaction_core.py` | 未创建 | — | 触发判定之外的全部压缩流水线 |
+| `context/context_ref_lru.py` | 未创建 | — | 落盘文件的引用登记与淘汰 |
+
+**有意省略的原因：** 本章目标是「结果治理闭环可测」，不是完整压缩系统。压缩流水线需要模型摘要、消息替换、checkpoint 写回，属于后续独立章节；提前实现会引入大量未验证分支。
+
+#### 11. 验收
+
+- [x] 大窗口被 150K 绝对上限截住，小窗口按 90% 比例
+- [x] 回填目标小于阈值，同轮更保守
+- [x] 20K 字符结果截断后保留头尾且 token 不超预算
+- [x] 20K 字符结果落盘，信封含路径与预览，文件内容完整
+- [x] 小结果不落盘，原样返回
+- [x] `4 passed`，ruff 通过
+
+#### 12. 本部分收尾
+
+四章合起来是一条完整的最小治理链：
+
+```text
+路径守卫（能不能碰）
+  → 后台任务表（跑起来怎么管）
+    → 中间件链（调用经过哪些层）
+      → 预算/截断/落盘（结果太大怎么收）
+```
+
+这条链不追求「功能多」，追求每一步都能被测试证明、被文档解释清楚。
+
+#### 附：源码基准
+
+- EvoFlow baseline：`f22af53910a470ddba633be35e25878214c2984ec`（v1.3.22，PolyForm Noncommercial）。
+- 参考文件：`/Users/main/EvoFlow/backend/packages/harness/evoflow/tools/large_result_store.py`、`tools/tool_output_truncation.py`、`context/tool_tokens.py`。
+- 许可：EvoFlow 为 PolyForm Noncommercial；本章为学习性转述与自有最小实现。
 
 
 ## 04-记忆与长期资产

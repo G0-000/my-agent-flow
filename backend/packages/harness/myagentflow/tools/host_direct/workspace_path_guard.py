@@ -1,7 +1,7 @@
 """一、文件说明
     宿主路径守卫：解析 + 可切换策略。
-    EvoFlow 的实现把 confinement 关掉了（docstring 明写 no confinement），
-    这里保留同样行为，但把它变成一个显式开关，避免「以为有护栏」。
+    为什么要有显式开关：很多宿主工具默认「信任调用方」，一旦上层把用户输入
+    直接透传，路径就会逃出工作区；这里把策略摆到明面上，便于逐章收紧。
 
 二、目录结构
     packages/harness/myagentflow/tools/host_direct/
@@ -13,7 +13,7 @@
 三、关键方法
     Policy      路径策略：disabled 原样放行，confine 限制在工作区内。
     Resolution  路径解析结果：实际路径、是否在区内、结论。
-    resolve()   realpath 折平 .. 与软链后判断是否越界，按策略给出结论。
+    resolve()   相对路径先拼 workspace，再 realpath 折平 .. 与软链，按策略给出结论。
 """
 from __future__ import annotations
 
@@ -38,10 +38,17 @@ class Resolution:
 
 
 def resolve(path: str, workspace: str | Path, policy: Policy = Policy.disabled) -> Resolution:
-    """realpath 折平 .. 与软链后判断是否越界，按策略给出结论。"""
+    """相对路径先拼 workspace，再 realpath 折平 .. 与软链，按策略给出结论。
+
+    相对路径必须以 workspace 为基准：否则进程 cwd 不同，同一输入会落到不同文件，
+    confine 的判断也跟着漂移。
+    """
     root = Path(os.path.realpath(str(workspace)))
+    candidate = Path(os.path.expanduser(path))
+    if not candidate.is_absolute():
+        candidate = root / candidate
     # realpath 先把 `..`、软链、重复分隔符全部折平，再做前缀比较
-    target = Path(os.path.realpath(os.path.expanduser(path)))
+    target = Path(os.path.realpath(str(candidate)))
     inside = target == root or root in target.parents
     if policy is Policy.disabled:
         return Resolution(target, inside, "allowed")

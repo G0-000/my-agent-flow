@@ -28,7 +28,7 @@ class ScriptedModel:
 def test_full_chain(monkeypatch, tmp_path):
     """计划依赖、图回复、消息落库、记忆与 SSE 全链路成立。"""
     from myagentflow.agents.lead_agent.graph import build_graph
-    from myagentflow.memory.agent_memory import AgentMemoryManager
+    from myagentflow.agents.memory.agent_memory import AgentMemoryManager
     from myagentflow.persistence.chat_message_repositories import (
         append_message,
     )
@@ -40,18 +40,25 @@ def test_full_chain(monkeypatch, tmp_path):
     plan = parse("- [ ] 读代码\n- [ ] 写实现 depends: 读代码")
     assert plan[1].depends == [plan[0].id]
 
-    registry = ToolRegistry(); register_echo(registry)
+    registry = ToolRegistry()
+    register_echo(registry)
     graph = build_graph(ScriptedModel())
     out = graph.invoke({"messages": [{"role": "user", "content": "hi"}]})
     assert out["messages"][-1].content == "done"
 
     monkeypatch.setenv("MYAF_DB_PATH", str(tmp_path / "m.sqlite"))
     from myagentflow.persistence import db
-    db.reset_db()
-    append_message("t1", "user", "hi"); append_message("t1", "assistant", "done")
 
-    mem = AgentMemoryManager(tmp_path)
-    mem.remember("t1", "用户偏好中文")
+    db.reset_db()
+    append_message("t1", "user", "hi")
+    append_message("t1", "assistant", "done")
+
+    monkeypatch.setenv("MYAF_DATA_DIR", str(tmp_path / "data"))
+    from myagentflow.config.paths import reset_paths_cache
+
+    reset_paths_cache()
+    mem = AgentMemoryManager("planner")
+    mem.add_to_task_history("t1", "user", "用户偏好中文")
 
     sse = EventStream().emit("done").to_sse()
     assert sse.startswith("id: 1")

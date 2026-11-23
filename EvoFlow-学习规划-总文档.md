@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-20 10:57　源提交：`1e56ae1`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-23 10:22　源提交：`8d42e5d`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -115,6 +115,8 @@
 
 > **归档说明**：本文件是单文件时代（`doc/EvoFlow-学习规划.md`）的总览原文，保留原貌。
 > 现已按多级目录拆分，**最新状态与总目录见 ../README.md（../README.md）**；第 2–13 部分已不再是空骨架，各自有独立目录。
+>
+> **下面「历史状态」是 v0.1 冻结快照，不代表当前进度**：其中「第 1 部分 35 个离线测试」「第 2–13 部分只有骨架」均已被后续实现取代。当前验收数字只以 PROGRESS.md（../PROGRESS.md） 的「实现验收记录」为准。
 
 
 
@@ -122,11 +124,11 @@
 
 > 本文档采用 **Part → Chapter → Section** 三级结构，中英混写（中文讲解，英文保留术语）。每个模块包含：**最小闭环、调用逻辑、核心概念、示例代码、业务规则、验收**。
 
-#### 当前状态 / Status（请先读这一节）
+#### 历史状态（v0.1，冻结）/ Archived Status
 | 项目 | 状态 |
 |---|---|
-| 第 1 部分（最小闭环） | ✅ 文档完整；代码 **已实现并通过 35 个离线测试**；**第 1 章已与 EvoFlow 的 `config.example.yaml` 核对** |
-| 第 2–13 部分 | ⬜ 等你的资料批次；目前只有章节骨架 |
+| 第 1 部分（最小闭环） | 当时记录：文档完整；35 个离线测试通过（**历史数字，当前为 14**） |
+| 第 2–13 部分 | 当时状态：待材料 / 仅有骨架（**已过期，当前 02–04 已有最小实现**） |
 | 与 EvoFlow 一致性 | **第 1 章 ✅ 已核对公开配置文件**；第 2–5 章 🟡 尚未核对源码（真实运行时是 LangGraph + middleware，结构不同，需重写）。示例代码是独立的自研参考实现，不是 EvoFlow 的源码 |
 | 资料阅读范围 | 已读 EvoFlow `config.example.yaml` 全文、`backend/` 完整文件树，并**逐行读过** `checkpointer/{provider,omit_transcript,thread_state_reader}.py`、`session_execution/{lifecycle,langgraph_cancel}.py`、`lead_agent/agent.py` 装配段；其余实现仍未读。详见 资料来源（../00-导论/01-资料来源与许可.md） 的已读/未读表 |
 
@@ -2719,7 +2721,7 @@ uv run python -m ruff check packages app tools tests
 ### 第 2 部分　持久化与运行生命周期 / Durability and Run Lifecycle
 
 
-> 状态：🟡 推进中。第 1 章已实现并验收；第 2、3、4 章是范围内最小实现，章节开头都写清了「未做什么」。
+> 状态：✅ 四章最小实现已验收（`2026-11-23`，`test_ch02_*.py` 17 passed）；源码核对 🔍 第 1、2 章逐行核对，第 3、4 章结构级。
 
 目标：让一次 Agent 运行从「进程内的一次性事件」变成 **可恢复、可取消、可被外部程序驱动、可分享** 的长生命周期对象。
 
@@ -2728,11 +2730,11 @@ uv run python -m ruff check packages app tools tests
 | 章 | 主题 | 状态 | 本章真实代码 |
 |---|---|---|---|
 | 1（01-检查点与线程恢复.md） | 检查点与线程恢复 Checkpoints | ✅ 已实现 + 5 测试 | `agents/checkpointer/{provider,omit_transcript,thread_state_reader}.py` |
-| 2（02-运行生命周期与取消.md） | 运行生命周期与取消 Run lifecycle | 🟡 进程内注册表 + 4 测试 | `session_execution/lifecycle.py` |
-| 3（03-CLI与stdio-App-Server.md） | CLI 与 stdio App Server | 🟡 `chat`/`state` + `ping`/`state` + 5 测试 | `cli/main.py`、`app_server/stdio.py` |
-| 4（04-分享生命周期.md） | 分享生命周期 Sharing | 🟡 token 存储 + 3 测试 | `collab/shares.py` |
+| 2（02-运行生命周期与取消.md） | 运行生命周期与取消 Run lifecycle | ✅ 进程内注册表 + 4 测试 | `session_execution/lifecycle.py` |
+| 3（03-CLI与stdio-App-Server.md） | CLI 与 stdio App Server | ✅ `chat`/`state` + `ping`/`state` + 5 测试 | `cli/main.py`、`app_server/stdio.py` |
+| 4（04-分享生命周期.md） | 分享生命周期 Sharing | ✅ token 存储 + 3 测试 | `collab/shares.py` |
 
-**状态口径**：✅ = 本章声明的行为全部实现且有测试；🟡 = 范围缩小/部分实现，章节内「本章不做」逐条列了缺什么。
+**状态口径**：✅ = 本章声明的行为已实现且有测试，章节内「本章不做」仍列出未实现项；源码核对程度另见 `PROGRESS.md`，不要与实现状态混用。
 
 #### 这一部分要解决什么问题
 
@@ -4727,7 +4729,7 @@ uv run python -m ruff check packages tests                # All checks passed
 ### 第 3 部分　工具深化与上下文控制 / Tool Depth and Context Control
 
 
-> 状态：✅ 四章最小实现均已落地并有测试（15 passed）。  
+> 状态：✅ 四章最小实现已验收（`2026-11-23`，`test_ch03_*.py` 15 passed）；源码核对 🔍 第 1、3、4 章逐行核对，第 2 章结构级。  
 > 边界：本部分只实现「可运行的最小闭环」，不把 EvoFlow 的 70 个中间件、浏览器桥、CUA 全量抄进来；未实现项在每章「未实现」小节列明。
 
 #### 这部分解决什么
@@ -6175,7 +6177,7 @@ uv run pytest tests/chapters/test_ch03_04_budget.py -q
 ### 第 4 部分　记忆与长期资产 / Memory and Long-Term Assets
 
 
-> 状态：✅ 三章代码与章节测试已落地；全量章节测试 `84 passed`。
+> 状态：✅ 三章最小实现已验收（`2026-11-23`，`test_ch04_*.py` 17 passed）；源码核对 🔍 路径/符号级，行为未逐行闭合。
 
 目标：让系统记得住、查得到、删得掉，并且记忆进入 prompt 时不会被当指令执行。
 

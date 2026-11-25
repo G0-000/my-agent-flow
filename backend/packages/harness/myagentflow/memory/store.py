@@ -7,6 +7,7 @@
     packages/harness/myagentflow/memory/
     ├── __init__.py
     ├── namespaces.py  命名空间 id
+    ├── consolidate.py 确定性巩固
     ├── store.py       ← 本文件：原子表读写
     ├── facade.py      remember / recall / forget
     └── recall_snapshot.py
@@ -15,9 +16,14 @@
     ensure_namespace()      建/更新命名空间，返回规范 id。
     upsert_atom()          写一条；subject_key 相同则替换旧值。
     soft_delete_atom()     软删：保留行，置 deleted_at。
+    get_atom()             按 id 取活跃 atom。
     list_namespace_atoms() 按命名空间/layer/pin 列。
     search_keyword_ns()    关键词召回：词命中数 + 重要性排序。
+    supersede_atom()       软删被取代 atom，并记录保留方。
+    touch_accessed()       更新 atom 最近访问时间。
+    set_pin()              设置或清除 atom 的 pin 标记。
     count_active_atoms()   命名空间活跃条数。
+    update_atom_fields()   只更新传入的 atom 字段。
 """
 
 from __future__ import annotations

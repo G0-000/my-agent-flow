@@ -1,4 +1,18 @@
-"""第 4 部分第 2 章：记忆巩固 + 注入防御。"""
+"""一、文件说明
+    第 4 部分第 2 章：确定性记忆巩固、pin 保护与注入防御。
+
+二、覆盖
+    data_dir()                                  每个用例使用独立的临时记忆库。
+    test_text_overlap_bounds()                  验证文本重叠度的相同/无关边界。
+    test_consolidate_merges_same_subject()      同 subject 合并并软删被取代行。
+    test_consolidate_merges_similar_without_subject() 无 subject 条目按文本相似度合并。
+    test_consolidate_keeps_pinned_same_subject_atom() 同 subject 合并优先保留 pin。
+    test_should_enqueue_threshold()             只判断活跃条数阈值，不派发任务。
+    test_prompt_wraps_untrusted_and_compact_filters() 注入声明与 compact 过滤规则。
+
+三、运行
+    uv run pytest tests/chapters/test_ch04_02_consolidate.py -q
+"""
 
 from __future__ import annotations
 
@@ -56,8 +70,36 @@ def test_consolidate_merges_similar_without_subject(data_dir):
     assert store.count_active_atoms(ns) == 1
 
 
+def test_consolidate_keeps_pinned_same_subject_atom(data_dir):
+    """同 subject 合并时，即使普通记忆更重要，也保留被 pin 的条目。"""
+    ns = store.ensure_namespace(user_ns("u1"))
+    pinned = store.upsert_atom(
+        namespace_id=ns,
+        content="用户偏好手冲咖啡",
+        subject_key="coffee",
+        importance=0.2,
+        pin=True,
+        replace_subject=False,
+    )
+    store.upsert_atom(
+        namespace_id=ns,
+        content="用户喜欢咖啡",
+        subject_key="coffee",
+        importance=0.9,
+        replace_subject=False,
+    )
+
+    report = consolidate.consolidate_namespace(ns)
+
+    assert report["subject_merged"] == 1
+    live = store.list_namespace_atoms(ns)
+    assert len(live) == 1
+    assert live[0]["id"] == pinned
+    assert live[0]["pin"] is True
+
+
 def test_should_enqueue_threshold(data_dir):
-    """少于 10 条不触发后台巩固。"""
+    """阈值函数只判断活跃条数，不创建或派发后台任务。"""
     ns = user_ns("u1")
     assert consolidate.should_enqueue_threshold(ns) is False
     for i in range(10):

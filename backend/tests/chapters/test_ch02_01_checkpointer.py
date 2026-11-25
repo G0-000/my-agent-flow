@@ -11,6 +11,7 @@
 三、运行
     uv run pytest tests/chapters/test_ch02_01_checkpointer.py -q
 """
+
 from __future__ import annotations
 
 import sqlite3
@@ -24,10 +25,10 @@ def test_sqlite_setup_and_singleton(tmp_path, monkeypatch):
 
     from myagentflow.agents.checkpointer import provider
 
-    provider.reset_checkpointer()      # 清掉上一条用例留下的单例
+    provider.reset_checkpointer()  # 清掉上一条用例留下的单例
     cp1 = provider.get_checkpointer()
     cp2 = provider.get_checkpointer()
-    assert cp1 is cp2                  # 单例
+    assert cp1 is cp2  # 单例
 
     tables = {
         row[0]
@@ -35,7 +36,7 @@ def test_sqlite_setup_and_singleton(tmp_path, monkeypatch):
             "select name from sqlite_master where type='table'"
         )
     }
-    assert "checkpoints" in tables     # setup() 真的跑过
+    assert "checkpoints" in tables  # setup() 真的跑过
 
     provider.reset_checkpointer()
 
@@ -57,12 +58,15 @@ class _RecordingSaver:
     """记录 put 收到什么的假 saver：只验证「写之前被改成了什么」。"""
 
     def __init__(self) -> None:
+        """初始化记录字段；不连接真实 saver。"""
         self.checkpoint = None
 
     def put(self, config, checkpoint, metadata, new_versions):
+        """同步写入：只记下最终 checkpoint，供断言剥离结果。"""
         self.checkpoint = checkpoint
 
     async def aput(self, config, checkpoint, metadata, new_versions):
+        """异步写入：与 put 相同，只记最终 checkpoint。"""
         self.checkpoint = checkpoint
 
 
@@ -90,7 +94,9 @@ def test_omit_transcript_on_put(monkeypatch):
     )
     assert inner.checkpoint["channel_values"]["messages"] == []
     assert inner.checkpoint["channel_values"]["ui_messages"] == []
-    assert inner.checkpoint["channel_values"]["plan"] == {"steps": 1}   # 非对话通道不许动
+    assert inner.checkpoint["channel_values"]["plan"] == {
+        "steps": 1
+    }  # 非对话通道不许动
 
 
 def test_keep_messages_for_unresolved_tool_call(monkeypatch):
@@ -109,7 +115,12 @@ def test_keep_messages_for_unresolved_tool_call(monkeypatch):
     ]
     inner = _RecordingSaver()
     cp = OmitTranscriptCheckpointer(inner)
-    cp.put({"configurable": {"thread_id": "t1"}}, {"channel_values": {"messages": messages}}, {}, {})
+    cp.put(
+        {"configurable": {"thread_id": "t1"}},
+        {"channel_values": {"messages": messages}},
+        {},
+        {},
+    )
     assert inner.checkpoint["channel_values"]["messages"] == messages
 
 
@@ -124,5 +135,10 @@ def test_omit_switch_off(monkeypatch):
     messages = [HumanMessage(content="hi")]
     inner = _RecordingSaver()
     cp = OmitTranscriptCheckpointer(inner)
-    cp.put({"configurable": {"thread_id": "t1"}}, {"channel_values": {"messages": messages}}, {}, {})
+    cp.put(
+        {"configurable": {"thread_id": "t1"}},
+        {"channel_values": {"messages": messages}},
+        {},
+        {},
+    )
     assert inner.checkpoint["channel_values"]["messages"] == messages

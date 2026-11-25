@@ -1,7 +1,7 @@
 # EvoFlow 学习规划 · 总文档（合订本）
 
 > 这份文件由子文档自动合并生成，**不要直接编辑**；改子文档后重跑 `agent-book/scripts/build_evoflow_master.py`。
-> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：71　生成：2026-11-23 10:22　源提交：`8d42e5d`
+> 子文档目录：`agent-book/work-agent-harness/doc/evoflow-学习规划/`　篇数：72　生成：2026-11-24 14:51　源提交：`dc1cb73`
 > 内容定位：每个功能点都给出「建哪个文件 → 写什么代码 → 怎么验证」，事实以本机 EvoFlow 源码为准。
 
 ## 目录
@@ -14,71 +14,72 @@
 | 4 | | 后端模块地图 / Backend Module Map |
 | 5 | | 学习路线与写作约定 / Route and Conventions |
 | 6 | | 实现手册体例：每章都教你写出能跑的代码 / Hands-on Chapter Template |
-| 7 | **01-最小闭环** | 第 1 部分　最小闭环 / Part 1: Minimal Closed Loop |
-| 8 | | 第 1 章　配置与模型 / Configuration and Models |
-| 9 | | 第 2 章　Agent 构造与单轮执行 / Agent Construction and Single-Turn Execution |
-| 10 | | 第 3 章　会话与消息存储 / Sessions and Message Storage |
-| 11 | | 第 4 章　工具协议与首批工具 / Tool Protocol and First Tools |
-| 12 | | 第 5 章　流式事件与断线恢复 / Streaming Events and SSE Recovery |
-| 13 | | 第 6 章　第 1 部分综合验收 / Part 1 Acceptance |
-| 14 | **02-持久化与运行生命周期** | 第 2 部分　持久化与运行生命周期 / Durability and Run Lifecycle |
-| 15 | | 第 1 章　检查点与线程恢复 / Checkpoints |
-| 16 | | 第 2 章　运行生命周期与取消 / Run Lifecycle |
-| 17 | | 第 3 章　CLI 与 stdio App Server |
-| 18 | | 第 4 章　分享生命周期 / Sharing |
-| 19 | **03-工具深化与上下文控制** | 第 3 部分　工具深化与上下文控制 / Tool Depth and Context Control |
-| 20 | | 第 1 章　路径守卫与宿主边界 |
-| 21 | | 第 2 章　后台命令与桥接鉴权 |
-| 22 | | 第 3 章　Middleware 调用链与工具审计 |
-| 23 | | 第 4 章　上下文预算、截断与超大结果落盘 |
-| 24 | **04-记忆与长期资产** | 第 4 部分　记忆与长期资产 / Memory and Long-Term Assets |
-| 25 | | 第 1 章　会话短期记忆与长期记忆 |
-| 26 | | 第 2 章　记忆巩固、知识图谱与注入防御 |
-| 27 | | 第 3 章　资产、产物、事项与反思 |
-| 28 | **05-知识库与代码理解** | 第 5 部分　知识库与代码理解 / Knowledge Base and Code Understanding |
-| 29 | | 第 1 章　上传解析与切块 / Parse and Chunk |
-| 30 | | 第 2 章　Embedding、向量检索与引用 |
-| 31 | | 第 3 章　Owned Knowledge 与知识地图 |
-| 32 | | 第 4 章　Workspace 代码索引与符号上下文 |
-| 33 | **06-委派隔离与危险操作治理** | 第 6 部分　委派、隔离与危险操作治理 / Delegation, Isolation, Dangerous Ops |
-| 34 | | 第 1 章　子代理注册、选择与结果汇总 |
-| 35 | | 第 2 章　沙箱、宿主执行与权限配置 |
-| 36 | | 第 3 章　会话工具绑定、审批、取消与清理 |
-| 37 | **07-计划目标协作与探索** | 第 7 部分　计划、目标、协作与探索 / Planning, Goals, Collaboration, Exploration |
-| 38 | | 第 1 章　Plan 定义解析与 Goal 图 |
-| 39 | | 第 2 章　协作账本、团队分工、任务中心 |
-| 40 | | 第 3 章　Workflow、App Center、Stage 与任务输入 |
-| 41 | | 第 4 章　探索预算、策略路由与思维图 |
-| 42 | | 第 5 章　暂停恢复、幂等与重复执行 |
-| 43 | **08-自动化与主动Agent** | 第 8 部分　自动化与主动 Agent / Automation and Proactive Agents |
-| 44 | | 第 1 章　Automation 定义、执行与运行历史 |
-| 45 | | 第 2 章　定时规则、调度器与重启补偿 |
-| 46 | | 第 3 章　Heartbeat 主动任务与智能体员工 |
-| 47 | | 第 4 章　通知渠道投递与任务管理界面 |
-| 48 | **09-外部能力生态** | 第 9 部分　外部能力生态 / External Capability Ecosystem |
-| 49 | | 第 1 章　MCP 连接、发现、调用与 OAuth |
-| 50 | | 第 2 章　插件扩展壳、运行桥接与 Capability 授权 |
-| 51 | | 第 3 章　Skills、资源市场与 Community Provider |
-| 52 | | 第 4 章　外部 Agent Adapter 与 A2A 互操作 |
-| 53 | **10-HTTP网关与渠道** | 第 10 部分　HTTP 网关与渠道 / HTTP Gateway and Channels |
-| 54 | | 第 1 章　Gateway 启动依赖与聊天 API |
-| 55 | | 第 2 章　兼容协议、语音与 OpenAI/LangGraph 代理 |
-| 56 | | 第 3 章　渠道适配器、消息总线与渠道状态 |
-| 57 | **11-身份组织与运维治理** | 第 11 部分　身份、组织与运维治理 / Identity, Organization, Governance |
-| 58 | | 第 1 章　Principal、ACL、Workspace 与身份入口 |
-| 59 | | 第 2 章　JWT、OIDC、Guardrails 与入口保护 |
-| 60 | | 第 3 章　组织分发、License、Admin 与审批 |
-| 61 | | 第 4 章　Trace、日志、运行诊断、成本与用量 |
-| 62 | | 第 5 章　Eval 质量评估与回归闭环 |
-| 63 | | 第 6 章　人格内核：身份、情绪、记忆与成长 |
-| 64 | **12-Web桌面与产品体验** | 第 12 部分　Web、桌面与产品体验 / Web, Desktop, Product Experience |
-| 65 | | 第 1 章　Web 启动、聊天会话与历史 |
-| 66 | | 第 2 章　设置、Agent、知识、任务与管理页面 |
-| 67 | | 第 3 章　UI RPC 服务与 Provider 系统 |
-| 68 | | 第 4 章　Tauri 桌面权限、语音与发布安装 |
-| 69 | **13-全量集成与复刻验收** | 第 13 部分　全量集成与复刻验收 / Full Integration and Replica Acceptance |
-| 70 | | 第 1 章　从用户任务贯通全部功能域 |
-| 71 | | 第 2 章　EvoFlow 对照台账与差异说明 |
+| 7 | | 第 1–4 部分完整度审计 / Completeness Audit |
+| 8 | **01-最小闭环** | 第 1 部分　最小闭环 / Part 1: Minimal Closed Loop |
+| 9 | | 第 1 章　配置与模型 / Configuration and Models |
+| 10 | | 第 2 章　Agent 构造与单轮执行 / Agent Construction and Single-Turn Execution |
+| 11 | | 第 3 章　会话与消息存储 / Sessions and Message Storage |
+| 12 | | 第 4 章　工具协议与首批工具 / Tool Protocol and First Tools |
+| 13 | | 第 5 章　流式事件与断线恢复 / Streaming Events and SSE Recovery |
+| 14 | | 第 6 章　第 1 部分综合验收 / Part 1 Acceptance |
+| 15 | **02-持久化与运行生命周期** | 第 2 部分　持久化与运行生命周期 / Durability and Run Lifecycle |
+| 16 | | 第 1 章　检查点与线程恢复 / Checkpoints |
+| 17 | | 第 2 章　运行生命周期与取消 / Run Lifecycle |
+| 18 | | 第 3 章　CLI 与 stdio App Server |
+| 19 | | 第 4 章　分享生命周期 / Sharing |
+| 20 | **03-工具深化与上下文控制** | 第 3 部分　工具深化与上下文控制 / Tool Depth and Context Control |
+| 21 | | 第 1 章　路径守卫与宿主边界 |
+| 22 | | 第 2 章　后台命令与桥接鉴权 |
+| 23 | | 第 3 章　Middleware 调用链与工具审计 |
+| 24 | | 第 4 章　上下文预算、截断与超大结果落盘 |
+| 25 | **04-记忆与长期资产** | 第 4 部分　记忆与长期资产 / Memory and Long-Term Assets |
+| 26 | | 第 1 章　会话短期记忆与长期记忆 |
+| 27 | | 第 2 章　记忆巩固、知识图谱与注入防御 |
+| 28 | | 第 3 章　资产、产物、事项与反思 |
+| 29 | **05-知识库与代码理解** | 第 5 部分　知识库与代码理解 / Knowledge Base and Code Understanding |
+| 30 | | 第 1 章　上传解析与切块 |
+| 31 | | 第 2 章　Embedding 与向量检索 |
+| 32 | | 第 3 章　Owned Knowledge 与知识地图 |
+| 33 | | 第 4 章　Workspace 代码索引与符号上下文 |
+| 34 | **06-委派隔离与危险操作治理** | 第 6 部分　委派、隔离与危险操作治理 / Delegation, Isolation, Dangerous Ops |
+| 35 | | 第 1 章　子代理注册、选择与结果汇总 |
+| 36 | | 第 2 章　沙箱、宿主执行与权限配置 |
+| 37 | | 第 3 章　会话工具绑定、审批、取消与清理 |
+| 38 | **07-计划目标协作与探索** | 第 7 部分　计划、目标、协作与探索 / Planning, Goals, Collaboration, Exploration |
+| 39 | | 第 1 章　Plan 定义解析与 Goal 图 |
+| 40 | | 第 2 章　协作账本、团队分工、任务中心 |
+| 41 | | 第 3 章　Workflow、App Center、Stage 与任务输入 |
+| 42 | | 第 4 章　探索预算、策略路由与思维图 |
+| 43 | | 第 5 章　暂停恢复、幂等与重复执行 |
+| 44 | **08-自动化与主动Agent** | 第 8 部分　自动化与主动 Agent / Automation and Proactive Agents |
+| 45 | | 第 1 章　Automation 定义、执行与运行历史 |
+| 46 | | 第 2 章　定时规则、调度器与重启补偿 |
+| 47 | | 第 3 章　Heartbeat 主动任务与智能体员工 |
+| 48 | | 第 4 章　通知渠道投递与任务管理界面 |
+| 49 | **09-外部能力生态** | 第 9 部分　外部能力生态 / External Capability Ecosystem |
+| 50 | | 第 1 章　MCP 连接、发现、调用与 OAuth |
+| 51 | | 第 2 章　插件扩展壳、运行桥接与 Capability 授权 |
+| 52 | | 第 3 章　Skills、资源市场与 Community Provider |
+| 53 | | 第 4 章　外部 Agent Adapter 与 A2A 互操作 |
+| 54 | **10-HTTP网关与渠道** | 第 10 部分　HTTP 网关与渠道 / HTTP Gateway and Channels |
+| 55 | | 第 1 章　Gateway 启动依赖与聊天 API |
+| 56 | | 第 2 章　兼容协议、语音与 OpenAI/LangGraph 代理 |
+| 57 | | 第 3 章　渠道适配器、消息总线与渠道状态 |
+| 58 | **11-身份组织与运维治理** | 第 11 部分　身份、组织与运维治理 / Identity, Organization, Governance |
+| 59 | | 第 1 章　Principal、ACL、Workspace 与身份入口 |
+| 60 | | 第 2 章　JWT、OIDC、Guardrails 与入口保护 |
+| 61 | | 第 3 章　组织分发、License、Admin 与审批 |
+| 62 | | 第 4 章　Trace、日志、运行诊断、成本与用量 |
+| 63 | | 第 5 章　Eval 质量评估与回归闭环 |
+| 64 | | 第 6 章　人格内核：身份、情绪、记忆与成长 |
+| 65 | **12-Web桌面与产品体验** | 第 12 部分　Web、桌面与产品体验 / Web, Desktop, Product Experience |
+| 66 | | 第 1 章　Web 启动、聊天会话与历史 |
+| 67 | | 第 2 章　设置、Agent、知识、任务与管理页面 |
+| 68 | | 第 3 章　UI RPC 服务与 Provider 系统 |
+| 69 | | 第 4 章　Tauri 桌面权限、语音与发布安装 |
+| 70 | **13-全量集成与复刻验收** | 第 13 部分　全量集成与复刻验收 / Full Integration and Replica Acceptance |
+| 71 | | 第 1 章　从用户任务贯通全部功能域 |
+| 72 | | 第 2 章　EvoFlow 对照台账与差异说明 |
 
 ---
 
@@ -92,7 +93,7 @@
 ### 00 导论 / Introduction
 
 
-正式进入 13 个部分之前，先用这五篇建立全局印象、写作约定与**动手体例**。
+正式进入 13 个部分之前，先用这六篇建立全局印象、写作约定、**动手体例**与完整度口径。
 
 | 文件 | 内容 | 什么时候读 |
 |---|---|---|
@@ -101,6 +102,7 @@
 | 02-后端模块地图（02-后端模块地图.md） | `backend/` 真实目录结构、各包职责、运行时入口 | **动代码之前必读** |
 | 03-学习路线与写作约定（03-学习路线与写作约定.md） | 两条主线、推进顺序、每章固定结构、证据标记 | 自己续写章节前 |
 | 04-实现手册体例（04-实现手册体例.md） | **每章怎么写成「建文件 → 写代码 → 验证」的施工说明** | 准备动手写任何一章前 |
+| 05-完整度审计-第1至4部分（05-完整度审计-第1至4部分.md） | 1–4 部分文档/代码/测试矩阵，组件级与端到端接线的差距 | 判断“这一部分算不算完成”时 |
 
 #### 一句话
 
@@ -134,6 +136,7 @@
 
 #### 目录 / Contents
 - 后端模块地图 Backend module map（../00-导论/02-后端模块地图.md） — 🆕 来自真实文件树；指出了第 1 部分需要重写的地方
+- 第 1–4 部分完整度审计（../00-导论/05-完整度审计-第1至4部分.md） — 🆕 文档/代码/测试/端到端接线矩阵
 - **第 1 部分　最小闭环 / Minimal Closed Loop（../01-最小闭环/README.md）** — ✅ 已实现并测试
   - 第 1 章　配置与模型供应商 Configuration（../01-最小闭环/01-配置与模型.md）
   - 第 2 章　Agent 与单轮执行 Single Turn（../01-最小闭环/02-Agent与单轮执行.md）
@@ -141,7 +144,7 @@
   - 第 4 章　工具协议与首批工具 Tools（../01-最小闭环/04-工具协议与首批工具.md）
   - 第 5 章　流式事件与断线恢复 Streaming（../01-最小闭环/05-流式事件与断线恢复.md）
   - 第 6 章　综合验收 Acceptance（../01-最小闭环/06-本部分综合验收.md）
-- **第 2 部分　持久化与运行生命周期 / Durability and Run Lifecycle** — 🟡 进行中（第 1 章 ✅）
+- **第 2 部分　持久化与运行生命周期 / Durability and Run Lifecycle** — ✅ 四章组件级实现（17 测试）
   - 第 1 章　检查点与线程恢复 Checkpoints（../02-持久化与运行生命周期/01-检查点与线程恢复.md）
   - 第 2 章　运行生命周期与取消 Run lifecycle（../02-持久化与运行生命周期/02-运行生命周期与取消.md）
   - 第 3 章　CLI 与 stdio App Server（../02-持久化与运行生命周期/03-CLI与stdio-App-Server.md）
@@ -151,15 +154,15 @@
   - 第 2 章　后台命令与桥接鉴权（../03-工具深化与上下文控制/02-后台命令浏览器桥与Computer-Use.md）
   - 第 3 章　Middleware 调用链与工具审计（../03-工具深化与上下文控制/03-Middleware调用链与工具审计.md）
   - 第 4 章　上下文预算、截断与超大结果落盘（../03-工具深化与上下文控制/04-上下文预算压缩与自动后续.md）
-- **第 4 部分　记忆与长期资产 / Memory and Long-Term Assets** — ✅ 三章已落地（17 项章节测试通过）
+- **第 4 部分　记忆与长期资产 / Memory and Long-Term Assets** — ✅ 三章已落地（19 项，见 进度台账（../PROGRESS.md））
   - 第 1 章　会话短期记忆与长期记忆
   - 第 2 章　记忆巩固、知识图谱与提示注入防御
   - 第 3 章　资产、产物、事项与反思
-- **第 5 部分　知识库与代码理解 / Knowledge Base and Code Understanding** — ⬜ 待材料
-  - 第 1 章　上传解析与切块
-  - 第 2 章　Embedding、向量检索与引用
-  - 第 3 章　Owned Knowledge 与知识地图
-  - 第 4 章　Workspace 代码索引与符号上下文
+- **第 5 部分　知识库与代码理解 / Knowledge Base and Code Understanding** — ✅ 四章已落地（17 测试）
+  - 第 1 章　上传解析与切块（../05-知识库与代码理解/01-上传解析与切块.md）
+  - 第 2 章　Embedding 与向量检索（../05-知识库与代码理解/02-Embedding与向量检索.md）
+  - 第 3 章　Owned Knowledge 与知识地图（../05-知识库与代码理解/03-Owned-Knowledge与知识地图.md）
+  - 第 4 章　Workspace 代码索引与符号上下文（../05-知识库与代码理解/04-Workspace代码索引.md）
 - **第 6 部分　委派、隔离与危险操作治理 / Delegation, Isolation, Dangerous Ops** — ⬜ 待材料
   - 第 1 章　子代理注册、选择与结果汇总
   - 第 2 章　沙箱、宿主执行与权限配置
@@ -620,6 +623,146 @@ CheckpointerType = Literal["memory", "sqlite", "postgres"]
 一章没跑通，不要开下一章。
 
 
+<!-- ===== 00-导论/05-完整度审计-第1至4部分.md ===== -->
+
+
+### 第 1–4 部分完整度审计 / Completeness Audit
+
+
+> 审计日期：`2026-11-24`
+> 范围：第 1–4 部分，共 17 章正文、4 个部分 README。
+> 参照：`agent-book/agent-learning` 的 Agent 基础、工具、记忆、上下文、LangGraph、Harness、安全章节；[Harbor404](https://harbor404.fushenlin.com/) 的 CowAgent、Agent 算法架构、MCP 治理、Prompt 注入、幂等、LLM Gateway、Multi-Agent 等笔记。
+> 结论先行：**文档按章节闭合，代码按组件闭合；端到端调用链没有闭合。**
+
+#### 1. 实测结果
+
+| 项目 | 结果 |
+|---|---|
+| 第 1 部分章节测试 | `14 passed` |
+| 第 2 部分章节测试 | `17 passed` |
+| 第 3 部分章节测试 | `15 passed` |
+| 第 4 部分章节测试 | `19 passed` |
+| 四部分合计 | `65 passed` |
+| 全量章节测试 | `98 passed, 13 warnings` |
+| 静态检查 | `ruff check packages app tests` → `All checks passed!` |
+| 文档本地链接 | 0 个断链 |
+| 文档 Python 代码块 | 93 个；3 个语法错误已修（2 个 `list_messages` 空函数体 + 1 个裸 `yield`），其余可解析 |
+| 文档绝对路径 | 1 个失效的上游路径已修 |
+| 测试文件头 / docstring | 1–4 部分测试均有三段式头；11 个替身/辅助方法缺 docstring，已补 |
+
+验证命令：
+
+```bash
+cd /Users/main/my-agent-flow/backend
+uv run pytest tests/chapters -q
+uv run ruff check packages app tests
+```
+
+#### 2. 端到端接线矩阵
+
+“组件已测”不等于“入口已接”。当前实际情况如下：
+
+| 部分 | 组件级实现 | 已接入口 | 关键未接点 |
+|---|---|---|---|
+| 1 最小闭环 | 配置、模型工厂、单节点图、消息仓储、工具注册表、SSE | `POST /chat`、`/v1/chat/completions` 接单节点图 | 未接 checkpointer；未接消息表 hydrate；无工具调用循环 |
+| 2 持久化与生命周期 | 检查点 provider、omit transcript、RunRegistry、CLI、stdio、分享表 | `state` 命令 / `state` stdio 方法读检查点 | `chat`/Gateway 不传 checkpointer；RunRegistry 无路由；分享无路由；消息表未回填 |
+| 3 工具与上下文 | 路径守卫、后台任务表、桥接 token、中间件链、审计、预算、截断、落盘 | 无 | 没有统一工具执行器；图里只有 `call_model`；后台只有登记/停止，没有 `Popen` 启动；预算与落盘没有被模型调用路径调用 |
+| 4 记忆与资产 | 记忆原子表、门面、召回快照、确定性巩固、prompt 边界、产物、事项、反射 | 无 | 记忆未注入 `build_graph`；`AgentMemoryManager` 无调用者；事项可见性参数是 no-op；产物/反射未接聊天入口 |
+
+最重要的三条：
+
+1. **没有 Agent 工具循环。** `agents/lead_agent/graph.py` 只有 `call_model` 单节点；`ToolRegistry` 只有 `echo`，没有被图调用。
+2. **没有“会话恢复”闭环。** checkpointer 默认开启 `omit_transcript`，检查点里不留 `messages`；消息表又没有在 `/chat` 前后读写，所以同一 `thread_id` 的对话无法从入口恢复。
+3. **记忆治理没有进入 prompt。** 第 4 部分的存储、巩固、边界格式化都有测试，但 `build_graph` 不组装 system prompt，也不读取记忆。
+
+#### 3. 参考知识点覆盖
+
+| 参考主题 | 对应资料 | 1–4 部分现状 | 判断 |
+|---|---|---|---|
+| Agent 感知—思考—行动循环 | agent-learning 1.3、5.1–5.2 | 只有一次模型调用；无 ReAct / 工具循环 | ❌ 缺核心实现 |
+| Function Calling / 工具 schema | agent-learning 3.2–3.4 | 有工具声明和注册表；未绑定模型、未执行 tool_call | 🟡 只有协议外壳 |
+| 规划与反思 | agent-learning 5.3–5.7 | 第 4 部分有“反射解析”，不是任务反思；无 plan / goal | ⬜ 留给第 7 部分 |
+| 短期 / 长期 / 工作记忆 | agent-learning 4.1–4.7；Harbor CowAgent 2.5 | 有短/长期原子与巩固；无工作记忆、无摘要记忆、无注入 | 🟡 存储层有，运行时无 |
+| 上下文工程 | agent-learning 7.1–7.5 | 有预算阈值、截断、落盘；无上下文组装、无工具历史老化 | 🟡 结果治理，不是上下文构建 |
+| LangGraph 状态与条件路由 | agent-learning 13.1–13.5 | 单节点图 + checkpointer 组件；无条件边、无 HITL | 🟡 最小图 |
+| 权限、沙箱、Prompt 注入 | agent-learning 21.1–21.7 | 有路径守卫、桥接 token、记忆边界；无审批、无 sandbox、无注入分类器 | 🟡 边界防守 |
+| Harness 六支柱 / 结构化输出 | agent-learning 8.1–8.6 | 有中间件链、审计、CLI/stdio；无 AGENTS.md 装配、无结构化输出约束 | 🟡 部分 |
+| 流式与并发 | agent-learning 22.4；Harbor 延迟优化 | 有 SSE 事件归一化；无断线重放、无并发 run 管理 | 🟡 单向流 |
+| 幂等 | Harbor 幂等设计 | `session_execution/idempotency.py` 已有并有第 7 部分测试 | ✅ 但不在 1–4 主链 |
+| MCP 工具治理 | Harbor MCP 治理 | 未涉及，属于第 9 部分 | ⬜ 后续 |
+| Multi-Agent | agent-learning 18；Harbor 五种架构 | 未涉及，属于第 6/18 部分 | ⬜ 后续 |
+| Eval / 可观测性 | agent-learning 20；Harbor RAG / Agent 评估 | 只有 pytest 与审计日志；无回归集、无 trace 评分 | ⬜ 后续 |
+
+#### 4. 本次修正
+
+| 文件 | 问题 | 处理 |
+|---|---|---|
+| `01-最小闭环/03-会话与消息存储.md` | 两个 `list_messages` 示例只有注释、没有函数体，Python 语法错误 | 补 `return ...` / `...`，恢复可解析 |
+| `01-最小闭环/06-本部分综合验收.md` | 全量测试仍写 `60 passed` | 改为当前 `97 passed` |
+| `04-记忆与长期资产/README.md` | 全量测试仍写 `85 passed` | 改为 `97 passed` |
+| `01-最小闭环/02-Agent与单轮执行.md` | 把工具循环写成“1/04 才有工具节点” | 改为“1/04 只有注册表，工具循环未实现” |
+| `01-最小闭环/04-工具协议与首批工具.md` | 把工具循环推给第 6、7 部分，但两部分当前大纲都不含完整 ReAct 循环 | 改为“当前没有安排章节，需单列” |
+| `01-最小闭环/06-本部分综合验收.md` | “没有工具循环，属于后面的部分” | 改为“尚未实现，后续需单列” |
+| `03-工具深化与上下文控制/04-上下文预算压缩与自动后续.md` | 上游路径写成 `context/compaction_trigger.py`，实际是 `agents/compaction_trigger.py` | 修正路径 |
+| `03-工具深化与上下文控制/04-上下文预算压缩与自动后续.md` | “四章合起来是一条完整治理链”容易被读成运行时已接好 | 改为“组件链，未接统一工具执行器” |
+| `03-工具深化与上下文控制/README.md` | “模型只收到信封”与实际未接线不符 | 改为“函数级验证；尚未接入模型调用” |
+| `02-持久化与运行生命周期/README.md` | “崩了能从检查点续上、历史从消息表 hydrate”是目标，不是现状 | 补“当前只有 state 读检查点；chat/CLI 未接入” |
+| `01-最小闭环/README.md` | 依赖图写成 `tools → agent`，实际图不调用工具 | 标为“注册表，未接图” |
+| `00-导论/00-项目总览.md` | 第 2 部分仍写“进行中（第 1 章 ✅）”，且缺第 4 章链接 | 改为四章已落地 17 测试，补齐链接 |
+| `agents/persona.py` | 文件头声称同级有 `content_scanner.py`，实际不存在 | 修正目录说明 |
+| `items/`、`artifacts/`、`reflection/` 的 `__init__.py` | 只有一行 docstring，不符合三段式 | 补文件说明 / 目录结构 / 关键方法 |
+| 第 1–3 部分测试替身与辅助方法 | 11 个函数/类缺 docstring | 逐项补“验证什么、期望什么” |
+
+#### 5. 仍未闭合的缺口
+
+这些不是文档措辞问题，需要写代码或单列章节：
+
+1. **工具调用循环**：模型返回 `tool_calls` → 执行工具 → `ToolMessage` 回填 → 再调模型。当前全仓库没有 `ToolNode`、`bind_tools`、`ToolMessage` 分支。
+2. **会话恢复入口**：`/chat` 未传 checkpointer，也未读写 `chat_messages`；即使 checkpointer 接上，默认 `omit_transcript` 也会把 `messages` 剥掉。
+3. **工具执行器**：第 3 部分的路径守卫、中间件、审计、预算、落盘都没有一个统一 runner 串起来；后台任务表也没有启动进程的 API。
+4. **记忆注入**：第 4 部分的 `format_memory_for_injection` 没有进入 `build_graph` 的 system prompt；`AgentMemoryManager` 没有调用者。
+5. **事项可见性**：`list_items` 的 `is_admin / principal / filter_visibility` 被 `del`，是明确的 no-op，不是 ACL。
+6. **Plan / ReAct / 反思闭环**：第 4 部分的 `reflection/resolvers.py` 只做字符串到对象的解析，不是任务反思；第 7 部分当前只有目录。
+7. **Eval / Trace**：没有 Agent 级回归集、轨迹评分、成本账本；只有章节 pytest。
+
+#### 6. 参考资料
+
+- Agent 入门、工具、规划、记忆、上下文、LangGraph、Harness、安全：`/Users/main/agent-book/agent-learning/chapter_intro`、`chapter_tools`、`chapter_planning`、`chapter_memory`、`chapter_context_engineering`、`chapter_langgraph`、`chapter_harness`、`chapter_security`。
+- [CowAgent 架构与核心机制](https://harbor404.fushenlin.com/notes/cowagent-architecture-and-core-mechanisms/)：ReAct 循环、工具/技能分层、三层记忆。
+- [Agent 算法与架构](https://harbor404.fushenlin.com/notes/agent-algorithm-architecture/)：Agent 循环与上下文组织。
+- [MCP 工具治理](https://harbor404.fushenlin.com/notes/mcp-tool-governance-architecture/)：外部工具数量控制与治理。
+- [Prompt 注入防御](https://harbor404.fushenlin.com/notes/agent-prompt-injection-defense/)：不可信内容边界。
+- [幂等设计](https://harbor404.fushenlin.com/notes/idempotency-design/)：同请求只执行一次。
+- [LLM Gateway](https://harbor404.fushenlin.com/notes/llm-gateway-comprehensive-guide/)：模型网关与路由。
+- [Multi-Agent 五种架构](https://harbor404.fushenlin.com/notes/multi-agent-five-architectures/)：多 Agent 协作形态。
+
+#### 7. 判断口径
+
+- **可以作为“章节完成”**：每章有目标、调用逻辑、文件地图、函数级实现、真实测试、边界说明；17 章均满足。
+- **不能作为“系统完成”**：入口、工具循环、消息回填、记忆注入、工具执行器没有串起来；第 1–4 部分仍是组件库，不是可恢复、可工具调用的完整 Agent。
+- **下一步优先级**：先补工具循环和 `/chat` 的消息读写，再谈上下文压缩与记忆注入；否则第 3、4 部分的组件没有落点。
+
+
+#### 2026-11-24 补录：源码核对与第 4 部分概念补全
+
+这次补的是文档的证据层，不改运行时行为。
+
+- 第 4 部分 README 重写：补 12 个核心上游文件 + 2 组未复刻模块的「上游 → 本地 → 章节」映射，补 atom / namespace / layer / subject_key / revision / recall snapshot / consolidation / item / artifact / reflection 概念表，画出「写入 → 召回 → 注入」路径。
+- 第 4 部分 1、2、3 章：把原来的「文件级差异」替换为上游文件表 + 行为差异表 + 源码核对记录；修正 `store.py 491→497`、`facade.py 257→258`、`recall_snapshot.py 110→111`、`consolidate.py 218→219`、`items/service.py 270→271` 等行数。
+- 第 1–4 部分 17 章都新增了 `## 源码核对记录（路径与符号实测）`，每章列出上游文件行数、本地对应文件行数、已核符号和明确未复刻项。
+- 第 4 部分三章从「路径/符号级」升为「行为级」；第 1 部分第 2 章因图结构差异已逐段核对，也标为行为级。
+- 第 1 部分第 6 章是汇总验收，不重复判定源码；其余 6 章仍是结构级：第 1 部分 1/3/4/5 章、第 2 部分 3/4 章。
+
+第 3 部分第 2 章随后也按「本章声明范围」升为行为级（任务表 + token 逐段对照；完整执行器/HTTP 路由仍列为未实现）。因此第 1–4 部分当前是 **10 章行为级 + 1 章汇总 + 6 章结构级**。结构级不等于没核对：路径、符号、行数和差异已写入各章；只是没有把上游几万行全部逐行读完，也没有把未实现的入口写成已完成。
+
+同时修掉两个文档问题：
+
+- `02/02` 的取消示例代码块是裸 `yield` 片段，已包进 `async def _stream_with_cancel()`，恢复可解析。
+- `03/01` 的源码记录原先把本地不存在的 `read_file.py` / `write_file.py` / `workspace_guard_middleware.py` 写进「本地对应」，已改为只有 `workspace_path_guard.py`（55 行），并明确读写工具与中间件未落地。
+
+验证：第 1–4 部分 93 个 Python 代码块全部可解析；`00-导论/04-实现手册体例.md` 另有伪代码块，不计入这 93 个。本地链接 0 断链；全量章节测试为 `98 passed`，`ruff check packages app tests` 全绿。
+
+
 ## 01-最小闭环
 
 
@@ -642,10 +785,13 @@ CheckpointerType = Literal["memory", "sqlite", "postgres"]
 
 #### 依赖关系 / Dependencies
 ```text
-config → models ─┐
-tools ───────────┼→ agent → server
-store ───────────┘
+config → models → agent（单节点）→ gateway / CLI
+persistence：消息表 + 检查点，组件已实现；chat 入口尚未读写
+tools：注册表 + echo，组件已实现；图尚未调用
 ```
+
+> 运行时边界：`/chat` 目前只接单节点图；未传 checkpointer、未读写消息表、没有工具循环。
+> 源码核对：第 2 章图结构已行为级核对；第 1、3、4、5 章为结构级；第 6 章为汇总验收。
 
 #### 状态 / Status
 - 代码和章节状态以各章实现步骤、`PROGRESS.md` 及实际验收结果为准；不能用旧的整体测试数字替代逐章状态。
@@ -1301,6 +1447,14 @@ uv run pytest tests/chapters/test_ch01_01_config.py -q
 - [ ] EvoFlow 按会话/agent 覆盖模型的解析链（我们只做了全局两层）
 - [ ] 数据目录约定：本项目 `storage.sqlite_path` 默认 `data/app/myagentflow.db`，checkpoint 默认 `.myaf/checkpoints.sqlite`；EvoFlow 用 `$EVOFLOW_HOME` 与 `backend/.evo-flow/`
 
+#### 源码核对记录（路径与符号实测）
+
+- 状态：🔍 结构级。路径、类名、字段已核；未逐行读完 1005 行 `AppConfig`。
+- 上游基准：`/Users/main/EvoFlow`，`f22af53`（v1.3.22）。
+- 已核上游：`config/app_config.py`（1005）、`config/model_config.py`（183）、`config/checkpointer_config.py`（46）、`config/storage_config.py`（24）、`config/models_yaml.py`（240）、`models/resolver.py`（262）、`models/factory.py`（1245）、`models/credential_sanitize.py`（345）、`persistence/secret_store.py`（162）。
+- 本地对应：`config/app_config.py`（180）、`config/model_config.py`（86）、`config/checkpointer_config.py`（61）、`config/storage_config.py`（32）、`models/resolver.py`（85）、`models/factory.py`（69）。
+- 结论：本地只保留 5 个配置分区；`ModelConfig` 从 30 列裁到 13 列；没有 `secret_store` 与 345 行凭据脱敏。本章只声明「配置读取、模型解析」，未声明完整复刻。
+
 
 <!-- ===== 01-最小闭环/02-Agent与单轮执行.md ===== -->
 
@@ -1359,7 +1513,7 @@ build_graph(model, checkpointer=None)
 ```
 
 **刻意不做的**（后面章节各自负责）：
-- 工具循环（1.4）
+- 工具循环（未实现；1/04 只有注册表）
 - system prompt 注入与中间件链（3.3）
 - 事件流与 SSE（1.5、10/01）
 - run 登记 / 取消（02/02）
@@ -1386,7 +1540,7 @@ chat router → create_chat_model() → build_graph(model) → graph.invoke(
 ```python
 """一、文件说明
     最小 Agent：一个节点 + 两条边。
-    刻意不做工具循环：先把「单轮」跑通，后面每章只在这张图上加节点/加边。
+    刻意不做工具循环：先把「单轮」跑通；后续若接工具循环，需要单列章节补 ToolNode。
 
 二、目录结构
     packages/harness/myagentflow/agents/lead_agent/
@@ -1461,7 +1615,7 @@ async def chat(body: ChatIn) -> StreamingResponse:
 | `backend/tests/chapters/test_ch01_02_graph.py` 两个用例 | ✅ 已实现 | `uv run pytest ... -q` → **2 passed** |
 | chat 路由调用图 | 🟡 半接 | `backend/app/gateway/routers/chat.py:23` 已 `build_graph(create_chat_model())`，但**未传 checkpointer**，同 thread 不累积；接持久化在 02/01 |
 | 系统提示 / 角色 prompt | ❌ 本章不做 | EvoFlow 由 `agents/middlewares/dynamic_system_prompt_middleware.py` 每轮注入，我们在 3/03 复刻 |
-| 工具循环 | ❌ 不做 | 1/04 才有 `ToolRegistry` 与工具节点 |
+| 工具循环 | ❌ 未实现 | 1/04 只有 `ToolRegistry`，没有工具节点；第 6、7 部分当前大纲也不含完整 ReAct 循环 |
 | run 登记 / 事件流 / 取消 | ❌ 不做 | 1/05（事件）与 02/02（生命周期） |
 
 #### 业务规则 / Business rules
@@ -1505,7 +1659,7 @@ cd backend && uv run pytest tests/chapters/test_ch01_02_graph.py -q
 ```python
 """一、文件说明
     最小 Agent：一个节点 + 两条边。
-    刻意不做工具循环：先把「单轮」跑通，后面每章只在这张图上加节点/加边。
+    刻意不做工具循环：先把「单轮」跑通；后续若接工具循环，需要单列章节补 ToolNode。
 
 二、目录结构
     packages/harness/myagentflow/agents/lead_agent/
@@ -1641,6 +1795,13 @@ uv run pytest tests/chapters/test_ch01_02_graph.py -v
 uv run pytest tests/chapters/test_ch01_02_graph.py -q
 ```
 
+#### 源码核对记录（路径与符号实测）
+
+- 状态：✅ 行为级（图结构差异已核）。
+- 已核上游：`agents/lead_agent/agent.py`（2021）、`agents/middlewares/dynamic_system_prompt_middleware.py`（760）。上游在 `:1502` / `:1953` 调 `create_agent` 组装 ReAct 图，不是手写 `StateGraph`。
+- 本地对应：`agents/lead_agent/graph.py`（34）。只有 `StateGraph` + `call_model` 单节点，没有 `tools` 条件边，也没有工具循环。
+- 结论：本章的「单轮执行」是缩小版最小图；工具循环、动态 system prompt、中间件均未复刻。文档不再把工具循环归到本章或第 6/7 部分。
+
 
 <!-- ===== 01-最小闭环/03-会话与消息存储.md ===== -->
 
@@ -1719,7 +1880,8 @@ def handle(thread_id: str, text: str) -> str:
     return reply
 
 def render(thread_id: str):
-    return list_messages(thread_id, limit=30)           # 页面重开：最近 30 条，正序
+    """页面重开：最近 30 条，正序。"""
+    return list_messages(thread_id, limit=30)
 ```
 
 三个调用点的约束：
@@ -1816,6 +1978,7 @@ def append_message(thread_id, role, content, *, conn=None) -> int:
 
 def list_messages(thread_id, *, limit=None, conn=None) -> list[dict]:
     # limit 语义是「最近 N 条」：先按 seq 倒序取 N，再翻转回正序
+    ...
 ```
 
 `count_messages()` / `delete_messages_for_session()` 同名同义，删会话时先删消息再删会话行。
@@ -2046,6 +2209,13 @@ uv run pytest tests/chapters/test_ch01_03_messages.py -q
 uv run pytest tests/chapters/test_ch01_03_messages.py -q
 ```
 
+#### 源码核对记录（路径与符号实测）
+
+- 状态：🔍 结构级。表名、函数名、消息字段已核；未读完三份合计 5882 行的上游仓储。
+- 已核上游：`persistence/db.py`（1208）、`persistence/chat_message_repositories.py`（2811）、`persistence/session_repositories.py`（1863）、`agents/checkpointer/omit_transcript.py`（270）。
+- 本地对应：`persistence/db.py`（78）、`persistence/chat_message_repositories.py`（107）、`persistence/session_repositories.py`（92）、`agents/checkpointer/omit_transcript.py`（307）。
+- 结论：本地只保留消息表最小字段与按 thread 读取；上游的分页、软删、附件、工具行修复、多会话 ACL 未复刻。`/chat` 也尚未调用消息表 hydrate。
+
 
 <!-- ===== 01-最小闭环/04-工具协议与首批工具.md ===== -->
 
@@ -2053,13 +2223,13 @@ uv run pytest tests/chapters/test_ch01_03_messages.py -q
 ### 第 4 章　工具协议与首批工具 / Tool Protocol and First Tools
 
 
-> **状态**：本章实现注册表与 `echo` 一个工具；工具调用循环、审批、审计、沙箱分别在第 6、7 部分展开。
+> **状态**：本章只实现注册表与 `echo` 一个工具；工具调用循环尚未实现，也不在第 6、7 部分当前大纲内。审批、审计、沙箱分属后续部分。
 
 #### 本章目标 / Goals
 - 一个 `ToolSpec` + `ToolRegistry`：注册、生成 schema、同步调用。
 - schema 用 OpenAI function 形状，模型能直接读。
 - 重名工具直接拒绝，未知工具抛 `KeyError`。
-- 本章不做：参数校验、结果截断、alias、多工具循环——这些在后面章节按需补。
+- 本章不做：参数校验、结果截断、alias、工具调用循环——当前没有对应章节。
 
 #### 最小闭环 / Minimal closed loop
 `register_echo(registry)` → `registry.schemas()` 得到一条 function schema → `registry.call("echo", {"text": "hi"})` 返回 `"hi"`。
@@ -2093,7 +2263,7 @@ sequenceDiagram
 `backend/packages/harness/myagentflow/tools/builtins/echo.py` 只做一件事：把 `text` 原样返回。它用来验证 schema → 调用这条链路，不引入任何外部依赖。
 
 #### 4.4 工具循环为什么不在本章 / Why no loop here
-真实仓库里 `backend/packages/harness/myagentflow/agents/lead_agent/graph.py` 只有 `call_model` 一个节点，模型直接回文本，没有 tool_call 分支。工具循环要有审批、预算、审计才安全，对应第 6、7 部分；现在硬塞一个循环，只会让错误无限放大。
+真实仓库里 `backend/packages/harness/myagentflow/agents/lead_agent/graph.py` 只有 `call_model` 一个节点，模型直接回文本，没有 tool_call 分支。工具循环要有审批、预算、审计才安全；第 6、7 部分当前大纲也不含完整 ReAct 循环。现在硬塞一个循环，只会让错误无限放大。
 
 #### 常见坑 / Pitfalls
 - 把 `fn` 也塞进 schema 发给模型：序列化会炸，且等于泄露实现。
@@ -2317,6 +2487,13 @@ uv run pytest tests/chapters/test_ch01_04_tools.py -v
 uv run pytest tests/chapters/test_ch01_04_tools.py -q
 ```
 
+#### 源码核对记录（路径与符号实测）
+
+- 状态：🔍 结构级。工具 schema、名称去重、错误返回已核；未逐个读 60+ builtin。
+- 已核上游：`tools/tools.py`（650）、`tools/tool_catalog.py`（358）、`tools/minimal_schema.py`（89）、`tools/builtins/`（60+ 文件）。
+- 本地对应：`tools/registry.py`（59）、`tools/builtins/echo.py`（36）。
+- 结论：本地只有 `ToolRegistry` + `echo`，没有 MCP、工具搜索、工具别名、schema 裁剪与 60+ 内置工具；第 1 部分不声明工具循环。
+
 
 <!-- ===== 01-最小闭环/05-流式事件与断线恢复.md ===== -->
 
@@ -2532,6 +2709,13 @@ uv run python -c "from myagentflow.runtime.events import EventStream; print(Even
 # 期望：id: 1 / event: done / data: {"seq": 1} / 空行
 ```
 
+#### 源码核对记录（路径与符号实测）
+
+- 状态：🔍 结构级。SSE 事件形状已核；未读完上游 1343 行流中间层。
+- 已核上游：`app/gateway/agui_stream_encode.py`（46）、`app/gateway/openai_stream_encode.py`（76）、`app/gateway/openai_stream_normalize.py`（209）、`app/gateway/routers/chat_sessions.py`（2102）、`app/gateway/streaming/stream_middle_layer.py`（1343）。
+- 本地对应：`runtime/streaming.py`（36）、`runtime/events.py`。
+- 结论：本地只把 `astream_events` 收敛成 `token` / `tool` / `done` / `error` 四种 SSE；断线重连、流镜像、事件去重、resume tail 均未复刻。
+
 
 <!-- ===== 01-最小闭环/06-本部分综合验收.md ===== -->
 
@@ -2595,7 +2779,7 @@ Part 1 的五个测试文件合计 14 个用例：`test_ch01_01_config.py`（6�
 - 路由建图时**没传 checkpointer**：同一 thread 的历史只在测试里用 `InMemorySaver` 验证。
 - SQLite 单连接 + 全局锁，不适合高并发。
 - 模型只实现 `openai` vendor；`use:` 不解析。
-- 没有取消、鉴权、工具循环 —— 分别属于后面的部分。
+- 没有取消、鉴权、工具循环；取消在第 2 部分只有组件，工具循环尚未实现，后续需单列。
 
 #### 常见坑
 
@@ -2693,7 +2877,7 @@ uv run pytest tests/chapters/test_ch01_06_e2e.py -v
 
 ```bash
 uv run pytest tests/chapters -q
-# 期望：60 passed（含其他部分的章节测试）
+# 期望：97 passed（含其他部分的章节测试）
 
 uv run python -m ruff check packages app tools tests
 # 期望：All checks passed!
@@ -2711,6 +2895,12 @@ uv run python -m ruff check packages app tools tests
 - [agent-book](https://g0-000.github.io/agent-book/)：整体课程结构
 - 下一部分（02）开始接持久化与生命周期
 
+#### 源码核对记录（路径与符号实测）
+
+- 状态：汇总章，无独立上游实现。
+- 本章验收项分别来自 `01/01`–`01/05`；源码核对表随各章，不在本页重复判定。
+- 本章只汇总测试命令与端到端边界：`14 passed` 是组件测试，不等于 `/chat` 已接 checkpointer 或工具循环。
+
 
 ## 02-持久化与运行生命周期
 
@@ -2721,7 +2911,8 @@ uv run python -m ruff check packages app tools tests
 ### 第 2 部分　持久化与运行生命周期 / Durability and Run Lifecycle
 
 
-> 状态：✅ 四章最小实现已验收（`2026-11-23`，`test_ch02_*.py` 17 passed）；源码核对 🔍 第 1、2 章逐行核对，第 3、4 章结构级。
+> 状态：✅ 四章组件级实现已验收（`2026-11-23`，`test_ch02_*.py` 17 passed）；源码核对 🔍 第 1、2 章逐行核对，第 3、4 章结构级。
+> 运行时接线：目前只有 `state` 命令 / `state` stdio 方法读取检查点；`chat`、Gateway 路由没有传入 checkpointer，消息表也没有在入口前后 hydrate。
 
 目标：让一次 Agent 运行从「进程内的一次性事件」变成 **可恢复、可取消、可被外部程序驱动、可分享** 的长生命周期对象。
 
@@ -2738,7 +2929,7 @@ uv run python -m ruff check packages app tools tests
 
 #### 这一部分要解决什么问题
 
-1. **崩了怎么办**：进程被杀后，同一 `thread_id` 能从检查点续上；历史从消息表 hydrate。
+1. **崩了怎么办**（目标态）：进程被杀后，同一 `thread_id` 能从检查点续上；历史从消息表 hydrate。当前只完成检查点与消息表两个组件，入口尚未接。
 2. **怎么停下**：同线程只允许一个 run；取消是信号，执行方在安全点收尾。
 3. **怎么被别的程序驱动**：CLI 与 stdio 两个入口，stdout 只放协议。
 4. **怎么给别人看**：token 分享链接，可过期、可撤销，库里不存明文 token。
@@ -2759,6 +2950,7 @@ Part 1 的 run/stream
 - 生命周期：DB 状态表、停止扫描、调 LangGraph Server 取消、跨进程可见。
 - stdio：`chat/send` / `chat/event` 流式协议、TCP 监听、Windows UTF-8 包装。
 - 分享：HTTP 路由、不可变快照内容、鉴权。
+- 入口接线：`chat` / Gateway 传 checkpointer、消息表 hydrate、RunRegistry 路由。
 
 #### 验收口径
 
@@ -3615,6 +3807,13 @@ uv run python -m ruff check packages tests                            # All chec
 - [agent-book · 记忆章](https://g0-000.github.io/agent-book/agent-learning/chapter_memory/)：状态持久化与消息存档的分工
 - [Harbor404 · 推理链路延迟优化](https://harbor404.fushenlin.com/notes/llm-agent-latency-optimization/)：读路径为什么不编译图
 
+#### 源码核对记录（路径与符号实测）
+
+- 状态：✅ 行为级。
+- 已核上游：`agents/checkpointer/provider.py`（264）、`agents/checkpointer/omit_transcript.py`（270）、`agents/checkpointer/thread_state_reader.py`（172）、`agents/checkpointer/async_provider.py`（122）。
+- 本地对应：`agents/checkpointer/provider.py`（207）、`agents/checkpointer/omit_transcript.py`（307）、`agents/checkpointer/thread_state_reader.py`（38）。
+- 结论：SQLite 长连接 + WAL + busy_timeout、`omit_transcript` 剥 `messages` / `ui_messages`、未配对 tool_call 例外、`read_thread_state` 不编译图，均与上游一致；本地未实现 async provider。
+
 
 <!-- ===== 02-持久化与运行生命周期/02-运行生命周期与取消.md ===== -->
 
@@ -3622,7 +3821,7 @@ uv run python -m ruff check packages tests                            # All chec
 ### 第 2 章　运行生命周期与取消 / Run Lifecycle
 
 
-> **本章状态**：🟡 最小实现（进程内注册表）已落地并测试；EvoFlow 的 DB 单写入口、4 秒停止扫描、远程 HTTP 取消**本章未实现**。
+> **本章状态**：✅ 进程内最小实现已落地并测试；源码核对 ✅ 行为级。EvoFlow 的 DB 单写入口、4 秒停止扫描、远程 HTTP 取消**本章未实现**。
 > 基准：EvoFlow `f22af539`（v1.3.22）。
 
 #### 本章目标 / Goals
@@ -3889,19 +4088,20 @@ uv run pytest tests/chapters/test_ch02_02_lifecycle.py -q
 执行方（未来的 chat 路由 / CLI）应该这样用：
 
 ```python
-reg = RunRegistry()
-rec = reg.start(thread_id)
-try:
-    for event in stream_graph(...):
-        if reg.is_cancelled(rec.run_id):
-            reg.finish(rec.run_id, "cancelled")
-            break
-        yield event
-    else:
-        reg.finish(rec.run_id)
-except Exception:
-    reg.finish(rec.run_id, "error")
-    raise
+async def _stream_with_cancel(thread_id):
+    reg = RunRegistry()
+    rec = reg.start(thread_id)
+    try:
+        async for event in stream_graph(...):
+            if reg.is_cancelled(rec.run_id):
+                reg.finish(rec.run_id, "cancelled")
+                break
+            yield event
+        else:
+            reg.finish(rec.run_id)
+    except Exception:
+        reg.finish(rec.run_id, "error")
+        raise
 ```
 
 **为什么在流循环里检查**：取消要尽快生效，但不能打断一次 checkpoint 写入；每个事件边界就是安全点。
@@ -3944,6 +4144,13 @@ uv run python -m ruff check packages tests                   # All checks passed
 
 - [agent-book · 并发与取消](https://g0-000.github.io/agent-book/)：为什么取消用信号而不是强杀
 - [Harbor404 · 推理链路延迟优化](https://harbor404.fushenlin.com/notes/llm-agent-latency-optimization/)：流式响应里的安全点
+
+#### 源码核对记录（路径与符号实测）
+
+- 状态：✅ 行为级。
+- 已核上游：`session_execution/lifecycle.py`（228）、`session_execution/langgraph_cancel.py`（279）、`session_execution/types.py`（14）、`persistence/session_run_state.py`（477）。
+- 本地对应：`session_execution/lifecycle.py`（83）。
+- 结论：状态写入单入口、活跃状态含 `interrupted`、取消走 LangGraph HTTP API、404 归一为 `already_gone` 已核；本地上游的 4s/0.25s 扫描参数未完整复刻。
 
 
 <!-- ===== 02-持久化与运行生命周期/03-CLI与stdio-App-Server.md ===== -->
@@ -4429,6 +4636,13 @@ uv run python -m ruff check packages tests                   # All checks passed
 - [agent-book](https://g0-000.github.io/agent-book/)：CLI、stdio、HTTP 三种入口的分工
 - [Harbor404 · 流式输出](https://harbor404.fushenlin.com/)：为什么 stdout 只能放协议
 
+#### 源码核对记录（路径与符号实测）
+
+- 状态：🔍 结构级。协议方法名已核；未逐行读 719 行 `StdioAppServer`。
+- 已核上游：`app_server/stdio_rpc.py`（719）、`app_server/chat_bridge.py`（396）、`desktop_stdio.py`（457）、`cli/main.py`（116）、`cli/common.py`（44）。
+- 本地对应：`app_server/stdio.py`（180）、`cli/main.py`（68）。
+- 结论：本地只实现 `ping` / `state`；上游的 `chat/send`、`chat/event`、`chat/resume`、`chat/cancel`、TCP 监听、桌面 stdio 修复均未复刻。CLI `chat` 也没传 checkpointer。
+
 
 <!-- ===== 02-持久化与运行生命周期/04-分享生命周期.md ===== -->
 
@@ -4719,6 +4933,13 @@ uv run python -m ruff check packages tests                # All checks passed
 - [agent-book · 会话与权限](https://g0-000.github.io/agent-book/)：为什么分享要用不可猜 token
 - [Harbor404 · 幂等设计](https://harbor404.fushenlin.com/notes/idempotency-design/)：重复创建分享怎么避免多份
 
+#### 源码核对记录（路径与符号实测）
+
+- 状态：🔍 结构级。路由与表字段已核；未读完 549 行 `http_guard`。
+- 已核上游：`app/gateway/routers/share.py`（156）、`persistence/chat_share_repositories.py`（311）、`app/gateway/auth.py`（164）、`authz/http_guard.py`（549）。
+- 本地对应：`collab/shares.py`（84）。
+- 结论：上游在 `routers/share.py:71` 生成 token、明文存 `evoflow_chat_shares`，快照不可变，提供 POST/GET/DELETE；本地只做 SQLite 表 + SHA-256 哈希 + create/resolve/revoke，没有 HTTP 路由，也没有 `require_session_visible`。这是明确行为差异，不是「已完成」。
+
 
 ## 03-工具深化与上下文控制
 
@@ -4729,7 +4950,8 @@ uv run python -m ruff check packages tests                # All checks passed
 ### 第 3 部分　工具深化与上下文控制 / Tool Depth and Context Control
 
 
-> 状态：✅ 四章最小实现已验收（`2026-11-23`，`test_ch03_*.py` 15 passed）；源码核对 🔍 第 1、3、4 章逐行核对，第 2 章结构级。  
+> 状态：✅ 四章组件级实现已验收（`test_ch03_*.py` 15 passed）；源码核对 ✅ 四章行为级。第 2 章按「本章声明范围」（任务表 + token）逐段对照，完整执行器与浏览器/CUA HTTP 路由仍明确未实现。
+> 运行时接线：四章组件均未接入统一工具执行器；图里只有 `call_model`，没有工具调用。
 > 边界：本部分只实现「可运行的最小闭环」，不把 EvoFlow 的 70 个中间件、浏览器桥、CUA 全量抄进来；未实现项在每章「未实现」小节列明。
 
 #### 这部分解决什么
@@ -4762,7 +4984,7 @@ uv run python -m ruff check packages tests                # All checks passed
 - `confine` 下相对路径、`..`、软链逃逸都能给出正确结论。
 - 后台任务可登记、查询、停止；输出快照最多回灌 8KB。
 - 中间件顺序可预测；工具异常不被审计层吞掉。
-- 单次 20K 字符工具结果落盘，模型只收到信封与路径。
+- 单次 20K 字符工具结果落盘，信封含路径与预览；当前是函数级验证，尚未接入模型调用。
 
 
 <!-- ===== 03-工具深化与上下文控制/01-文件终端与宿主边界.md ===== -->
@@ -5016,6 +5238,13 @@ All checks passed!
 - 参考文件：`/Users/main/EvoFlow/backend/packages/harness/evoflow/tools/host_direct/workspace_path_guard.py`。
 - 许可：EvoFlow 为 PolyForm Noncommercial；本章只做学习性转述与自有实现，不复制其大段源码。
 
+#### 源码核对记录（路径与符号实测）
+
+- 状态：✅ 行为级。
+- 已核上游：`tools/host_direct/workspace_path_guard.py`（472）、`agents/middlewares/workspace_guard_middleware.py`（35）、`tools/host_direct/read_file.py`（551）、`tools/host_direct/write_file.py`（209）。
+- 本地对应：`tools/host_direct/workspace_path_guard.py`（55）。本章只做守卫函数；`read_file.py` / `write_file.py` / `workspace_guard_middleware.py` 本地均不存在。
+- 结论：路径围栏、`..`/符号链接拒绝、宿主目录白名单已核；文件读写工具与中间件未落地，不能写成「读写前置校验已核」。
+
 
 <!-- ===== 03-工具深化与上下文控制/02-后台命令浏览器桥与Computer-Use.md ===== -->
 
@@ -5023,7 +5252,8 @@ All checks passed!
 ### 第 2 章　后台命令与桥接鉴权
 
 
-> **状态：** ✅ 本章代码与测试已落地：`background_bash.py` + `bridge_auth.py` + 4 个测试用例。  
+> **状态：** ✅ 本章代码与测试已落地：`background_bash.py` + `bridge_auth.py` + 4 个测试用例；源码核对 ✅ 本章声明行为已与上游逐段对照。
+>
 > **范围：** 后台任务表（登记/查询/停止/输出快照）与桥接 token 校验。浏览器桥、CUA、HTTP 路由不在本章实现；原因见文末。
 
 #### 1. 为什么需要「后台任务表」
@@ -5413,6 +5643,18 @@ uv run pytest tests/chapters/test_ch03_02_host_direct.py -q
 | `tools/zcode_port/background.py` | `tools/host_direct/background_bash.py` | `BackgroundBashTask`、`BACKGROUND_BASH_OUTPUT_MAX_BYTES`、`new_task_id`、`register_task`、`get_task`、`mark`、`stop_task`、`list_tasks`、`task_to_summary`、`read_output_snapshot` | 落库、跨进程查询、事件推送 |
 | `tools/zcode_port/bash_tool.py` | 未创建 | — | `_promote_to_background`、pump 线程、`_emit` |
 | `routers/browser_bridge.py` / `routers/cua_bridge.py` | `tools/host_direct/bridge_auth.py` | `BRIDGE_TOKEN_ENV`、`verify_bridge_token` | 路由、截图、点击、设备会话 |
+| `plugins/bridge_auth.py`（94） | `tools/host_direct/bridge_auth.py`（30） | `get_bridge_token`、`verify_bridge_token`、`reset_bridge_token_cache` 的语义 | 持久化 token 文件、自动生成、`X-EvoFlow-Bridge-Token` 请求头 |
+
+##### 与 EvoFlow 的行为差异
+
+| 方面 | 本地实现 | EvoFlow 上游 |
+|---|---|---|
+| token 来源 | 只读 `MYAF_BRIDGE_TOKEN` 环境变量；没配一律拒绝 | `EVOFLOW_BROWSER_BRIDGE_TOKEN` 环境变量 → 数据目录 `bridge-token` 文件 → 自动生成并落盘 |
+| token 校验入参 | `verify_bridge_token(provided: str)`，调用方自己取 token | `verify_bridge_token(request)`，从 `x-evoflow-bridge-token` 头取 |
+| 任务字段 | `task_id` / `command` / `status` / `exit_code` / `proc` / `thread_id` | 另有 `tool_call_id` / `session_key` / `cancellable` / `notification_sent` / 两次等待时刻 |
+| 阻塞查询 | 不实现 | `wait_task()` 支持超时、静默宽限提前返回、每 15s 心跳 |
+| 停止通知 | `stop_task()` 只 kill + mark | 停止后 `_emit_task_notification(task)` |
+| 摘要字段 | 无 `toolCallId`；`cancellable` 只看 `running` | 有 `toolCallId`；`cancellable = task.cancellable and running` |
 
 **有意省略的原因：** 本章要验证的是「任务事实模型 + 输出边界 + 鉴权失败关闭」，不是完整后台执行器。把 `Popen`/pump/事件总线提前塞进来，测试会变成集成测试，失败定位会很慢。
 
@@ -5434,6 +5676,13 @@ uv run pytest tests/chapters/test_ch03_02_host_direct.py -q
 - EvoFlow baseline：`f22af53910a470ddba633be35e25878214c2984ec`（v1.3.22，PolyForm Noncommercial）。
 - 参考文件：`/Users/main/EvoFlow/backend/packages/harness/evoflow/tools/zcode_port/background.py`。
 - 许可：EvoFlow 为 PolyForm Noncommercial；本章为学习性转述与自有最小实现。
+
+#### 源码核对记录（路径与符号实测）
+
+- 状态：✅ 行为级（本章声明范围：任务表 + 输出快照 + 桥接 token）。完整执行器与 HTTP 路由仍明确未实现。
+- 已核上游：`tools/zcode_port/background.py`（243）、`plugins/bridge_auth.py`（94）、`app/gateway/routers/browser_bridge.py`（145）、`app/gateway/routers/cua_bridge.py`（357）。`tools/zcode_port/bash_tool.py`（2045）只核对了 `_promote_to_background` 的调用边界，未逐行读完整命令执行器。
+- 本地对应：`tools/host_direct/background_bash.py`（167）、`tools/host_direct/bridge_auth.py`（30）。
+- 结论：`register_task` / `get_task` / `mark` / `stop_task` / `list_tasks` / `task_to_summary` / `read_output_snapshot` 的登记、单活、幂等停止、8KB 尾部回灌与上游一致；`verify_bridge_token` 的 fail-closed + `hmac.compare_digest` 与上游一致。差异已在「与 EvoFlow 的行为差异」列出：无 `wait_task` 心跳、无 `tool_call_id` / `session_key` / `cancellable` 字段、无停止通知、token 不落盘自动生成、无浏览器/CUA 路由。
 
 
 <!-- ===== 03-工具深化与上下文控制/03-Middleware调用链与工具审计.md ===== -->
@@ -5758,6 +6007,13 @@ uv run pytest tests/chapters/test_ch03_03_middleware.py -q
 - 参考文件：`/Users/main/EvoFlow/backend/packages/harness/evoflow/agents/middlewares/`（工具钩子统一为 `wrap_tool_call`）。
 - 许可：EvoFlow 为 PolyForm Noncommercial；本章为学习性转述与自有最小实现。
 
+#### 源码核对记录（路径与符号实测）
+
+- 状态：✅ 行为级。
+- 已核上游：`agents/lead_agent/agent.py`（2021）、`agents/middlewares/`（70 个文件）、`agents/middlewares/tool_error_handling_middleware.py`（1157）。
+- 本地对应：`agents/middlewares/chain.py`（60）。
+- 结论：上游 `after_model` 逆序、澄清固定链尾、压缩只在 `wrap_model_call` 临时折叠，已核；本地只保留 3 个中间件的顺序执行，没有 70 个中间件与完整审计。
+
 
 <!-- ===== 03-工具深化与上下文控制/04-上下文预算压缩与自动后续.md ===== -->
 
@@ -5810,7 +6066,7 @@ uv run pytest tests/chapters/test_ch03_03_middleware.py -q
    - 读 `truncate_text_to_token_budget` 的二分逻辑与 `formatted_truncate_tool_output` 的告警头。
 3. `/Users/main/EvoFlow/backend/packages/harness/evoflow/context/tool_tokens.py`
    - 确认 token 计数统一走 `count_text_tokens`，不要在截断/落盘各写一套。
-4. `/Users/main/EvoFlow/backend/packages/harness/evoflow/context/compaction_trigger.py` 与 `context_compaction_core.py`
+4. `/Users/main/EvoFlow/backend/packages/harness/evoflow/agents/compaction_trigger.py` 与 `agents/context_compaction_core.py`
    - 只读「何时触发」与「压缩后回填」的入口，本章不实现其消息替换/摘要生成。
 
 **调用顺序上的差异：** EvoFlow 的 `maybe_persist` 读 `tool_results_config`，并按 `thread_id` 登记上下文引用 LRU；本章用模块常量 + 环境变量决定目录，`thread_id` 只占位。EvoFlow 的压缩是完整流水线，本章只有阈值函数。
@@ -6134,7 +6390,7 @@ uv run pytest tests/chapters/test_ch03_04_budget.py -q
 | `tools/tool_output_truncation.py` | `tools/tool_output_truncation.py` | `truncate_text_to_token_budget`、`formatted_truncate_tool_output` | 按模型路由 tokenizer |
 | `context/tool_tokens.py` | `context/tool_tokens.py` | `count_tool_tokens`、`_CHARS_PER_TOKEN` | `compaction_token_utils` 的 tiktoken 路由 |
 | `config/tool_results_config.py` | 未创建 | — | 阈值、保留时长、摘要行数全部改成模块常量 |
-| `context/compaction_trigger.py` / `context_compaction_core.py` | 未创建 | — | 触发判定之外的全部压缩流水线 |
+| `agents/compaction_trigger.py` / `agents/context_compaction_core.py` | 未创建 | — | 触发判定之外的全部压缩流水线 |
 | `context/context_ref_lru.py` | 未创建 | — | 落盘文件的引用登记与淘汰 |
 
 **有意省略的原因：** 本章目标是「结果治理闭环可测」，不是完整压缩系统。压缩流水线需要模型摘要、消息替换、checkpoint 写回，属于后续独立章节；提前实现会引入大量未验证分支。
@@ -6150,7 +6406,7 @@ uv run pytest tests/chapters/test_ch03_04_budget.py -q
 
 #### 12. 本部分收尾
 
-四章合起来是一条完整的最小治理链：
+四章在组件层覆盖一条治理链；它们尚未接入统一工具执行器，下面的顺序是设计关系，不是已接好的运行时调用链：
 
 ```text
 路径守卫（能不能碰）
@@ -6167,6 +6423,13 @@ uv run pytest tests/chapters/test_ch03_04_budget.py -q
 - 参考文件：`/Users/main/EvoFlow/backend/packages/harness/evoflow/tools/large_result_store.py`、`tools/tool_output_truncation.py`、`context/tool_tokens.py`。
 - 许可：EvoFlow 为 PolyForm Noncommercial；本章为学习性转述与自有最小实现。
 
+#### 源码核对记录（路径与符号实测）
+
+- 状态：✅ 行为级。
+- 已核上游：`tools/large_result_store.py`（188）、`tools/tool_output_truncation.py`（62）、`context/tool_tokens.py`（27）、`config/tool_results_config.py`（232）、`agents/compaction_trigger.py`（660）、`agents/context_compaction_core.py`（3146）。
+- 本地对应：`tools/large_result_store.py`（160）、`tools/tool_output_truncation.py`（78）、`context/tool_tokens.py`（27）、`context/budget.py`（54）。
+- 结论：`POST_COMPRESS_REFILL_RATIO=1.22` / `SAME_TURN_REFILL_RATIO=1.5`、阈值触发、超长工具结果落盘与截断已核；本地只做预算与截断，没有自动后续/完整压缩核心。
+
 
 ## 04-记忆与长期资产
 
@@ -6177,41 +6440,128 @@ uv run pytest tests/chapters/test_ch03_04_budget.py -q
 ### 第 4 部分　记忆与长期资产 / Memory and Long-Term Assets
 
 
-> 状态：✅ 三章最小实现已验收（`2026-11-23`，`test_ch04_*.py` 17 passed）；源码核对 🔍 路径/符号级，行为未逐行闭合。
+> 状态：✅ 三章组件级实现已验收（`2026-11-24`，`test_ch04_*.py` 19 passed）；源码核对 ✅ 三章已做行为级对照（`2026-11-24`）。
+> 运行时接线：记忆存储、巩固、注入格式化均未接入 `build_graph` 或 system prompt；Agent 运行入口当前没有调用这些记忆组件。
 
-目标：让系统记得住、查得到、删得掉，并且记忆进入 prompt 时不会被当指令执行。
+目标（组件层）：你能亲手把当前 thread 的消息写成短期记忆，把明确选出的事实写成长记忆，再从新 thread 召回并格式化；当前只验证到组件调用，未接入 Agent 入口。
 
-#### 章节
+#### 这一部分解决什么
 
-| 章 | 主题 | 主要文件 |
-|---|---|---|
-| 1（01-短期记忆与长期记忆.md） | 短期/长期记忆、命名空间、原子表、召回快照 | `agents/memory/`、`memory/`、`config/paths.py` |
-| 2（02-记忆巩固知识图谱与注入防御.md） | 确定性巩固、`subject_key` 弱图谱、注入声明 | `memory/consolidate.py`、`agents/memory/prompt.py` |
-| 3（03-资产产物事项与反思.md） | 产物契约、用户事项、反射解析 | `artifacts/`、`items/`、`reflection/` |
+先从第 1 章的可运行练习开始：
 
-#### 三种「记忆」不要混
+1. `AgentMemoryManager.add_to_task_history()` 把 user / assistant 消息写到当前 thread 的 task JSON；thread 不同，短期历史隔离。
+2. 调用方明确挑出值得跨会话保留的事实，再用 `facade.remember()` 写进长期 atom；同一 `subject_key` 更新同一条记录。
+3. 新 thread 用 `facade.recall()` 按用户 namespace 搜索，随后显式记录 `recall_snapshot` 并格式化成 `<memory>` 块。
+
+这条练习展示的是本项目已有组件如何协作。`remember()` 不会自动读取聊天记录或调用 LLM 抽取事实；当前也没有 Agent 入口自动保存消息、触发召回或拼装 system prompt。不要把“长期记忆写入”误读为“聊天后自动形成长期记忆”。
+
+EvoFlow 的记忆不是「把整段对话塞进向量库」，而是几条有不同生命周期的路径：
+
+1. **短期层**：对话消息属于当前 thread；本项目练习把 user / assistant 文本写入 thread task JSON。
+2. **长期层**：一条事实一个 atom，按命名空间隔离；同一 `subject_key` 只保留一个有效值。
+3. **注入层**：召回结果按预算裁剪，包进 `<memory>` 并声明为不可信数据，最后由 system prompt 拼装。
+
+本部分只复刻**存储与规则组件**，不接 Agent 入口，也不实现 EvoFlow 的异步记忆队列、工作区记忆和 LLM 事实抽取。EvoFlow 的长记忆自动生成入口可继续读上游 `agents/memory/queue.py` → `agents/memory/updater.py:MemoryUpdater.update_memory()`；本地没有复刻这条 LLM 管线。
+
+#### 上游文件地图
+
+行数为本地实测；「保留」只列本部分真正实现并测试过的符号，未列出的上游能力一律视为未复刻。
+
+| EvoFlow 上游文件（行数） | 本项目文件（行数） | 章 | 保留与裁剪 |
+|---|---|---|---|
+| `memory/namespaces.py`（39） | `memory/namespaces.py`（59） | 1 | 保留 `user_ns` / `agent_ns` / `workspace_ns` / `person_ns` / `parse_namespace`；四类命名空间与上游一致，没有 `session` 命名空间 |
+| `agents/memory/agent_memory.py`（214） | `agents/memory/agent_memory.py`（153） | 1 | 保留 agent/task 两级 JSON、`get_combined_memory`、`add_fact_to_agent_memory`、`add_to_task_history`；简化日志与异常文案 |
+| `memory/store.py`（747） | `memory/store.py`（497） | 1、2 | 保留 `mem_namespaces` / `mem_atoms`、`upsert_atom`、`soft_delete_atom`、`supersede_atom`、关键词召回、`touch_accessed`；省略向量列、FTS5 外部表、实体表、`mark_atom_stale` |
+| `memory/facade.py`（375） | `memory/facade.py`（258） | 1、2 | 保留 `remember` / `forget` / `consolidate` / `recall` / `get_core`；省略 `pin_atom`、`mark_atom_stale`、`mark_related_memories_stale`、`list_atoms`、自动入队与向量召回 |
+| `memory/recall_snapshot.py`（90） | `memory/recall_snapshot.py`（111） | 1 | 保留同一套进程内快照：每线程最多 24 条命中、500 个线程上限、`get` 返回副本 |
+| `memory/consolidate.py`（318） | `memory/consolidate.py`（219） | 2 | 保留 `text_overlap`、`_keep_prefer`、`_merge_content`、`consolidate_namespace`、`should_enqueue_threshold`；省略衰减、GC、异步 job、embedding 相似度 |
+| `agents/memory/prompt.py`（427） | `agents/memory/prompt.py`（134） | 2 | 保留 `format_memory_for_injection` 与 `full` / `chat_compact` 两档；省略记忆更新 prompt、history 段、tiktoken 计数、`_standing_fact_allowed` 过滤 |
+| `artifacts/chat_artifact.py`（229） | `artifacts/chat_artifact.py`（201） | 3 | 保留六类产物、稳定 id、批量去重、`ThreadState` 字符串键；省略 `platform` 类型 |
+| `items/models.py`（77） | `items/models.py`（99） | 3 | 保留状态/优先级枚举、`UserItem`、`to_public_dict`；字段与上游同名 |
+| `items/store.py`（146） | `items/store.py`（157） | 3 | 保留 JSON 原子替换、mtime 缓存失效、增删改查；路径改 `MYAF_DATA_DIR` |
+| `items/service.py`（890） | `items/service.py`（271） | 3 | 保留 `list_items` / `get_item` / `create_item` / `update_item` / `delete_item`；省略可见性过滤、Task 派发与回写、员工唤醒、inbox 迁移、完成时记忆 stale |
+| `reflection/resolvers.py`（102） | `reflection/resolvers.py`（89） | 3 | 保留 `resolve_variable` / `resolve_class` 与 `module:attr` 错误分类 |
+| `memory/storage.py`（135）、`memory/document_codec.py`（243） | — | — | 不上收：这是 Owned Memory 的文档编解码，留给知识库方向 |
+| `agents/memory/queue.py`（387）、`updater.py`（464）、`workspace_memory.py`（578） | — | — | 不复刻：异步更新队列、LLM 事实抽取、工作区记忆属于后续阶段 |
+
+#### 核心概念不要混
+
+| 概念 | 是什么 | 不是什么 | EvoFlow 对应 |
+|---|---|---|---|
+| atom（记忆原子） | 一条可独立召回、独立删除的事实，存在 `mem_atoms` 一行 | 不是一整份 `memory.json`，也不是一条聊天消息 | `memory/store.py: upsert_atom` |
+| namespace（命名空间） | 记忆的归属域：`user:` / `agent:` / `workspace:` / `person:` | 不是数据库 schema，也不是 thread_id | `memory/namespaces.py` 四个构造函数 |
+| layer / kind | layer 是记忆层次（episodic / semantic / procedural），kind 是内容类别（fact / preference / context…） | 不是权限角色，也不决定召回算法 | `_norm_layer` 与 `kind` 字段 |
+| subject_key（弱图谱） | 同一实体/主题的关联键；同键写入复用原 atom、`revision += 1` | 不是图数据库，不是外键，也不保证实体消歧 | `store.upsert_atom` 的 `replace_subject` 分支 |
+| revision / supersede | 同 subject 更新时 revision 递增；巩固时被合并的行写 `superseded_by` 并软删 | 不是物理删除，也不是版本控制快照 | `supersede_atom` / `update_atom_fields` |
+| pin / importance / confidence / vitality | pin 是人工保护；importance 决定排序；confidence 过滤噪声；vitality 决定是否归档 | 不是四个可以互相替代的分数 | `facade.remember` 的噪声门与 `_filter_archived` |
+| recall snapshot（召回快照） | 本轮召回结果的只读副本，供 UI 和审计回看 | 不是长期记忆，不跨进程持久化 | `memory/recall_snapshot.py` |
+| consolidation（巩固） | 确定性合并同 subject 与高文本重叠条目，可带衰减/GC | 不是 LLM 总结，不是异步队列本身 | `memory/consolidate.py` |
+
+另外三类长期资产也要分开：
 
 | 类型 | 载体 | 生命周期 | 典型内容 |
 |---|---|---|---|
 | 工作记忆 | 上下文窗口 | 单轮/压缩周期 | 当前任务中间结论 |
 | 会话记忆 | 消息表 + task 记忆 | 一个 thread | 本轮确认的事实 |
 | 长期记忆 | `memory.json` + `mem_atoms` | 跨会话 | 用户偏好、领域事实 |
+| 产物 artifact | 会话产物契约 | 随会话展示 | 图片、PDF、网页、链接 |
+| 事项 item | `user_items.json` | 用户手动维护 | 待办、跟进、个人任务 |
+| 反思 resolver | `module:attr` 运行时解析 | 配置驱动 | 按配置加载类/对象 |
+
+#### 一条记忆的完整路径
+
+```text
+写入：facade.remember
+  → 置信度噪声门（conf < 0.55 且非 pin/无 subject/非 user 来源直接丢）
+  → store.upsert_atom（同 subject 复用 atom，revision + 1）
+  → 达到阈值后由调用方显式 consolidate（本项目不自动入队）
+
+召回：facade.recall(namespaces, query)
+  → search_keyword_ns（关键词命中数 + importance + pin）
+  → touch_accessed（更新 last_accessed_at）
+  → _filter_archived（低 vitality 非 pin 丢弃）
+  → _budget（按字符预算裁剪）
+  → recall_snapshot.record_thread_recall（冻结本轮命中）
+
+注入：agents.memory.prompt.format_memory_for_injection
+  → <memory> 包裹 + untrusted data 声明
+  → build_graph/system prompt 拼装（本项目尚未接线）
+```
+
+#### 章节
+
+| 章 | 主题 | 主要文件 | 知识点 |
+|---|---|---|---|
+| 1（01-短期记忆与长期记忆.md） | 短期写入、长期事实写入与跨 thread 召回 | `agents/memory/`、`memory/`、`config/paths.py` | task JSON、atom、namespace、subject_key、revision、快照 |
+| 2（02-记忆巩固知识图谱与注入防御.md） | 确定性巩固、`subject_key` 弱图谱、注入声明 | `memory/consolidate.py`、`agents/memory/prompt.py` | 文本重叠、pin 优先、supersede、untrusted data |
+| 3（03-资产产物事项与反思.md） | 产物契约、用户事项、反射解析 | `artifacts/`、`items/`、`reflection/` | 稳定 id、artifact/item/task 边界、JSON 原子写、`module:attr` |
 
 #### 本章边界
 
-- 召回是关键词，不是向量。
-- 巩固是确定性合并，不调 LLM，不做衰减/GC。
-- 事项只做 CRUD，不派发 Task。
-- 记忆注入只做边界声明，不替换内容。
+- 召回是关键词，不是向量；`query_embedding` 只保留签名。
+- 巩固是确定性合并，pin 优先；不调 LLM，不做衰减/GC 或异步队列。
+- 事项只做 CRUD，不派发 Task，不做可见性过滤。
+- 记忆注入只做边界声明，不替换内容；当前未接入 system prompt。
+- 产物只复刻六类通用类型，不复刻 `platform` 卡片。
 
 #### 验收口径
 
 ```bash
 cd /Users/main/my-agent-flow/backend
-uv run pytest tests/chapters/test_ch04_*.py -q   # 17 passed
-uv run pytest tests/chapters -q                 # 84 passed
+uv run pytest tests/chapters/test_ch04_*.py -q   # 19 passed
+uv run pytest tests/chapters -q                 # 98 passed
 uv run ruff check packages tests                # All checks passed
 ```
+
+#### 源码核对记录（路径与符号实测）
+
+| 章 | 已读上游文件 | 行为结论 | 状态 |
+|---|---|---|---|
+| 1 | `memory/namespaces.py`、`agents/memory/agent_memory.py`、`memory/store.py`、`memory/facade.py`、`memory/recall_snapshot.py` | 四类命名空间、agent/task 双文件、同 subject 复用 revision、软删、快照上限与副本语义均与上游一致；本地省略向量、stale、自动入队 | ✅ 行为级 |
+| 2 | `memory/consolidate.py`、`agents/memory/prompt.py` | A1 同 subject、A2 文本相似、pin 保护、`<memory>` 边界一致；本地省略衰减/GC、embedding 相似、history 注入与事实过滤 | ✅ 行为级 |
+| 3 | `artifacts/chat_artifact.py`、`items/models.py`、`items/store.py`、`items/service.py`、`reflection/resolvers.py` | 产物稳定 id、事项 CRUD、JSON 原子写、反射解析一致；本地省略 platform 产物、可见性过滤、Task 派发/回写/迁移 | ✅ 行为级 |
+
+> 行为级指：本章声明的行为已逐段读过上游实现，差异写入各章「与 EvoFlow 对照」；不代表本地实现了上游全部能力。
 
 
 <!-- ===== 04-记忆与长期资产/01-短期记忆与长期记忆.md ===== -->
@@ -6220,17 +6570,42 @@ uv run ruff check packages tests                # All checks passed
 ### 第 1 章　会话短期记忆与长期记忆
 
 
-> 状态：✅ 代码已落地；`tests/chapters/test_ch04_01_memory.py` 7 项通过（实测输出见文末）。
+> 状态：✅ 代码已落地；`tests/chapters/test_ch04_01_memory.py` 8 项通过（实测输出见文末）；源码核对 ✅ 本章声明行为已与 EvoFlow 逐段对照。
 
 #### 目标与范围
 
 把「本轮上下文里能看见」和「下一轮还能查到」分开：
 
-- 短期记忆：LangGraph 消息与召回快照，只服务当前 thread。
-- 长期记忆：agent 级 `memory.json` + SQLite 原子表，跨 thread 仍可召回。
+- 短期记忆练习：`AgentMemoryManager.add_to_task_history()` 把当前 thread 的 user / assistant 文本写入 task JSON；切换 thread 后不共享这份历史。
+- 长期记忆练习：调用方挑出稳定事实，经 `facade.remember()` 写进 SQLite atom；namespace 跨 thread 复用，因此可在后续 thread 召回。agent 级 `memory.json` 是同目录保留的另一种文件接口。
 - 写入必须经过门面 `remember/forget/recall`，不允许调用方直接拼 SQL。
 
-本章只做「写入 + 关键词召回 + 软删 + 快照」，不做向量召回、不做异步巩固（第 2 章）。
+本章只做「写入 + 关键词召回 + 软删 + 快照」，不做向量召回；第 2 章只提供显式确定性巩固，不做异步队列。
+
+#### 先跑一个完整的小闭环
+
+这一段先把输入、写入、跨线程读取串起来。练习中把用户原话追加到当前 thread 的短期历史；再由程序显式挑出一条稳定偏好，调用 `facade.remember()` 写进长期 atom。切到新 thread 后，短期历史为空，但同一用户命名空间里的偏好仍能关键词召回；最后把召回结果记成快照并格式化成 `<memory>` 块。
+
+```bash
+cd /Users/main/my-agent-flow/backend
+uv run pytest tests/chapters/test_ch04_01_memory.py::test_short_and_long_memory_call_flow -q
+```
+
+练习的完整调用代码在 `backend/tests/chapters/test_ch04_01_memory.py` 的 `test_short_and_long_memory_call_flow`，用上面的 pytest 命令即可运行。它依次调用 `add_to_task_history()` 保存当前 thread 的原始对话、调用 `facade.remember()` 写入调用方明确选出的偏好、切换 thread 后执行 `facade.recall()`，再显式记录 `recall_snapshot` 并格式化记忆块。`remember()` 不会读对话或自动抽取事实；当前仿写也没有把这些步骤接到 Agent 每轮对话，因此这段练习不代表 `/chat` 已自动记忆或自动注入。
+
+#### 核心概念
+
+| 概念 | 在本章哪里 | 为什么要它 |
+|---|---|---|
+| atom（记忆原子） | `memory/store.py: mem_atoms` 一行 | 一条事实要能独立召回、独立删除；整份 JSON 做不到精确遗忘 |
+| namespace（命名空间） | `memory/namespaces.py` 四个函数 | 记忆有归属，`user:` 的偏好不能污染 `workspace:` 或 `person:` |
+| layer / kind | `store._norm_layer`、`upsert_atom(kind=...)` | layer 决定「事件流水 / 语义事实 / 操作步骤」；kind 决定注入时的类别 |
+| subject_key | `upsert_atom(subject_key=...)` | 同一主题只留一个有效值，避免「用户偏好中文」写十遍 |
+| revision | `upsert_atom` 命中同 subject 时 +1 | 区分「同一事实的新版本」，不是新插入一行 |
+| 软删 / supersede | `soft_delete_atom`、`supersede_atom` | 删掉召回资格，但保留原行供审计和回溯 |
+| recall snapshot | `memory/recall_snapshot.py` | 同一轮 prompt 不能边生成边改召回；快照给 UI/审计一个稳定副本 |
+
+一条 atom 的最小字段是：`id`、`namespace_id`、`layer`、`kind`、`content`、`importance`、`confidence`、`vitality`、`subject_key`、`revision`、`pin`、时间戳、`deleted_at`。`evidence` 和 `tags` 是可选证据，不参与本章召回打分。
 
 #### 调用逻辑
 
@@ -6246,7 +6621,8 @@ sequenceDiagram
     F->>S: upsert_atom（同 subject 覆盖）
     A->>F: recall([ns], query, top_k)
     S-->>F: 命中的 atom
-    F->>R: 记录本轮召回（最多 24 条）
+    F-->>A: 返回关键词命中
+    A->>R: record_thread_recall（显式记录，最多 24 条）
 ```
 
 关键边界：
@@ -6263,10 +6639,10 @@ sequenceDiagram
 | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/timeutil.py` | 32 | 北京时间/UTC ISO 字符串 |
 | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/config/paths.py` | 85 | 数据根与 agent/thread 路径 |
 | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/agents/memory/agent_memory.py` | 153 | agent 级 / task 级 JSON 记忆 |
-| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/namespaces.py` | 58 | 四类命名空间 |
-| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/store.py` | 491 | SQLite 原子表 |
-| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/facade.py` | 257 | 写入门面 |
-| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/recall_snapshot.py` | 110 | 按 thread 的召回快照 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/namespaces.py` | 59 | 四类命名空间 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/store.py` | 497 | SQLite 原子表 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/facade.py` | 258 | 写入门面 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/recall_snapshot.py` | 111 | 按 thread 的召回快照 |
 
 #### 实现步骤
 
@@ -6483,6 +6859,13 @@ class AgentMemoryManager:
 
 # 进程内缓存：同一 agent_name 复用同一个管理器
 _agent_memory_managers: dict[str | None, AgentMemoryManager] = {}
+
+
+def get_agent_memory_manager(agent_name: str | None = None) -> AgentMemoryManager:
+    """取/建 agent 记忆管理器；按 agent_name 缓存。"""
+    if agent_name not in _agent_memory_managers:
+        _agent_memory_managers[agent_name] = AgentMemoryManager(agent_name)
+    return _agent_memory_managers[agent_name]
 ```
 
 ##### 3. 命名空间只有四类
@@ -6499,6 +6882,7 @@ _agent_memory_managers: dict[str | None, AgentMemoryManager] = {}
     packages/harness/myagentflow/memory/
     ├── __init__.py
     ├── namespaces.py  ← 本文件
+    ├── consolidate.py 确定性巩固
     ├── store.py       原子表读写
     ├── facade.py      remember / recall / forget
     └── recall_snapshot.py
@@ -6942,19 +7326,42 @@ uv run pytest tests/chapters/test_ch04_01_memory.py -q
 ```
 
 ```text
-.......                                                                  [100%]
-7 passed, 13 warnings in 0.12s
+........                                                                 [100%]
+8 passed, 13 warnings in 0.05s
 ```
 
-覆盖点：路径推导、agent/task 记忆互不覆盖、同名管理器复用、命名空间解析、同 subject 覆盖并升 revision、噪声过滤与软删、`get_core` 注入块、快照 24 条 / 240 字裁剪与副本语义。
+覆盖点：路径推导、agent/task 记忆互不覆盖、短期写入到新 thread 长期召回的完整调用闭环、同名管理器复用、命名空间解析、同 subject 覆盖并升 revision、噪声过滤与软删、`get_core` 注入块、快照 24 条 / 240 字裁剪与副本语义。
 
-#### 文件级差异
+#### 与 EvoFlow 对照（文件级）
 
-| 动作 | 文件 |
-|---|---|
-| 新增 | `timeutil.py`、`config/paths.py`、`agents/memory/agent_memory.py`、`agents/memory/__init__.py`、`memory/namespaces.py`、`memory/store.py`、`memory/facade.py`、`memory/recall_snapshot.py` |
-| 删除 | `memory/agent_memory.py`（旧自造 API）、`memory/assets.py`（自造 `AssetStore`） |
-| 重写 | `tests/chapters/test_ch04_01_memory.py` |
+| EvoFlow 上游文件（行数） | 本项目文件（行数） | 本章保留的符号与范围 | 未复刻 |
+|---|---|---|---|
+| `/Users/main/EvoFlow/backend/packages/harness/evoflow/memory/namespaces.py`（39） | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/namespaces.py`（59） | `user_ns` / `agent_ns` / `workspace_ns` / `person_ns` / `parse_namespace`；四类域与空值归一一致 | 无 |
+| `/Users/main/EvoFlow/backend/packages/harness/evoflow/agents/memory/agent_memory.py`（214） | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/agents/memory/agent_memory.py`（153） | `AgentMemoryManager`、agent/task 双文件、`get_combined_memory`、`add_fact_to_agent_memory`、`add_to_task_history` | 上游 logger 细节；本地异常文案更短 |
+| `/Users/main/EvoFlow/backend/packages/harness/evoflow/memory/store.py`（747） | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/store.py`（497） | `ensure_namespace`、`upsert_atom`、`soft_delete_atom`、`supersede_atom`、`update_atom_fields`、`list_namespace_atoms`、`search_keyword_ns`、`touch_accessed`、`count_active_atoms`、`set_pin` | 向量列与 `search_vector_ns`、FTS5 外部表、`mem_atom_entities`、`mark_atom_stale`、迁移标记 |
+| `/Users/main/EvoFlow/backend/packages/harness/evoflow/memory/facade.py`（375） | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/facade.py`（258） | `remember` / `forget` / `consolidate` / `recall` / `get_core` / `format_atoms_block`；噪声门与预算裁剪 | `pin_atom`、`mark_atom_stale`、`mark_related_memories_stale`、`list_atoms`、`_maybe_enqueue_threshold`、向量 RRF、embedding 召回 |
+| `/Users/main/EvoFlow/backend/packages/harness/evoflow/memory/recall_snapshot.py`（90） | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/recall_snapshot.py`（111） | `record_thread_recall` / `get_thread_recall` / `clear_thread_recall`；24 条、500 线程、副本语义 | 无 |
+
+##### 与 EvoFlow 的行为差异
+
+| 方面 | 本地实现 | EvoFlow 上游 |
+|---|---|---|
+| 召回算法 | 纯关键词：命中词数 + `importance` + pin，按 `top_k` 取 | 关键词 + 向量 + RRF 融合；有 embedding 时走混合召回 |
+| 向量字段 | `embedding` 参数保留但不落库，`query_embedding` 直接丢弃 | `mem_atoms.embedding` / `embedding_dim` 落库，`search_vector_ns` 可查 |
+| 自动巩固 | `remember` 只写入，不触发任何入队 | `remember` 命中阈值后 `_maybe_enqueue_threshold` 派发 `mem_consolidate` job |
+| 归档下限 | 固定 `0.15` | `memory_config.consolidate.archive_vitality` |
+| stale 标记 | 不实现 | `mark_atom_stale` / `mark_related_memories_stale`，任务或事项关闭时让旧记忆失效 |
+| 全文索引 | 普通 SQL `LIKE`/关键词匹配 | FTS5 外部表 `mem_atoms_fts`，写入时同步索引 |
+
+##### 源码核对记录（路径与符号实测）
+
+- `memory/namespaces.py`（39 行）：`user_ns`、`agent_ns`、`workspace_ns`、`person_ns`、`parse_namespace`；四类前缀与空值行为逐函数读过。
+- `agents/memory/agent_memory.py`（214 行）：`AgentMemoryManager` 及 12 个方法；agent 文件与 task 文件路径、坏 JSON fail-soft、同名管理器缓存均核对。
+- `memory/store.py`（747 行）：`ensure_namespace`、`upsert_atom`、`soft_delete_atom`、`supersede_atom`、`update_atom_fields`、`count_active_atoms`、`list_namespace_atoms`、`search_keyword_ns`、`touch_accessed`、`set_pin`；重点读同 subject 复用 `revision`、软删、排序与预算。
+- `memory/facade.py`（375 行）：`remember`、`recall`、`get_core`、`_filter_archived`、`_budget`、`format_atoms_block`；核对噪声阈值 `0.55`、归档下限、关键词+向量分支。
+- `memory/recall_snapshot.py`（90 行）：`record_thread_recall`、`get_thread_recall`、`clear_thread_recall`、`_trim`、`reset_for_tests`；24 条/500 线程/副本语义逐项一致。
+
+本地对应文件：`memory/namespaces.py`（59）、`agents/memory/agent_memory.py`（153）、`memory/store.py`（497）、`memory/facade.py`（258）、`memory/recall_snapshot.py`（111）。本章声明的写入、召回、软删、快照行为已核；向量、stale、自动入队明确未复刻。
 
 #### 本章不做什么
 
@@ -6966,6 +7373,7 @@ uv run pytest tests/chapters/test_ch04_01_memory.py -q
 #### 验收清单
 
 - [x] 跨 thread 可读 agent 记忆。
+- [x] task 历史只属于当前 thread；显式写入的长期 atom 可在新 thread 召回。
 - [x] 同 `subject_key` 不堆重复事实。
 - [x] 低置信度噪声不落库。
 - [x] `forget` 后召回不再返回。
@@ -6978,7 +7386,7 @@ uv run pytest tests/chapters/test_ch04_01_memory.py -q
 ### 第 2 章　记忆巩固、知识图谱与注入防御
 
 
-> 状态：✅ 代码已落地；`tests/chapters/test_ch04_02_consolidate.py` 5 项通过。
+> 状态：✅ 代码已落地；`tests/chapters/test_ch04_02_consolidate.py` 6 项通过；源码核对 ✅ 本章声明行为已与 EvoFlow 逐段对照。
 
 #### 目标与范围
 
@@ -6989,6 +7397,19 @@ uv run pytest tests/chapters/test_ch04_01_memory.py -q
 3. 记忆进入 prompt 时，必须被声明为不可信数据，不能当指令执行。
 
 本章的巩固是**确定性**的：不调 LLM，只做文本重叠合并。语义级合并留给后续阶段。
+
+#### 核心概念
+
+| 概念 | 在本章哪里 | 为什么要它 |
+|---|---|---|
+| 确定性巩固 | `consolidate_namespace` | 同样输入必得同样合并结果；可测试、可重跑，不引入模型成本 |
+| 弱知识图谱 | `subject_key` + `mem_atoms` | 用「同主题键」表达实体关联，不引入图数据库；节点就是 atom 行 |
+| revision / supersede | `upsert_atom`、`supersede_atom` | 同 subject 的新值复用原行并升 revision；被合并行软删但保留 `superseded_by` |
+| pin 保护 | `_keep_prefer` 与合并前检查 | 人工固定的记忆不能被普通条目吞掉；两个 pin 时才比较分数 |
+| 文本重叠 | `text_overlap` | 先用 token Jaccard，再用中文二元组 Jaccard 兜底，避免中文分词依赖 |
+| 注入边界 | `format_memory_for_injection` | 记忆是历史数据，不是系统指令；用 `<memory>` + `untrusted data` 声明，不删除可疑文本 |
+
+为什么不用 LLM 做巩固：巩固可能在每轮之后触发，模型调用会带来成本、延迟和不确定性；文本重叠只能处理「近似重复」，不能做语义改写，这是本章明确接受的限制。
 
 #### 调用逻辑
 
@@ -7014,7 +7435,9 @@ flowchart TD
 
 | 文件（完整路径） | 行数 | 职责 |
 |---|---|---|
-| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/consolidate.py` | 218 | 合并、阈值判断 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/consolidate.py` | 219 | 合并、阈值判断 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/store.py` | 497 | `list_namespace_atoms` / `update_atom_fields` / `supersede_atom` |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/facade.py` | 258 | `consolidate()` 同步入口 |
 | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/agents/memory/prompt.py` | 134 | 记忆注入格式化与注入声明 |
 
 #### 实现步骤
@@ -7080,7 +7503,7 @@ def consolidate_namespace(
     gc_min_confidence: float | None = None,
     gc_idle_days: int | None = None,
 ) -> dict[str, Any]:
-    """合并一个命名空间；后四个参数保留签名，衰减/GC 本章未实现。"""
+    """合并一个命名空间；后四个参数保留上游签名，本章不做衰减或 GC。"""
     del decay_factor, archive_vitality, gc_min_confidence, gc_idle_days
     sim_th = (
         float(similarity_merge) if similarity_merge is not None else _DEFAULT_SIMILARITY
@@ -7193,11 +7616,11 @@ def consolidate_namespace(
 
 ##### 5. 何时才值得跑巩固
 
-不是每条新记忆都跑；活跃条数达到 10 才建议入队。
+不是每条新记忆都要立即巩固。先用阈值函数判断活跃条数；它只返回布尔值，不创建或派发后台任务。
 
 ```python
 def should_enqueue_threshold(namespace_id: str) -> bool:
-    """条数达到阈值才建议入队巩固，避免每条新记忆都跑一遍。"""
+    """判断活跃 atom 数是否达到巩固阈值；不负责入队或启动任务。"""
     return mem_store.count_active_atoms(namespace_id) >= _THRESHOLD_ATOMS
 ```
 
@@ -7300,26 +7723,56 @@ uv run pytest tests/chapters/test_ch04_02_consolidate.py -q
 ```
 
 ```text
-.....                                                                    [100%]
-5 passed, 13 warnings in 0.11s
+......                                                                   [100%]
+6 passed, 13 warnings
 ```
 
-覆盖点：重叠度边界、同 subject 合并并软删、无 subject 相似合并、10 条阈值、`<memory>` 包裹与 compact 档过滤。
+覆盖点：重叠度边界、同 subject 合并并软删、pin 保护、无 subject 相似合并、10 条阈值判断、`<memory>` 包裹与 compact 档过滤。
 
-#### 文件级差异
+#### 与 EvoFlow 对照（文件级）
 
-| 动作 | 文件 |
-|---|---|
-| 新增 | `memory/consolidate.py`、`agents/memory/prompt.py` |
-| 修改 | `memory/store.py`：新增 `supersede_atom()` 与 `last_accessed_at` 字段 |
-| 删除 | `agents/content_scanner.py`（自造关键词扫描器，职责与注入防御混淆） |
-| 重写 | `tests/chapters/test_ch04_02_consolidate.py`（原 `test_ch04_02_scanner.py` 移除） |
+| EvoFlow 上游文件（行数） | 本项目文件（行数） | 本章保留的符号与范围 | 未复刻 |
+|---|---|---|---|
+| `/Users/main/EvoFlow/backend/packages/harness/evoflow/memory/consolidate.py`（318） | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/consolidate.py`（219） | `text_overlap`、`_similarity`、`_keep_prefer`、`_merge_content`、`consolidate_namespace`、`should_enqueue_threshold`；A1 同 subject + A2 文本相似 + pin 保护 | 衰减、低置信度 GC、`enqueue_consolidate` / `run_consolidate_job`、配置读取、embedding 余弦 |
+| `/Users/main/EvoFlow/backend/packages/harness/evoflow/memory/store.py`（747） | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/store.py`（497） | `list_namespace_atoms`、`supersede_atom`、`update_atom_fields`、`count_active_atoms`；字段名与 `superseded_by` 语义一致 | 向量列、FTS5、实体表、stale 标记 |
+| `/Users/main/EvoFlow/backend/packages/harness/evoflow/memory/facade.py`（375） | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/memory/facade.py`（258） | `consolidate()` 同步入口；`async_job=True` 显式报「未实现」 | 异步 job 入队、自动阈值触发、`pin_atom` / `mark_atom_stale` |
+| `/Users/main/EvoFlow/backend/packages/harness/evoflow/config/memory_config.py`（138） | — | 用模块常量 `_DEFAULT_SIMILARITY=0.72`、`_THRESHOLD_ATOMS=10` 代替 | `MemoryConsolidateConfig` 的 `similarity_merge` / `decay_factor` / `archive_vitality` / `gc_min_confidence` / `gc_idle_days` / `max_active_atoms` |
+| `/Users/main/EvoFlow/backend/packages/harness/evoflow/agents/memory/prompt.py`（427） | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/agents/memory/prompt.py`（134） | `format_memory_for_injection`、`_truncate_summary`、`_coerce_confidence`；`full` / `chat_compact`、10/5 条事实上限、`<memory>` 边界 | `MEMORY_UPDATE_PROMPT`、`format_conversation_for_update`、history 段、`_standing_fact_allowed`、tiktoken 精确计数 |
+
+##### 与 EvoFlow 的行为差异
+
+以下是本地实现与上游的明确差异；代码块校验只证明示例与本地源码一致，不代表两边行为相同。
+
+| 符号 / 方面 | 本地实现 | EvoFlow 上游 |
+|---|---|---|
+| `_keep_prefer()` | `pin > importance > confidence > updated_at` | `pin > confidence > importance > content 长度 > updated_at` |
+| `_merge_content()` | 内容互不包含时用换行拼接两条内容，短片段不丢 | 内容互不包含时只保留较长的一条，短片段被丢弃 |
+| `_similarity()` | 只把 `content` 做 token / 二元组重叠 | 两条都有 embedding 时先算余弦；否则把 `summary + content` 做文本重叠 |
+| `should_enqueue_threshold()` | 固定门槛 `活跃数 >= 10` | `活跃数 > cfg.max_active_atoms`，阈值来自 `MemoryConsolidateConfig` |
+| 衰减 / GC | 不执行；只保留签名参数和 `decayed` / `gc_deleted` 零值统计 | 按 `decay_factor` 对非 pin 条目衰减 vitality；低 confidence 且空闲超过 `gc_idle_days` 的条目软删 |
+| 巩固返回 | `{"ok": True, **stats}`，无 `finished_at` / `active_after` | 返回 stats，含 `finished_at`、`active_after`，由 job 调用方消费 |
+| 注入内容 | 只渲染 `user.workContext` / `personalContext` / `topOfMind` + facts；不渲染 `history` | `full` 档还渲染 `history.recentMonths` / `earlierContext`；事实先过 `_standing_fact_allowed`，过滤 knowledge/goal/过长条目 |
+| token 预算 | `max_chars = max(200, max_tokens * 4)`，按字符裁剪 | `tiktoken` 计数，按 token 预算裁剪；无 tiktoken 时回退字符估算 |
+| confidence 清洗 | 只处理 `NaN`，`inf` 会被 `min/max` 夹到边界 | `_coerce_confidence` 对 `NaN` / `inf` / `-inf` 都回退默认值 |
+
+本章选择固定条数和纯文本相似度，避免引入上游配置与向量依赖；合并优先级、正文合并和注入范围也保留本项目既有行为。后续如需行为级复刻，应单独调整实现与对应测试。
+
+##### 源码核对记录（路径与符号实测）
+
+- `memory/consolidate.py`（318 行）：`text_overlap`、`_similarity`、`_keep_prefer`、`_merge_content`、`consolidate_namespace`、`should_enqueue_threshold`、`enqueue_consolidate`、`run_consolidate_job`；A1/A2、pin 保护、衰减、GC 逐段读过。
+- `memory/store.py`（747 行）：`supersede_atom`、`update_atom_fields`、`list_namespace_atoms`、`count_active_atoms`；确认 `superseded_by` 与软删行为。
+- `memory/facade.py`（375 行）：`remember` 的阈值入队、`consolidate` 的同步/异步分支。
+- `config/memory_config.py`（138 行）：`MemoryConsolidateConfig`、`MemoryConfig`、`get_memory_config`；确认上游阈值来自配置而非常量。
+- `agents/memory/prompt.py`（427 行）：`format_memory_for_injection`、`_standing_fact_allowed`、`_count_tokens`；确认 history 段、事实过滤、tiktoken 预算与 `<memory>` 边界。
+
+本地对应文件：`memory/consolidate.py`（219）、`memory/store.py`（497）、`memory/facade.py`（258）、`agents/memory/prompt.py`（134）。本章声明的合并、pin 保护、注入边界已核；衰减/GC、异步 job、history 注入明确未复刻。
 
 #### 本章不做什么
 
-- 不做衰减与 GC：`consolidate_namespace` 保留 `decay_factor/archive_vitality/gc_min_confidence/gc_idle_days` 参数，但本章不执行，统计字段固定为 0。
+- 不做衰减与 GC：保留上游签名中的参数及 `decayed` / `gc_deleted` 零值统计字段，但不执行相应逻辑。
 - 不做 LLM 语义合并：没有模型调用，避免成本与不确定性。
 - 不做图数据库：不引入 Neo4j / 图结构，`subject_key` 即弱关联。
+- 不做异步巩固队列：`should_enqueue_threshold()` 只判断条数阈值，不入队、不启动任务；巩固由调用方显式触发。
 - 不把 guardrails 当注入防御：工具授权在 `guardrails/`，与记忆注入是两件事。
 
 #### 验收清单
@@ -7337,7 +7790,7 @@ uv run pytest tests/chapters/test_ch04_02_consolidate.py -q
 ### 第 3 章　资产、产物、事项与反思
 
 
-> 状态：✅ 代码已落地；`tests/chapters/test_ch04_03_assets.py` 5 项通过。
+> 状态：✅ 代码已落地；`tests/chapters/test_ch04_03_assets.py` 5 项通过；源码核对 ✅ 本章声明行为已与 EvoFlow 逐段对照。
 
 #### 目标与范围
 
@@ -7350,6 +7803,26 @@ uv run pytest tests/chapters/test_ch04_02_consolidate.py -q
 | 反思 resolver | 配置里的 `module:attr` 延迟加载 | 运行时 import |
 
 本章只做契约与 CRUD，不做派发 Task、不做反思生成、不做资产中心 UI。
+
+#### 核心概念
+
+| 概念 | 在本章哪里 | 为什么要它 |
+|---|---|---|
+| 产物 artifact | `artifacts/chat_artifact.py` | 工具返回结构不统一，前端只认一种契约；产物是「可展示的结果」，不是任务 |
+| 稳定 id | `make_artifact_id` | 同一路径/URL 重复出现必须得到同一 id，否则前端每次刷新多一张卡片 |
+| 位置三选一 | `path` / `url` / `content` | 本地文件、外链、内联 HTML/文本各有载体；至少有一个才算有效产物，不能全空 |
+| `ThreadState.artifacts` | `artifact_state_key` | 图状态仍用字符串键：path 优先、其次 url、最后 id；不是直接存整个 dict 作为键 |
+| 事项 item | `items/models.py: UserItem` | 个人待办/跟进，可关联 Task 但不是 Task；`linked_task_ids` 只是引用，不触发调度 |
+| 事项存储 | `items/store.py` | `user_items.json` 原子替换 + mtime 失效；跨进程改写后不能读旧缓存 |
+| 反射 resolver | `reflection/resolvers.py` | 配置里写 `module:attr`，运行时才 import；避免启动时加载全部可选依赖 |
+| 可见性 | `items/service.py: list_items` | 上游按 principal / scope 过滤；本项目没有 principal 体系，参数保留但不做假过滤 |
+
+产物、事项、任务、反思的边界：
+
+- **产物**：一次工具/模型产出的文件、链接、HTML，随会话展示。
+- **事项**：用户自己维护的待办，状态是 todo / in_progress / waiting / done / parked。
+- **任务**：可执行、可派发、可回写的调度单元；事项只能通过 `linked_task_ids` 关联。
+- **反思**：不是数据表，而是「按配置解析类/对象」的加载机制，本章不生成反思内容。
 
 #### 调用逻辑
 
@@ -7371,7 +7844,7 @@ flowchart LR
 | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/artifacts/chat_artifact.py` | 201 | 产物归一化与稳定 id |
 | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/items/models.py` | 99 | `UserItem` 模型 |
 | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/items/store.py` | 157 | JSON 原子写 + mtime 缓存失效 |
-| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/items/service.py` | 270 | 事项 CRUD |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/items/service.py` | 271 | 事项 CRUD |
 | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/reflection/resolvers.py` | 89 | `module:attr` 反射解析 |
 | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/admin/errors.py` | 31 | `NotFoundError` / `ValidationError` |
 
@@ -7759,13 +8232,38 @@ uv run pytest tests/chapters/test_ch04_03_assets.py -q
 
 覆盖点：扩展名推断图片、同路径 id 稳定、批量去重、状态键优先级、事项 CRUD/过滤、非法 status 抛 `ValidationError`、反射解析成功与失败。
 
-#### 文件级差异
+#### 与 EvoFlow 对照（文件级）
 
-| 动作 | 文件 |
-|---|---|
-| 新增 | `artifacts/chat_artifact.py`、`artifacts/__init__.py`、`items/models.py`、`items/store.py`、`items/service.py`、`items/__init__.py`、`reflection/resolvers.py`、`reflection/__init__.py`、`admin/errors.py` |
-| 删除 | `memory/assets.py`（把资产/待办/反思塞进一个 `AssetStore`，违反一文件一职责） |
-| 重写 | `tests/chapters/test_ch04_03_assets.py` |
+| EvoFlow 上游文件（行数） | 本项目文件（行数） | 本章保留的符号与范围 | 未复刻 |
+|---|---|---|---|
+| `/Users/main/EvoFlow/backend/packages/harness/evoflow/artifacts/chat_artifact.py`（229） | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/artifacts/chat_artifact.py`（201） | `normalize_artifact_type`、`_basename`、`make_artifact_id`、`normalize_chat_artifact`、`normalize_chat_artifacts`、`artifact_state_key`；六类产物、稳定 id、批量去重 | `platform` 类型及其 `platformAction` / `platformDomain` / `toolCallId` 分支 |
+| `/Users/main/EvoFlow/backend/packages/harness/evoflow/items/models.py`（77） | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/items/models.py`（99） | `ItemStatus`、`ItemPriority`、`UserItem`、`to_public_dict`；字段名与枚举值一致 | 无 |
+| `/Users/main/EvoFlow/backend/packages/harness/evoflow/items/store.py`（146） | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/items/store.py`（157） | `load_doc`、`save_doc`、`list_raw_items`、`replace_all_items`、`upsert_raw_item`、`delete_raw_item`；JSON 原子替换 + mtime 缓存失效 | 路径改 `MYAF_DATA_DIR`；其余行为一致 |
+| `/Users/main/EvoFlow/backend/packages/harness/evoflow/items/service.py`（890） | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/items/service.py`（271） | `list_items`、`get_item`、`create_item`、`update_item`、`delete_item`；过滤、分页、状态/优先级校验 | `item_visible_to_principal`、可见性过滤、`dispatch_item`、`_link_task`、`_stamp_task_user_item`、`sync_item_from_linked_task`、`_wake_employee_for_item`、`migrate_inbox_tasks`、完成时 `stale_memories_on_close` |
+| `/Users/main/EvoFlow/backend/packages/harness/evoflow/reflection/resolvers.py`（102） | `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/reflection/resolvers.py`（89） | `_build_missing_dependency_hint`、`resolve_variable`、`resolve_class`；`module:attr` 解析与基类校验 | 错误文案更短；异常类型与行为一致 |
+
+##### 与 EvoFlow 的行为差异
+
+| 方面 | 本地实现 | EvoFlow 上游 |
+|---|---|---|
+| 产物类型 | `ARTIFACT_TYPES` = file / image / video / url / html / text | 多一个 `platform`；有平台卡片专用字段和 id 规则 |
+| 事项可见性 | `list_items` 对 `is_admin` / `personal_scope` / `org_scope` / `principal` / `filter_visibility` 执行 `del`，不过滤 | `filter_visibility=True` 时调用 `owner_scope_visible_to_principal`，按 principal/scope 过滤 |
+| 单条事项可见性 | 不实现 | `item_visible_to_principal(item_id, ...)` 逐条判断 |
+| 事项完成 | 只把 status 改成 done；不强制 progress=100 | done 时若 `progress < 100` 自动补到 100；并触发 `stale_memories_on_close` |
+| 事项更新 | 白名单字段通用循环；字符串字段统一 `strip` | 显式逐字段赋值，`linked_task_ids` 做去重 |
+| Task 关联 | `linked_task_ids` 只是字段 | `_link_task` / `_stamp_task_user_item` 双向写 Task 文档；`sync_item_from_linked_task` 回写状态 |
+| 派发 / 唤醒 | 不实现 | `dispatch_item`、`_wake_employee_for_item`、`_finish_dispatch_with_optional_wake` |
+| 旧 inbox 迁移 | 不实现 | `migrate_inbox_tasks` 把旧 task 迁成事项 |
+
+##### 源码核对记录（路径与符号实测）
+
+- `artifacts/chat_artifact.py`（229 行）：`normalize_artifact_type`、`make_artifact_id`、`normalize_chat_artifact`、`normalize_chat_artifacts`、`artifact_state_key`；逐段核对 path > url > content 的 id 规则、`platform` 分支、六类扩展名推断。
+- `items/models.py`（77 行）：`ItemStatus`、`ItemPriority`、`UserItem`、`to_public_dict`；枚举值与字段逐项一致。
+- `items/store.py`（146 行）：`_load_unlocked`、`_save_unlocked`、`upsert_raw_item`、`delete_raw_item`；核对 `tmp.replace` 原子替换与 mtime 缓存失效。
+- `items/service.py`（890 行）：`list_items`、`item_visible_to_principal`、`create_item`、`update_item`、`delete_item`、`dispatch_item`、`migrate_inbox_tasks`；重点读可见性、done→progress=100、Task 关联与完成时 stale 钩子。
+- `reflection/resolvers.py`（102 行）：`resolve_variable`、`resolve_class`、`_build_missing_dependency_hint`；核对 `module:attr` 解析、缺模块提示和基类校验。
+
+本地对应文件：`artifacts/chat_artifact.py`（201）、`items/models.py`（99）、`items/store.py`（157）、`items/service.py`（271）、`reflection/resolvers.py`（89）。本章声明的产物契约、事项 CRUD、原子写、反射解析已核；platform 产物、可见性、Task 派发/回写/迁移明确未复刻。
 
 #### 本章不做什么
 
@@ -7792,474 +8290,598 @@ uv run pytest tests/chapters/test_ch04_03_assets.py -q
 ### 第 5 部分　知识库与代码理解 / Knowledge Base and Code Understanding
 
 
-> 状态：🟡 骨架（真实路径已核对）。目标：让 Agent 回答「只有你的资料里才有答案」的问题，并能读自己的代码库。
+> 状态：✅ 代码已落地；`tests/chapters/test_ch05_*.py` 共 17 项通过。本部分实现的是离线最小闭环，不是 EvoFlow 全量知识库产品。
+
+#### 这一部分解决什么
+
+Agent 有两类“外部知识”需求，处理链路不同：
+
+- **文档知识库**：用户上传的 Markdown、文本、代码、docx/pptx，先解析、切块、向量化，再按相似度召回。
+- **工作区代码**：不靠语义猜，靠符号表、FTS5 全文和 import/调用引用，回答“这个函数在哪、谁在调用”。
+
+两条链路共享“解析 → 切块/结构化 → 落库 → 检索 → 引用”的骨架，但代码索引把结构信息放在第一位：符号名与行号必须准，语义检索只做兜底。
 
 #### 章节
 
-| 章 | 主题 | 真实模块 |
-|---|---|---|
-| 1（01-上传解析与切块.md） | 上传解析与切块 | `knowledge/parser.py`、`chunker.py`、`wiki_chunker.py`、`uploads/` |
-| 2（02-Embedding与向量检索.md） | Embedding、向量检索与引用 | `knowledge/embedding/`、`knowledge/vector/`、`index_builder.py` |
-| 3（03-Owned-Knowledge与知识地图.md） | Owned Knowledge 与知识地图 | `knowledge/owned/`、`folders.py`、`service.py`、`routers/knowledge_owned.py` |
-| 4（04-Workspace代码索引.md） | Workspace 代码索引与符号上下文 | `code_index/`（tree-sitter + LSP + watcher） |
-
-#### 两条不同的知识通道
-
-| 通道 | 数据 | 检索方式 | 典型问题 |
+| 章 | 主题 | 本项目实现 | 测试 |
 |---|---|---|---|
-| 文档 RAG | 上传的 PDF/Word/MD | 向量 + 关键词混合 | 「合同里违约金怎么算」 |
-| 代码索引 | 工作区源码 | FTS5 + 符号表 + 引用图 | 「谁调用了这个函数」 |
+| 1（01-上传解析与切块.md） | 上传解析与切块 | `parser.py`、`chunker.py`、`wiki_chunker.py`、`index_builder.py` | 5 |
+| 2（02-Embedding与向量检索.md） | Embedding 与向量召回 | `embedding/`、`vector/sqlite_vec.py` | 4 |
+| 3（03-Owned-Knowledge与知识地图.md） | Owned Knowledge 与知识地图 | `knowledge/owned/` | 4 |
+| 4（04-Workspace代码索引.md） | 工作区代码索引 | `code_index/` | 4 |
 
-两者共享「切块 → 索引 → 检索 → 引用」骨架，但代码索引靠**结构**（符号、导入、调用）而不是纯语义。
+#### 两条通道的边界
+
+| 通道 | 本章能力 | 本章不做什么 |
+|---|---|---|
+| 文档 RAG | 文本/Markdown/代码/docx/pptx 解析；PDF 需可选 `pypdf`；标题切块；64 维离线哈希向量；余弦召回 | 不接真实语义模型；不做 OCR；不做异步索引队列 |
+| 代码索引 | Python AST 符号；FTS5 全文；Python import 别名；调用引用；单文件增量更新 | 不做 tree-sitter 全语言解析；不做 LSP；不做文件 watcher |
 
 #### 关键原则
 
-1. **引用必须可点回原文**：回答里带 chunk id / 文件:行号。
-2. **切块要带上下文**：标题路径、文件路径、前后邻居。
-3. **索引是增量产物**：文件变更 → 重切该文件 → 更新索引，不能全量重建。
-4. **不索引密钥**：`.env`、凭证目录排除。
+1. **引用能回到原文**：块带 `char_start/char_end`，代码结果带 `path:line`。
+2. **先结构后语义**：代码先查符号和引用，查不到再走 FTS；文档先按标题切，再向量召回。
+3. **索引可增量**：同一个文件重索引先删旧符号/引用/FTS 行，再写新行。
+4. **不索引依赖与密钥目录**：`.venv`、`node_modules`、`.git`、`.myaf` 直接跳过。
+
+#### 与 EvoFlow 的差异
+
+| 主题 | EvoFlow | 本项目 | 原因 |
+|---|---|---|---|
+| 文档解析 | MarkItDown 统一转 Markdown | 文本直读 + docx/pptx stdlib 解包 + 可选 pypdf | 不引重依赖，保证离线可跑 |
+| Embedding | 多 provider（OpenAI/本地模型） | 离线 BLAKE2 特征哈希，64 维 | 先跑通缓存/维度/召回链路 |
+| 向量索引 | sqlite-vec `vec0` | 普通 SQLite 表 + Python 余弦 | 不装扩展，规模上限较低 |
+| Owned Knowledge | 完整文档/任务/活动/标签/链接 | 建库、文档、目录、块、实体图 | 只保留本章闭环 |
+| 代码解析 | tree-sitter + LSP + watcher | Python AST + 通用正则兜底 | 当前只追求 Python 项目可用 |
+| 代码引用 | Python/JS/TS 导入绑定 | Python import 别名与 Call | 不假装支持未实现的语言 |
 
 #### 验收口径
-- 上传 100 页 PDF，问细节能定位到页。
-- 改一个文件后索引 10 秒内更新。
-- 「某个函数被谁引用」能给出文件:行号列表。
+
+```text
+uv run pytest tests/chapters/test_ch05_*.py -q
+17 passed, 13 warnings
+
+uv run pytest tests/chapters -q
+97 passed, 13 warnings
+```
+
+代码结果必须能给出 `文件:行号`；文档块必须能给出块 id、标题路径与字符区间。没有这些定位信息的“知识库”不算完成。
 
 
 <!-- ===== 05-知识库与代码理解/01-上传解析与切块.md ===== -->
 
 
-### 第 1 章　上传解析与切块 / Parse and Chunk
+### 第 1 章　上传解析与切块
 
 
-> **EvoFlow 对照状态 / Alignment status：** 🔍 结构已核对（路径、行数、符号均取自源码实测），**行为**（调用顺序、边界条件）尚未逐行核对。
+> 状态：✅ 代码已落地；`tests/chapters/test_ch05_01_chunker.py` 5 项通过。
 
-#### 本章目标
-把任意格式的文件变成「可检索、带上下文、可回溯」的片段。
+#### 目标与范围
 
-#### 最小闭环
-上传 PDF → 解析出文本与页码 → 切成 500–800 字片段并带标题路径 → 落库 → 能被检索到。
+把上传文件变成“能定位、能检索”的块：
 
-#### 调用逻辑 / Invocation logic
+1. 按扩展名选解析器，统一产出纯文本。
+2. 文本按空行切段，再按 token 预算装箱；超长段落保留重叠。
+3. Markdown 额外保留标题路径，检索命中后模型知道“这段属于哪一节”。
+4. 生成索引行，供第 2 章向量化时拼接。
+
+本章只做文本解析与切块，不落库、不调用 embedding；存储与建库在第 3 章，向量化在第 2 章。
+
+#### 调用逻辑
 
 ```mermaid
 sequenceDiagram
-    participant U as 上传接口
-    participant C as chunk_text
-    participant S as _split_sections
-    participant D as 文档库
-    U->>C: chunk_text(text, size, overlap)
-    C->>S: 按标题切段，继承 heading 路径
-    S-->>C: sections[]
-    C->>C: 滑窗切片 + overlap
-    C-->>D: Chunk(text, heading, page, offset)
+    participant U as 上传入口
+    participant P as parser.parse_file
+    participant W as wiki_chunker.auto_chunk_document
+    participant C as chunker.chunk_text
+    participant I as index_builder
+    U->>P: 文件路径 + doc_id/kb_id
+    P-->>U: 纯文本
+    U->>W: 文本 + file_name
+    W->>C: 超长章节才窗口切
+    W-->>U: 块 + heading_path + 字符区间
+    U->>I: enrich_chunk_indexes
+    I-->>U: 索引行 + metadata_json
 ```
 
-- **入口**：`chunk_text()` 是唯一入口，参数只暴露 `size` 与 `overlap`，其余从文档元数据取。
-- **关键节点**：先按标题切成 section，再在 section 内滑窗——顺序反了跨标题的片段会丢掉归属；每个 chunk 必须带 heading 路径。
-- **出口**：`Chunk` 带 `text/heading/page/offset`，offset 用于回答时给「第几段」而不是「大概在文中」。
-- **最容易断的地方**：切块不看标题层级，检索命中后无法引用到具体小节；overlap 写成字符重叠但按 token 计。
+关键边界：
 
-#### 真实模块地图（已核对：路径 · 行数 · 符号）
+- 解析失败必须带 `doc_id/kb_id/path`，否则上传任务队列里无法定位坏文件。
+- `char_start/char_end` 基于原文；重叠块允许区间重叠，不允许越界。
+- PDF 没有 `pypdf` 时报缺依赖，不返回空文本假装成功。
 
-| 文件 | 行数 | 关键符号 | 模块常量 |
-|---|---|---|---|
-| `packages/harness/evoflow/knowledge/parser.py:55` | 234 | `parse_file`、`_format_context`、`_convert_with_markitdown` | — |
-| `packages/harness/evoflow/knowledge/processor.py:33` | 391 | `public_file_status`、`process_file`、`_make_file_id` | — |
-| `packages/harness/evoflow/knowledge/chunker.py:30` | 211 | `_count_tokens`、`chunk_text`、`_split_paragraphs` | — |
-| `packages/harness/evoflow/knowledge/wiki_chunker.py:16` | 193 | `auto_chunk_document`、`_split_markdown_sections`、`_split_plain_sections` | — |
-| `app/gateway/routers/knowledge.py` | 418 | `CreateDatasetRequest`、`UpdateDatasetRequest`、`SyncLocalRequest`；`_org_admin_dep`、`list_knowledge_bases`、`create_knowledge_base` | — |
-| `packages/harness/evoflow/persistence/media_assets.py:29` | 394 | `_json_dumps`、`_json_loads`、`_file_size_for_local_path` | — |
-| `packages/harness/evoflow/knowledge/index_builder.py:9` | 77 | `build_document_summary`、`enrich_chunk_indexes`、`embedding_text_for_chunk` | — |
-| `packages/harness/evoflow/knowledge/llm_indexer.py:33` | 294 | `kb_llm_enabled`、`_resolve_model_name`、`_extract_json_object` | — |
-| `packages/harness/evoflow/knowledge/local_source.py:31` | 171 | `_get_settings`、`normalize_local_root`、`iter_local_files` | — |
-| `packages/harness/evoflow/knowledge/chunker.py:30` | 211 | `_count_tokens`、`chunk_text`、`_split_paragraphs` | — |
+#### 文件地图
 
-#### 核心概念
-- **解析质量决定上限**：表格、双栏 PDF、扫描件需要不同策略（OCR 兜底）。
-- **切块策略**：按结构切（标题/段落/代码块）优于按字数硬切。
-- **元数据三件套**：`source_path`、`section_path`（如 `3.2 > 违约金`）、`char_range`。
+| 文件（完整路径） | 行数 | 职责 |
+|---|---|---|
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/knowledge/parser.py` | 151 | 扩展名分流；文本、docx、pptx、可选 PDF |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/knowledge/chunker.py` | 151 | 段落装箱、重叠硬切、字符区间 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/knowledge/wiki_chunker.py` | 193 | Markdown 标题路径、章节合并 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/knowledge/index_builder.py` | 96 | 文档摘要、块索引行、embedding 文本 |
+| `/Users/main/my-agent-flow/backend/tests/chapters/test_ch05_01_chunker.py` | 111 | 5 个章节测试 |
 
-#### 自研实现要点
-```text
-chunks(id, doc_id, source_path, section_path, seq, text, tokens, hash)
-去重：hash(text) 相同则不重复入库；文件更新时按 doc_id 批量替换
-```
+#### 实现步骤
 
-#### 业务规则
-- 单文件超限（如 200MB）拒绝并提示。
-- 扫描件必须走 OCR 并标记 `needs_ocr`。
-- 切块不允许切断代码块/表格行。
+##### 1. 先按扩展名分流，再决定谁能解析
 
-#### 常见坑
-- PDF 双栏按行读 → 语义交错。
-- 切块过小 → 检索命中但上下文不足。
-- 不存 `section_path` → 回答无法定位。
-
-#### 验收
-- [ ] 表格内容可被检索
-- [ ] 文件更新后旧块被清理
-- [ ] 每块可回溯到页码/段落
-
-##### 源码核对记录（路径与符号实测）
-
-- `packages/harness/evoflow/knowledge/parser.py`（234 行）
-  - 模块自述：Document parser for the evoflow knowledge base. Converts source files (PDF, DOCX, PPTX, XLSX, TXT, MD) to plai…
-- `packages/harness/evoflow/knowledge/processor.py`（391 行）
-  - 模块自述：Document processing pipeline for the evoflow knowledge base. Orchestrates: parse → LLM/structure chunk → build…
-- `packages/harness/evoflow/knowledge/chunker.py`（211 行）
-  - 模块自述：Text chunker for the evoflow knowledge base. Splits plain text into overlapping chunks that respect paragraph …
-- `packages/harness/evoflow/knowledge/wiki_chunker.py`（193 行）
-  - 模块自述：Wiki-style automatic chunking: split by document structure, not user token size.…
-- `app/gateway/routers/knowledge.py`（418 行）：类 `CreateDatasetRequest`、`UpdateDatasetRequest`、`SyncLocalRequest`、`CreateFolderRequest`；环境变量 `EVOFLOW_HOME`、`EVOFLOW_KB_UPLOAD_DIR`
-  - 模块自述：Knowledge base API router. Provides CRUD for knowledge bases, file upload, chunk listing, semantic search, and…
-- `packages/harness/evoflow/persistence/media_assets.py`（394 行）
-  - 模块自述：Persist media tool outputs (task ids, remote URLs, local paths) in ``evoflow_media_assets``. This is the **cal…
-- `packages/harness/evoflow/knowledge/index_builder.py`（77 行）
-  - 模块自述：Build document summary + per-chunk index strings (rule-based, no user config).…
-- `packages/harness/evoflow/knowledge/llm_indexer.py`（294 行）；环境变量 `EVOFLOW_KB_LLM_ENABLED`、`EVOFLOW_KB_LLM_MAX_CHARS`、`EVOFLOW_KB_LLM_SPLIT_MIN_CHARS`
-  - 模块自述：LLM-assisted knowledge base chunking and indexing (Phase 2). Uses the configured primary chat model to: * sema…
-- `packages/harness/evoflow/knowledge/local_source.py`（171 行）
-  - 模块自述：Bind a local directory as a knowledge base source (scan in place, no copy).…
-- `packages/harness/evoflow/knowledge/chunker.py`（211 行）
-  - 模块自述：Text chunker for the evoflow knowledge base. Splits plain text into overlapping chunks that respect paragraph …
-
-> 本节只证明**路径、行数、符号存在**；调用顺序与边界条件仍属「行为」，未逐行核对。
-
-#### 对照 EvoFlow 核对清单
-- [ ] `chunker.py` 与 `wiki_chunker.py` 的分工
-- [ ] `llm_indexer.py` 是否用 LLM 生成摘要
-
-#### 从零实现（手把手）
-> 读完这章你能把一份长文档切成带标题路径、带重叠的块，块之间不丢上下文。
-> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
-
-##### Step 1　新建 chunker.py：按标题切段 + 窗口滑动
-**文件**：`backend/packages/harness/myagentflow/knowledge/chunker.py（新建）`
-**要写的逻辑**：先按 Markdown 标题切成段并保留标题路径；段太长再按窗口切，窗口之间留 overlap，避免边界处的句子被切断。
-
-**代码**
+纯文本直接读；docx/pptx 用 stdlib 解 zip + XML；PDF 才去 import `pypdf`。这样没有 PDF 依赖时，Markdown 上传仍然可用。
 
 ```python
-"""切块：先按标题分段，再按窗口滑。
+def parse_file(
+    file_path: str | Path,
+    *,
+    doc_id: str | None = None,
+    kb_id: str | None = None,
+) -> str:
+    """把文件解析成纯文本。
 
-为什么保留标题路径：检索命中一段后，模型需要知道「这段属于哪一章」，
-否则会把某个小节的结论当全局结论。
-"""
-from __future__ import annotations
+    纯文本按 UTF-8 读取；docx/pptx 直接解 zip + XML，不依赖 Office 运行时；
+    PDF 有 pypdf 才解析，否则明确报缺少依赖，而不是返回空串。
+    """
+    p = Path(file_path)
+    if not p.exists():
+        ctx = _format_context(doc_id=doc_id, kb_id=kb_id, path=p)
+        raise FileNotFoundError(f"File not found: {p} ({ctx})")
 
-import re
-from dataclasses import dataclass
+    ext = p.suffix.lower()
+    ctx = _format_context(doc_id=doc_id, kb_id=kb_id, path=p)
+    if ext in _TEXT_EXTENSIONS:
+        return p.read_text(encoding="utf-8", errors="replace")
+    if ext == ".docx":
+        return _fallback_docx(p, ctx=ctx)
+    if ext == ".pptx":
+        return _fallback_pptx(p, ctx=ctx)
+    if ext == ".pdf":
+        return _parse_pdf(p, ctx=ctx)
+    raise ValueError(f"Unsupported file type '{ext}' ({ctx})")
+```
 
-_HEADING = re.compile(r"^(#{1,6})\s+(.*)$", re.M)
+##### 2. 段落装箱，超长段才硬切
 
+先按空行切段，能装进一个预算就合在一起；只有单段超过预算才走字符窗口。这样正常文档不会在句子中间断开。
 
-@dataclass(frozen=True)
-class Chunk:
-    text: str
-    heading: str
-    index: int
+```python
+def chunk_text(
+    text: str,
+    chunk_size: int = 512,
+    overlap: int = 50,
+) -> list[dict]:
+    """把文本切成重叠块，尽量不切断段落。
 
+    返回的每块都带 ``char_start`` / ``char_end``，用于回答时回指原文位置。
+    重叠按 token 计，内部换算成字符时使用 4 字符 ≈ 1 token 的同一套估算。
+    """
+    if not text or not text.strip():
+        return []
 
-def _split_sections(text: str) -> list[tuple[str, str]]:
-    sections: list[tuple[str, str]] = []
-    current_heading = ""
-    buf: list[str] = []
-    for line in text.splitlines():
-        m = _HEADING.match(line)
-        if m:
-            if buf:
-                sections.append((current_heading, "\n".join(buf).strip()))
-            current_heading = m.group(2).strip()
-            buf = []
-        else:
-            buf.append(line)
-    if buf:
-        sections.append((current_heading, "\n".join(buf).strip()))
-    return [(h, b) for h, b in sections if b]
+    chunk_size = max(1, int(chunk_size))
+    overlap = max(0, min(int(overlap), chunk_size - 1))
+    paragraphs = _split_paragraphs(text)
+    if not paragraphs:
+        return []
 
+    chunks: list[dict] = []
+    current_parts: list[str] = []
+    current_tokens = 0
+    current_start = paragraphs[0]["start"]
+    current_end = paragraphs[0]["end"]
+    overlap_chars = overlap * 4
 
-def chunk_text(text: str, max_chars: int = 800, overlap: int = 80) -> list[Chunk]:
-    chunks: list[Chunk] = []
-    idx = 0
-    for heading, body in _split_sections(text):
-        if len(body) <= max_chars:
-            chunks.append(Chunk(body, heading, idx)); idx += 1
+    for para in paragraphs:
+        para_text = para["text"]
+        para_tokens = _count_tokens(para_text)
+
+        if para_tokens > chunk_size:
+            if current_parts:
+                chunks.append(_make_chunk(current_parts, current_start, current_end))
+                current_parts = []
+                current_tokens = 0
+
+            for piece_text, piece_start, piece_end in _hard_split(
+                para_text,
+                chunk_size=chunk_size,
+                overlap=overlap,
+                base_start=para["start"],
+            ):
+                chunks.append(_make_chunk([piece_text], piece_start, piece_end))
             continue
-        step = max(1, max_chars - overlap)      # 步长 = 窗口 - 重叠
-        for start in range(0, len(body), step):
-            piece = body[start:start + max_chars]
-            if not piece.strip():
-                continue
-            chunks.append(Chunk(piece, heading, idx)); idx += 1
+
+        if current_tokens + para_tokens > chunk_size and current_parts:
+            chunks.append(_make_chunk(current_parts, current_start, current_end))
+            tail = chunks[-1]["content"][-overlap_chars:] if overlap_chars else ""
+            current_parts = [tail] if tail else []
+            current_tokens = _count_tokens(tail) if tail else 0
+            current_start = max(0, para["start"] - len(tail))
+
+        current_parts.append(para_text)
+        current_tokens += para_tokens
+        current_end = para["end"]
+
+    if current_parts:
+        chunks.append(_make_chunk(current_parts, current_start, current_end))
     return chunks
 ```
 
-**验证**
+##### 3. Markdown 保留标题路径
 
-```bash
-uv run python -c "
-from myagentflow.knowledge.chunker import chunk_text
-text = '# A\n' + 'x'*1000 + '\n## B\nshort'
-cs = chunk_text(text)
-print(len(cs), cs[0].heading, len(cs[0].text))
-"
-```
-
-##### Step 2　写测试：重叠不丢内容 + 标题继承
-**文件**：`backend/tests/chapters/test_ch05_01_chunker.py（新建）`
-**要写的逻辑**：长段落切出的块要能覆盖原文（拼起来包含所有字符）；第二块的 heading 应为 `B`。
-
-**代码**
+`auto_chunk_document` 先按 `#` 切章节，用标题栈维护 `一级 / 二级`；相邻小章节合并，超长章节再交给 `chunk_text`。
 
 ```python
-from __future__ import annotations
+def auto_chunk_document(text: str, *, file_name: str = "") -> list[dict]:
+    """按文档结构切块，返回兼容 ``chunk_text`` 的字段并额外带 ``heading_path``。"""
+    raw = (text or "").strip()
+    if not raw:
+        return []
 
+    is_markdown = (
+        file_name.lower().endswith(".md") or _HEADING_RE.search(raw) is not None
+    )
+    sections = (
+        _split_markdown_sections(raw) if is_markdown else _split_plain_sections(raw)
+    )
+    merged = _merge_small_sections(sections)
 
-def test_overlap_covers_text():
-    from myagentflow.knowledge.chunker import chunk_text
+    chunks: list[dict] = []
+    for section in merged:
+        content = section["content"].strip()
+        if not content:
+            continue
+        chunks.append(
+            {
+                "content": content,
+                "token_count": _count_tokens(content),
+                "char_start": section["start"],
+                "char_end": section["end"],
+                "heading_path": section.get("heading_path")
+                or section.get("title")
+                or file_name
+                or "正文",
+                "title": section.get("title") or "",
+                "index_text": "",
+            }
+        )
+    if chunks:
+        return chunks
 
-    body = "".join(str(i % 10) for i in range(1500))
-    chunks = chunk_text("# T\n" + body, max_chars=400, overlap=50)
-    assert len(chunks) > 1
-    assert all(c.heading == "T" for c in chunks)
-    # 每块起点都在原文里，且相邻块有重叠
-    assert chunks[0].text[-50:] == chunks[1].text[:50]
-
-
-def test_heading_inherited():
-    from myagentflow.knowledge.chunker import chunk_text
-
-    cs = chunk_text("# A\nbody a\n## B\nbody b")
-    assert [c.heading for c in cs] == ["A", "B"]
+    legacy = chunk_text(raw, chunk_size=512, overlap=50)
+    for item in legacy:
+        item["heading_path"] = file_name or "正文"
+        item["title"] = ""
+        item["index_text"] = ""
+    return legacy
 ```
 
-**验证**
+##### 4. 索引行不等于正文
 
-```bash
-uv run pytest tests/chapters/test_ch05_01_chunker.py -v
-# 期望：2 passed
+索引用“标题 + 关键词”做一条短提示，不把整段再复制一遍。`embedding_text_for_chunk` 只在索引行不在正文里时拼接，避免重复。
+
+```python
+def enrich_chunk_indexes(chunks: list[dict], *, file_name: str = "") -> list[dict]:
+    """给每个块补 ``index_text`` 与 ``metadata_json``；不修改传入列表。"""
+    out: list[dict] = []
+    for index, chunk in enumerate(chunks):
+        heading = str(
+            chunk.get("heading_path")
+            or chunk.get("title")
+            or file_name
+            or f"段落 {index + 1}"
+        )
+        keywords = _extract_keywords(chunk.get("content") or "", limit=6)
+        index_text = " · ".join([heading, *keywords]) if keywords else heading
+        meta = {
+            "heading_path": heading,
+            "index_text": index_text,
+            "title": chunk.get("title") or "",
+            "kind": "section",
+        }
+        enriched = dict(chunk)
+        enriched["index_text"] = index_text
+        enriched["metadata_json"] = json.dumps(meta, ensure_ascii=False)
+        out.append(enriched)
+    return out
 ```
 
-##### 与 EvoFlow 对照
+#### 关键设计
 
-| 我们的做法 | EvoFlow | 为什么 |
+- **字符区间是引用能力的地基**：没有 `char_start/char_end`，回答只能给“某文档”，不能回到具体段落。
+- **小章节合并**：一个标题下面只有一句话时，单独成块会让检索上下文太薄；合并到相邻章节更稳。
+- **解析器分层**：文本、OOXML、PDF 三条路径互不依赖；缺 PDF 依赖不会阻断 Markdown 上传。
+- **token 估算可退化**：有 `tiktoken` 就精确计数，没有按 4 字符 ≈ 1 token；预算不会因为环境不同而完全失效。
+
+#### 与 EvoFlow 的差异
+
+| 主题 | EvoFlow | 本项目 |
 |---|---|---|
-| 标题路径随块保留 | `backend/packages/harness/myagentflow/knowledge/chunker.py`（211 行） | 检索命中要知道层级 |
-| 窗口 + overlap | 同文件 | 硬切会把句子切断，重叠是补丁 |
+| 转换器 | MarkItDown 统一转 Markdown | 文本直读；docx/pptx stdlib 解包；PDF 可选 pypdf |
+| 切块入口 | `chunker.py` + `wiki_chunker.py` + `processor.py` | 只保留 parser/chunker/wiki_chunker/index_builder |
+| 标题路径 | wiki 切块保留完整层级 | 保留，但小章节会合并成 `一级 / 二级` |
+| 二进制范围 | PDF/Office/图片 OCR 等 | 不做 OCR；PDF 只提文本层 |
+| 落库 | processor 解析后直接入队 | 本章不落库，上传落库在第 3 章 |
 
-##### 知识点
+#### 测试与实测
 
-- [RAG 离线流水线：解析 → 切块 → 入库全流程](https://harbor404.fushenlin.com/notes/rag-offline-pipeline/)
-- [系统课入口：检索前置处理](https://g0-000.github.io/agent-book/)
+覆盖点：
 
-##### 验收
+- `test_parse_text_and_reject_unknown()`：Markdown 读出原文；`.bin` 报 `Unsupported file type`。
+- `test_chunk_text_keeps_offsets_and_overlap()`：每块区间不越界；相邻块有重叠。
+- `test_auto_chunk_document_keeps_heading()`：块带 `heading_path`，正文含标题。
+- `test_index_builder_summary_and_enrich()`：摘要取标题；索引行进入 embedding 文本。
+- `test_parse_docx_and_pptx()`：stdlib 解包 Word 正文与 PPT 幻灯片文本。
 
-```bash
+```text
 uv run pytest tests/chapters/test_ch05_01_chunker.py -q
+5 passed, 13 warnings
 ```
+
+#### 本章不做什么
+
+- 不做 OCR，不解析扫描版 PDF。
+- 不做图片/音频/视频转文本。
+- 不做异步解析队列；大文件解析会阻塞当前调用。
+- 不把解析结果直接写入数据库；写入在 `knowledge/owned/service.py`。
+
+#### 验收清单
+
+- [x] 文本/Markdown 可解析。
+- [x] docx/pptx 不依赖 Office 运行时。
+- [x] PDF 缺依赖时明确报错。
+- [x] 块带 `char_start/char_end`。
+- [x] Markdown 块带 `heading_path`。
+- [x] 索引行与 embedding 文本可生成。
 
 
 <!-- ===== 05-知识库与代码理解/02-Embedding与向量检索.md ===== -->
 
 
-### 第 2 章　Embedding、向量检索与引用
+### 第 2 章　Embedding 与向量检索
 
 
-> **EvoFlow 对照状态 / Alignment status：** 🔍 结构已核对（路径、行数、符号均取自源码实测），**行为**（调用顺序、边界条件）尚未逐行核对。
+> 状态：✅ 代码已落地；`tests/chapters/test_ch05_02_vector.py` 4 项通过。
 
-#### 本章目标
-用最小的代价实现「能召回、能排序、能引用」的检索。
+#### 目标与范围
 
-#### 最小闭环
-建索引 → 查询 → top-k 片段 → 注入上下文 → 回答带引用。
+把第 1 章的块变成可召回的向量：
 
-#### 调用逻辑 / Invocation logic
+1. 提供统一的 `get_embedding/get_embeddings` 入口，调用方不直接依赖具体模型。
+2. 用进程内 LRU 缓存避免重复向量化；缓存键区分 query/passage。
+3. 向量按 dataset 写入 SQLite，召回时算余弦并返回 `chunk_id/distance/score`。
+
+本章的 embedding 是 **离线 BLAKE2 特征哈希**，不是语义模型。它保证链路可跑、结果确定、测试不依赖网络；同义改写召回弱，属于已知边界。
+
+#### 调用逻辑
 
 ```mermaid
 sequenceDiagram
-    participant U as 检索调用方
+    participant S as 索引服务
+    participant R as embedding.registry
+    participant P as LocalEmbeddingProvider
+    participant C as EmbeddingLRUCache
     participant V as VectorStore
-    participant E as 嵌入模型
-    participant C as _cos
-    U->>E: embed(query)
-    E-->>U: q_vec
-    U->>V: search(q_vec, k)
-    V->>C: _cos(q_vec, doc_vec) × N
-    V-->>U: top-k(top_k, score)
-    U->>U: 片段拼进上下文 + 引用 id
+    S->>R: get_embeddings(texts, purpose="passage")
+    R->>C: 查 key(text, model, role)
+    alt 缓存未命中
+        R->>P: embed_batch(未命中文本)
+        P-->>R: 64 维向量
+        R->>C: 回填缓存
+    end
+    R-->>S: 按原顺序返回向量
+    S->>V: insert_many([(chunk_id, vector)])
+    S->>V: recall(query_vector, top_k)
 ```
 
-- **入口**：`VectorStore.add(ids, vectors)` 建索引，`search(q_vec, k)` 查询；嵌入由调用方做，store 不依赖网络。
-- **关键节点**：`_cos` 自己算余弦，不引 numpy（少一个依赖、也方便手写理解）；维度不一致必须早失败，不能悄悄截断。
-- **出口**：返回 `(id, score)` 列表，低于阈值直接丢弃，宁少勿滥。
-- **最容易断的地方**：入库与查询用了两个不同嵌入模型；top-k 取回后没有引用 id，回答无法溯源。
+关键边界：
 
-#### 真实模块地图（已核对：路径 · 行数 · 符号）
+- 缓存只缓存成功结果；后端报错不写缓存。
+- 批量返回数量必须与输入数量一致，否则直接报错。
+- 写入/查询维度不一致直接拒绝，不静默补零。
 
-| 文件 | 行数 | 关键符号 | 模块常量 |
-|---|---|---|---|
-| `packages/harness/evoflow/knowledge/service.py:39` | 687 | `_enrich_dataset`、`dataset_llm_index_enabled`、`list_datasets` | — |
-| `packages/harness/evoflow/knowledge/index_builder.py:9` | 77 | `build_document_summary`、`enrich_chunk_indexes`、`embedding_text_for_chunk` | — |
-| `app/gateway/routers/knowledge.py` | 418 | `CreateDatasetRequest`、`UpdateDatasetRequest`、`SyncLocalRequest`；`_org_admin_dep`、`list_knowledge_bases`、`create_knowledge_base` | — |
+#### 文件地图
 
-#### 核心概念
-- **混合检索**：向量（语义）+ BM25/FTS（关键词），两路结果融合（RRF 或加权）。
-- **改写成查询**：多轮对话里先把「它」还原成实体再检索。
-- **重排（rerank）**：top-50 → rerank → top-5，成本可控且效果显著。
-
-#### 自研实现要点
-```text
-embed(chunk.text) → 1536/768 维 → 存 sqlite-vec / faiss
-retrieve(q): vec_top20 + fts_top20 → 去重 → rerank → 取 5 → 附 chunk_id
-```
-
-#### 业务规则
-- 向量维度与模型绑定，换模型必须重建索引（记录 `embedding_model` 版本）。
-- 检索结果必须带 `score`，低分直接不注入（宁可不答也别乱答）。
-
-#### 常见坑
-- 换 embedding 模型不重建 → 相似度全乱。
-- 只做向量 → 专有名词查不到。
-- 召回过量 → 上下文被垃圾片段占满。
-
-#### 验收
-- [ ] 专有名词查询命中
-- [ ] 语义改写查询命中
-- [ ] 索引版本与模型版本一致
-
-##### 源码核对记录（路径与符号实测）
-
-- `packages/harness/evoflow/knowledge/service.py`（687 行）
-  - 模块自述：Knowledge base service layer — business logic for CRUD, file upload, search. All DB operations go through the …
-- `packages/harness/evoflow/knowledge/index_builder.py`（77 行）
-  - 模块自述：Build document summary + per-chunk index strings (rule-based, no user config).…
-- `app/gateway/routers/knowledge.py`（418 行）：类 `CreateDatasetRequest`、`UpdateDatasetRequest`、`SyncLocalRequest`、`CreateFolderRequest`；环境变量 `EVOFLOW_HOME`、`EVOFLOW_KB_UPLOAD_DIR`
-  - 模块自述：Knowledge base API router. Provides CRUD for knowledge bases, file upload, chunk listing, semantic search, and…
-
-> 本节只证明**路径、行数、符号存在**；调用顺序与边界条件仍属「行为」，未逐行核对。
-
-#### 对照 EvoFlow 核对清单
-- [ ] `knowledge/vector/` 的具体实现与表结构
-- [ ] 是否内置 rerank
-
-#### 从零实现（手把手）
-> 读完这章你能把块向量化存进 SQLite，并按余弦相似度召回 top-k。
-> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
-
-##### Step 1　新建 vector_store.py：存 + 查
-**文件**：`backend/packages/harness/myagentflow/knowledge/vector_store.py（新建）`
-**要写的逻辑**：向量以 JSON 存 TEXT 列（先不引向量库）；检索在 Python 里算余弦。数据量大再换 FAISS。
-
-**代码**
-
-```python
-"""向量存储：SQLite + Python 余弦。
-
-为什么先不上向量库：几千块规模下，一次全表扫描 <10ms，
-引入 FAISS 只会让部署多一个依赖。
-"""
-from __future__ import annotations
-
-import json
-import math
-import sqlite3
-from pathlib import Path
-
-_SCHEMA = """
-CREATE TABLE IF NOT EXISTS chunks (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    doc_id    TEXT NOT NULL,
-    heading   TEXT NOT NULL,
-    text      TEXT NOT NULL,
-    vector    TEXT NOT NULL
-);
-"""
-
-
-def _cos(a: list[float], b: list[float]) -> float:
-    dot = sum(x * y for x, y in zip(a, b))
-    na = math.sqrt(sum(x * x for x in a)) or 1.0
-    nb = math.sqrt(sum(y * y for y in b)) or 1.0
-    return dot / (na * nb)
-
-
-class VectorStore:
-    def __init__(self, db_path: str | Path):
-        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(str(db_path), check_same_thread=False)
-        self._conn.executescript(_SCHEMA)
-
-    def add(self, doc_id: str, heading: str, text: str, vector: list[float]) -> None:
-        self._conn.execute(
-            "INSERT INTO chunks (doc_id, heading, text, vector) VALUES (?, ?, ?, ?)",
-            (doc_id, heading, text, json.dumps(vector)),
-        )
-        self._conn.commit()
-
-    def search(self, query_vec: list[float], top_k: int = 3) -> list[dict]:
-        rows = self._conn.execute("SELECT doc_id, heading, text, vector FROM chunks").fetchall()
-        scored = [
-            {"doc_id": r[0], "heading": r[1], "text": r[2], "score": _cos(query_vec, json.loads(r[3]))}
-            for r in rows
-        ]
-        return sorted(scored, key=lambda x: x["score"], reverse=True)[:top_k]
-```
-
-**验证**
-
-```bash
-uv run python -c "
-from myagentflow.knowledge.vector_store import VectorStore
-s = VectorStore('/tmp/myaf-vec.sqlite')
-s.add('d1','A','猫喜欢鱼',[1,0]); s.add('d1','B','狗喜欢骨头',[0,1])
-print(s.search([1,0], 1))
-"
-```
-
-##### Step 2　写测试：同一向量排第一
-**文件**：`backend/tests/chapters/test_ch05_02_vector.py（新建）`
-**要写的逻辑**：查询向量与某块完全一致时，该块 score≈1 且排第一。
-
-**代码**
-
-```python
-from __future__ import annotations
-
-
-def test_top1(tmp_path):
-    from myagentflow.knowledge.vector_store import VectorStore
-
-    s = VectorStore(tmp_path / "v.sqlite")
-    s.add("d1", "A", "猫", [1.0, 0.0])
-    s.add("d1", "B", "狗", [0.0, 1.0])
-    top = s.search([1.0, 0.0], top_k=1)[0]
-    assert top["text"] == "猫" and abs(top["score"] - 1.0) < 1e-6
-```
-
-**验证**
-
-```bash
-uv run pytest tests/chapters/test_ch05_02_vector.py -v
-# 期望：1 passed
-```
-
-##### 与 EvoFlow 对照
-
-| 我们的做法 | EvoFlow | 为什么 |
+| 文件（完整路径） | 行数 | 职责 |
 |---|---|---|
-| 向量存 TEXT | `knowledge/` 的向量表 | 先跑通，别为规模提前上库 |
-| 余弦 + top_k | 检索入口 | 归一化后才可比 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/knowledge/embedding/base.py` | 99 | Provider 接口、错误、LRU 缓存 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/knowledge/embedding/local_provider.py` | 92 | 离线哈希向量 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/knowledge/embedding/registry.py` | 183 | 选 provider、批量调用、维度校验 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/knowledge/vector/sqlite_vec.py` | 183 | 按 dataset 建表、写入、余弦召回 |
+| `/Users/main/my-agent-flow/backend/tests/chapters/test_ch05_02_vector.py` | 90 | 4 个章节测试 |
 
-##### 知识点
+#### 实现步骤
 
-- [RAG 在线检索流水线：召回、排序、组装上下文](https://harbor404.fushenlin.com/notes/rag-online-pipeline/)
-- [系统课入口：向量与检索](https://g0-000.github.io/agent-book/)
+##### 1. 缓存键必须先分清 query 与 passage
 
-##### 验收
+同一段文本作为文档块和查询时，某些模型会返回不同向量；缓存键带角色，避免混用。
 
-```bash
-uv run pytest tests/chapters/test_ch05_02_vector.py -q
+```python
+def _cache_key(text: str, model: str, *, is_query: bool = False) -> str:
+    """稳定缓存键：同一文本、同一模型、同一角色才复用。"""
+    role = "q" if is_query else "p"
+    raw = f"{text}\x00{model}\x00{role}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 ```
+
+##### 2. 离线向量：特征哈希 + L2 归一化
+
+英文标识符拆 CamelCase/snake_case，中文取整段与二元组；每个 token 哈希到固定维度，按哈希位决定正负号。
+
+```python
+    def embed_sync(self, text: str) -> list[float]:
+        """同步实现；测试与批处理都走这里，避免再包一层事件循环。"""
+        vector = [0.0] * self._dim
+        for token in _tokens(text):
+            digest = hashlib.blake2b(token.encode("utf-8"), digest_size=16).digest()
+            index = int.from_bytes(digest[:8], "big") % self._dim
+            sign = 1.0 if digest[8] & 1 else -1.0
+            vector[index] += sign
+        norm = math.sqrt(sum(value * value for value in vector))
+        if norm <= 0:
+            return vector
+        return [value / norm for value in vector]
+```
+
+##### 3. 先查缓存，只把未命中文本发给后端
+
+批量入口先占位结果数组，再收集未命中索引；后端返回后按原索引回填，保证输出顺序与输入一致。
+
+```python
+async def get_embeddings(
+    texts: list[str],
+    model_config: ModelConfig | None = None,
+    *,
+    expected_dim: int | None = None,
+    batch_size: int = MAX_BATCH_SIZE,
+    purpose: str | None = None,
+    kb_id: str | None = None,
+) -> list[list[float]]:
+    """批量向量化：缓存命中直接复用，未命中按 batch_size 分批请求。"""
+    del kb_id  # 本章没有用量计费，保留签名便于后续接入
+    if not texts:
+        raise ValueError("texts must not be empty")
+
+    config = model_config or get_embedding_config()
+    provider = _resolve_provider(config)
+    model_name = provider.model_name
+    is_query = str(purpose or "").strip().lower() == "query"
+
+    results: list[list[float] | None] = [None] * len(texts)
+    uncached_indexes: list[int] = []
+    uncached_texts: list[str] = []
+    for index, text in enumerate(texts):
+        key = _cache_key(text, model_name, is_query=is_query)
+        hit = _cache.get(key)
+        if hit is not None:
+            results[index] = hit
+        else:
+            uncached_indexes.append(index)
+            uncached_texts.append(text)
+
+    if uncached_texts:
+        size = max(1, min(int(batch_size), MAX_BATCH_SIZE))
+        fetched: list[list[float]] = []
+        for start in range(0, len(uncached_texts), size):
+            batch = uncached_texts[start : start + size]
+            vectors = await provider.embed_batch(batch)
+            if len(vectors) != len(batch):
+                raise EmbeddingError(
+                    f"Embedding backend returned {len(vectors)} vectors for {len(batch)} inputs"
+                )
+            fetched.extend(vectors)
+
+        for offset, vector in enumerate(fetched):
+            if expected_dim is not None and len(vector) != expected_dim:
+                raise EmbeddingDimensionError(
+                    f"Embedding dimension mismatch at index {uncached_indexes[offset]}: "
+                    f"expected {expected_dim}, got {len(vector)}"
+                )
+            index = uncached_indexes[offset]
+            results[index] = vector
+            _cache.set(
+                _cache_key(uncached_texts[offset], model_name, is_query=is_query),
+                vector,
+            )
+
+    out: list[list[float]] = []
+    for vector in results:
+        if vector is None:  # pragma: no cover - 防御式兜底
+            raise EmbeddingError("Internal error: unfilled embedding slot")
+        out.append(vector)
+    return out
+```
+
+##### 4. 写入先校验维度，召回按 distance 升序
+
+每个 dataset 一张表，`chunk_id` 做主键；重复写入用 `INSERT OR REPLACE`。召回算余弦，`distance = 1 - score`。
+
+```python
+    def insert_many(self, items: Iterable[tuple[str, Sequence[float]]]) -> int:
+        """批量写入，返回写入条数。"""
+        dim = self.dim
+        rows: list[tuple[str, bytes]] = []
+        for chunk_id, embedding in items:
+            if len(embedding) != dim:
+                raise VectorStoreError(
+                    f"embedding dimension mismatch for chunk {chunk_id}: expected {dim}, got {len(embedding)}"
+                )
+            rows.append((str(chunk_id), _pack_vector(embedding)))
+        if not rows:
+            return 0
+        table = _vectors_table_for(self.dataset_id)
+        with db() as conn:
+            conn.executemany(
+                f"INSERT OR REPLACE INTO {table} (chunk_id, embedding) VALUES (?, ?)",
+                rows,
+            )
+        return len(rows)
+```
+
+```python
+    def recall(
+        self, query_embedding: Sequence[float], *, top_k: int = 5
+    ) -> list[RecallHit]:
+        """按余弦相似度召回 top_k；维度不一致直接报错。"""
+        dim = self.dim
+        if len(query_embedding) != dim:
+            raise VectorStoreError(
+                f"query embedding dimension mismatch: expected {dim}, got {len(query_embedding)}"
+            )
+        table = _vectors_table_for(self.dataset_id)
+        with db() as conn:
+            rows = conn.execute(f"SELECT chunk_id, embedding FROM {table}").fetchall()
+        hits: list[RecallHit] = []
+        for chunk_id, blob in rows:
+            score = _cosine(query_embedding, _unpack_vector(blob, dim))
+            hits.append(
+                RecallHit(chunk_id=str(chunk_id), distance=1.0 - score, score=score)
+            )
+        hits.sort(key=lambda hit: hit.distance)
+        return hits[: max(1, int(top_k))]
+```
+
+#### 关键设计
+
+- **不直接暴露 Provider**：业务层只调 registry，换模型不需要改调用方。
+- **缓存是进程内**：多进程/多实例不共享；重启后第一次索引会重新算，这是可接受的代价。
+- **维度和表绑定**：同一 dataset 的向量表只有一个维度；换模型必须重建 dataset 向量。
+- **全表扫描**：本章没有 ANN 索引，`recall` 是 O(块数)；适合几千块，不适合百万级。
+
+#### 与 EvoFlow 的差异
+
+| 主题 | EvoFlow | 本项目 |
+|---|---|---|
+| Provider | OpenAI / 本地模型 / 多后端 | 只实现 `hash-local` |
+| 语义能力 | 真实 embedding | 词法特征哈希，同义改写弱 |
+| 向量索引 | sqlite-vec `vec0` + 距离函数 | 普通表 + Python 余弦 |
+| 缓存 | 可能按 provider/model 分层 | 进程内 LRU，键带 query/passage 角色 |
+| 维度 | 由模型决定，常见 1536 | 默认 64，可通过 `embedding_dim` 改 |
+
+#### 测试与实测
+
+覆盖点：
+
+- `test_local_embedding_is_deterministic()`：同文本同向量，L2 范数为 1。
+- `test_embedding_cache_skips_second_backend_call()`：第二次只命中缓存，provider 只调一次。
+- `test_vector_store_recall_orders_hits()`：同向向量排第一，score ≈ 1。
+- `test_vector_store_rejects_dimension_mismatch()`：2 维写 3 维表、2 维查 3 维表都报错。
+
+```text
+uv run pytest tests/chapters/test_ch05_02_vector.py -q
+4 passed, 13 warnings
+```
+
+#### 本章不做什么
+
+- 不接真实语义 embedding 模型，不做模型下载。
+- 不做向量量化、ANN、分区。
+- 不做多租户配额/计费。
+- 不把向量写入文档表；向量表与文档块表分开。
+
+#### 验收清单
+
+- [x] `get_embedding/get_embeddings` 可用。
+- [x] 缓存能避免重复调用。
+- [x] 维度不一致会报错。
+- [x] 向量可写入、可召回。
+- [x] 召回结果带 `chunk_id/distance/score`。
 
 
 <!-- ===== 05-知识库与代码理解/03-Owned-Knowledge与知识地图.md ===== -->
@@ -8268,179 +8890,262 @@ uv run pytest tests/chapters/test_ch05_02_vector.py -q
 ### 第 3 章　Owned Knowledge 与知识地图
 
 
-> **EvoFlow 对照状态 / Alignment status：** 🔍 结构已核对（路径、行数、符号均取自源码实测），**行为**（调用顺序、边界条件）尚未逐行核对。
+> 状态：✅ 代码已落地；`tests/chapters/test_ch05_03_owned.py` 4 项通过。
 
-#### 本章目标
-让「知识」成为一种有归属、有结构的资产：属于某个工作区/项目，并能以脑图形式呈现。
+#### 目标与范围
 
-#### 最小闭环
-创建知识库 → 导入资料 → 看到目录树 → 在对话中按知识库范围检索。
+把“文档知识库”真正落成一个有归属、有目录、有实体关系的库：
 
-#### 调用逻辑 / Invocation logic
+- **建库**：`kb_bases` 记录名称、`owner_scope` 与描述。
+- **归属过滤**：`public` 对所有 scope 可见，私有库只对同 scope 可见。
+- **上传**：Markdown 文档写入 `kb_documents`，按标题切块写入 `kb_chunks`。
+- **目录地图**：显式目录 + 文档 `folder_path` 推导出的隐式父目录。
+- **实体图**：三元组写 `kg_nodes/kg_edges`，输出可直接渲染的 `nodes/edges`。
+
+本章只做存储与地图读取，不做混合检索、不做任务队列、不做文档链接图。
+
+#### 调用逻辑
 
 ```mermaid
 sequenceDiagram
-    participant A as 知识库 API
-    participant B as build_map
-    participant D as describe
-    participant R as 检索
-    A->>B: build_map(entries)
-    B-->>A: 目录树（库 → 目录 → 文档）
-    A->>D: describe(map)
-    D-->>R: 范围描述（用于限定检索范围）
-    R->>R: 只在指定库内检索
+    participant A as 调用方
+    participant S as owned.service
+    participant P as wiki_chunker
+    participant D as owned.sqlite
+    participant G as owned.kg
+    A->>S: create_base({name, ownerScope})
+    S->>D: INSERT kb_bases
+    A->>S: upload_manual_markdown(kb_id, title, content)
+    S->>P: auto_chunk_document
+    P-->>S: 带 heading_path 的块
+    S->>D: INSERT kb_documents + kb_chunks
+    A->>S: list_folders(kb_id)
+    S->>D: kb_folders + kb_documents.folder_path
+    A->>G: add_triples(kb_id, [(src, rel, dst)])
+    G->>D: kg_nodes / kg_edges
 ```
 
-- **入口**：导入资料后 `build_map()` 由条目元数据（库 id、目录、文档名）构建树，不读正文。
-- **关键节点**：树只做展示与范围裁剪，不参与召回排序；`describe()` 输出一段可读的范围说明，用于告诉模型「你看到的是哪个库」。
-- **出口**：检索时把库/目录作为过滤条件传给向量检索，而不是检索完再筛。
-- **最容易断的地方**：把知识地图当成索引本体（改了树但没重建索引）；空库时 `describe` 返回空串导致 prompt 出现空段落。
+关键边界：
 
-#### 真实模块地图（已核对：路径 · 行数 · 符号）
+- 建库时 `name` 必填；`ownerScope` 默认 `public`。
+- 上传前必须确认库存在，避免写出一批无主文档。
+- 目录路径拒绝 `.`、`..`、隐藏目录与依赖目录。
+- 实体图同名节点合并，边按 `(src,dst,rel)` 去重。
 
-| 文件 | 行数 | 关键符号 | 模块常量 |
-|---|---|---|---|
-| `packages/harness/evoflow/knowledge/folders.py:14` | 176 | `root_folder_id`、`ensure_root_folder`、`list_folders` | ROOT_NAME |
-| `packages/harness/evoflow/knowledge/service.py:39` | 687 | `_enrich_dataset`、`dataset_llm_index_enabled`、`list_datasets` | — |
-| `app/gateway/routers/knowledge_owned.py` | 840 | `ReindexBaseBody`；`list_bases`、`create_base`、`get_base` | — |
+#### 文件地图
 
-#### 核心概念
-- **归属（ownership）**：知识库绑定 workspace/user，检索时默认只搜自己有权限的。
-- **知识地图**：节点 = 主题，边 = 从属/相关；由文档结构 + 记忆巩固共同生成。
-- **作用域隔离**：团队知识 vs 个人知识必须能共存且不串味。
-
-#### 自研实现要点
-```text
-kb(id, owner_scope, name, created_at)
-kb_doc(kb_id, doc_id); kb_node(node_id, kb_id, parent_id, title, ref_chunk_ids)
-检索时先过滤 kb_id ∈ 当前 scope，再做向量检索
-```
-
-#### 业务规则
-- 跨知识库检索必须显式指定，不做隐式全局召回。
-- 知识地图节点可追溯到源 chunk。
-
-#### 常见坑
-- 权限只在 UI 做过滤，检索层不过滤 → 越权召回。
-- 思维导图与源文档脱钩，改文档后图不更新。
-
-#### 验收
-- [ ] 未授权知识库检索不到
-- [ ] 地图节点可点回原文
-- [ ] 文档更新后地图增量刷新
-
-##### 源码核对记录（路径与符号实测）
-
-- `packages/harness/evoflow/knowledge/folders.py`（176 行）
-  - 模块自述：Wiki-style folder tree for knowledge bases.…
-- `packages/harness/evoflow/knowledge/service.py`（687 行）
-  - 模块自述：Knowledge base service layer — business logic for CRUD, file upload, search. All DB operations go through the …
-- `app/gateway/routers/knowledge_owned.py`（840 行）：类 `ReindexBaseBody`
-  - 模块自述：Owned knowledge base Gateway API — local-first RAG (spec: owned-knowledge-base-spec.md).…
-
-> 本节只证明**路径、行数、符号存在**；调用顺序与边界条件仍属「行为」，未逐行核对。
-
-#### 对照 EvoFlow 核对清单
-- [ ] `knowledge/owned/` 的存储形态
-- [ ] 知识地图生成管线（memory + knowledge 交汇）
-
-#### 从零实现（手把手）
-> 读完这章你能把「自己的知识库」组织成一张地图：文档 → 标题树 → 块 id。
-> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
-
-##### Step 1　新建 map.py：文档树 + 块索引
-**文件**：`backend/packages/harness/myagentflow/knowledge/map.py（新建）`
-**要写的逻辑**：`build_map()` 输出 `{doc_id: {heading: [chunk_id...]}}`；`describe()` 给模型看的概览，限制条数避免爆上下文。
-
-**代码**
-
-```python
-"""知识地图：文档 → 标题 → 块 id。
-
-为什么要地图：让模型先看「有哪些文档」，再决定检索哪一篇，
-比直接 top-k 更省 token，也更少答错文档。
-"""
-from __future__ import annotations
-
-from collections import defaultdict
-from typing import Iterable
-
-
-def build_map(items: Iterable[dict]) -> dict[str, dict[str, list[int]]]:
-    tree: dict[str, dict[str, list[int]]] = defaultdict(lambda: defaultdict(list))
-    for it in items:                       # it: {doc_id, heading, chunk_id}
-        tree[it["doc_id"]][it["heading"]].append(it["chunk_id"])
-    return {doc: dict(secs) for doc, secs in tree.items()}
-
-
-def describe(tree: dict[str, dict[str, list[int]]], max_docs: int = 5,
-             max_sections: int = 3) -> str:
-    lines = []
-    for doc, sections in list(tree.items())[:max_docs]:
-        count = sum(len(v) for v in sections.values())
-        names = list(sections)[:max_sections]
-        lines.append(f"- {doc}（{count} 块）：" + "、".join(names))
-    return "\n".join(lines)
-```
-
-**验证**
-
-```bash
-uv run python -c "
-from myagentflow.knowledge.map import build_map, describe
-tree = build_map([{'doc_id':'d1','heading':'A','chunk_id':1},{'doc_id':'d1','heading':'B','chunk_id':2}])
-print(describe(tree))
-"
-```
-
-##### Step 2　写测试：结构正确 + 截断
-**文件**：`backend/tests/chapters/test_ch05_03_map.py（新建）`
-**要写的逻辑**：两篇文档各自独立；`max_docs=1` 只输出一篇。
-
-**代码**
-
-```python
-from __future__ import annotations
-
-
-def test_map_and_describe():
-    from myagentflow.knowledge.map import build_map, describe
-
-    items = [
-        {"doc_id": "d1", "heading": "A", "chunk_id": 1},
-        {"doc_id": "d1", "heading": "A", "chunk_id": 2},
-        {"doc_id": "d2", "heading": "B", "chunk_id": 3},
-    ]
-    tree = build_map(items)
-    assert tree["d1"]["A"] == [1, 2]
-    assert "d1（2 块）" in describe(tree)
-    assert "d2" not in describe(tree, max_docs=1)
-```
-
-**验证**
-
-```bash
-uv run pytest tests/chapters/test_ch05_03_map.py -v
-# 期望：1 passed
-```
-
-##### 与 EvoFlow 对照
-
-| 我们的做法 | EvoFlow | 为什么 |
+| 文件（完整路径） | 行数 | 职责 |
 |---|---|---|
-| 文档 → 标题 → 块 id | `knowledge/` 的知识地图 | 先看目录再检索，省 token |
-| 概览要截断 | 地图描述 | 全量目录会占满上下文 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/knowledge/owned/db.py` | 88 | 连接、锁、初始化 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/knowledge/owned/schema.py` | 106 | `kb_*` / `kg_*` 表结构 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/knowledge/owned/ids.py` | 33 | 前缀 id 与 UTC 时间 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/knowledge/owned/service.py` | 322 | 建库、文档、块、目录 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/knowledge/owned/kg.py` | 293 | 实体节点、边、图输出 |
+| `/Users/main/my-agent-flow/backend/tests/chapters/test_ch05_03_owned.py` | 89 | 4 个章节测试 |
 
-##### 知识点
+#### 实现步骤
 
-- [RAG / GraphRAG / LightRAG 选型：知识为何要建图](https://harbor404.fushenlin.com/notes/rag-graphrag-lightrag-architecture/)
-- [系统课入口：知识组织](https://g0-000.github.io/agent-book/)
+##### 1. 归属范围在建库时定死
 
-##### 验收
+`owner_scope` 不是展示字段，而是检索过滤条件。`list_bases(scope)` 的 SQL 直接写 `IN ('public', ?)`，避免先全查再在 Python 里过滤。
 
-```bash
-uv run pytest tests/chapters/test_ch05_03_map.py -q
+```python
+def list_bases(owner_scope: str | None = None) -> list[dict[str, Any]]:
+    """列出知识库；传 owner_scope 时只返回 public + 同 scope 的库。"""
+    with db() as conn:
+        if owner_scope:
+            rows = conn.execute(
+                "SELECT * FROM kb_bases WHERE owner_scope IN ('public', ?) ORDER BY created_at DESC",
+                (owner_scope,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM kb_bases ORDER BY created_at DESC"
+            ).fetchall()
+    return [_row_base(row) for row in rows]
 ```
+
+##### 2. 上传 = 文档行 + 块行，一次事务
+
+先写文档，再切块写块；中间失败会回滚，避免出现“文档存在但零块”的半成品。
+
+```python
+def upload_manual_markdown(
+    kb_id: str,
+    *,
+    title: str,
+    content: str,
+    folder_path: str = "",
+) -> dict[str, Any]:
+    """写入一篇 Markdown 文档，按标题切块后落库。"""
+    if not get_base(kb_id):
+        raise ValueError("knowledge base not found")
+    text = str(content or "")
+    if not text.strip():
+        raise ValueError("content is required")
+    label = str(title or "").strip() or "note"
+    file_name = f"{label}.md"
+    folder = _resolve_folder_path(folder_path)
+    now = utc_now()
+    doc_id = new_id("doc_")
+
+    with db() as conn:
+        _ensure_folder_rows(conn, kb_id, folder, now=now)
+        conn.execute(
+            """
+            INSERT INTO kb_documents(
+                doc_id, kb_id, title, file_name, content, folder_path, source_type, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, 'manual', ?, ?)
+            """,
+            (doc_id, kb_id, label, file_name, text, folder, now, now),
+        )
+
+        chunks = enrich_chunk_indexes(
+            auto_chunk_document(text, file_name=file_name), file_name=file_name
+        )
+        rows: list[tuple[Any, ...]] = []
+        for ordinal, chunk in enumerate(chunks):
+            rows.append(
+                (
+                    new_id("chunk_"),
+                    kb_id,
+                    doc_id,
+                    ordinal,
+                    chunk["content"],
+                    chunk.get("heading_path") or "",
+                    int(chunk.get("token_count") or 0),
+                    int(chunk.get("char_start") or 0),
+                    int(chunk.get("char_end") or 0),
+                    now,
+                )
+            )
+        if rows:
+            conn.executemany(
+                """
+                INSERT INTO kb_chunks(
+                    chunk_id, kb_id, doc_id, ordinal, content, heading_path,
+                    token_estimate, char_start, char_end, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                rows,
+            )
+    return get_document(doc_id) or {}
+```
+
+##### 3. 目录地图不只读显式目录
+
+用户上传时只给了 `work/notes`，没有显式创建 `work`；`list_folders` 必须从文档路径反推父目录，否则前端树会缺层。
+
+```python
+def list_folders(kb_id: str) -> list[dict[str, Any]]:
+    """返回目录地图：显式目录 + 文档路径推导出的隐式父目录。"""
+    with db() as conn:
+        explicit_rows = conn.execute(
+            "SELECT path, created_at FROM kb_folders WHERE kb_id = ?", (kb_id,)
+        ).fetchall()
+        doc_rows = conn.execute(
+            "SELECT folder_path FROM kb_documents WHERE kb_id = ?", (kb_id,)
+        ).fetchall()
+
+    explicit = {
+        _resolve_folder_path(row["path"]): row["created_at"]
+        for row in explicit_rows
+        if row["path"]
+    }
+    paths: set[str] = set(explicit)
+    for row in doc_rows:
+        raw = _resolve_folder_path(row["folder_path"])
+        if not raw:
+            continue
+        parts = raw.split("/")
+        for index in range(1, len(parts) + 1):
+            paths.add("/".join(parts[:index]))
+
+    out: list[dict[str, Any]] = []
+    for path in sorted(paths):
+        out.append(
+            {
+                "path": path,
+                "name": path.split("/")[-1],
+                "explicit": path in explicit,
+                "createdAt": explicit.get(path, ""),
+            }
+        )
+    return out
+```
+
+##### 4. 实体图用三元组写，节点自动合并
+
+`add_triples` 只接收业务语义，不要求调用方先算节点 id；同名节点复用，边按关系类型去重。
+
+```python
+def add_triples(
+    kb_id: str,
+    triples: list[tuple[str, str, str]],
+    *,
+    chunk_id: str | None = None,
+) -> dict[str, int]:
+    """批量写 ``(src, rel, dst)``，返回节点触碰次数与边新增次数。"""
+    nodes = 0
+    edges = 0
+    for src, rel, dst in triples:
+        src_name = _norm_name(src)
+        dst_name = _norm_name(dst)
+        if not src_name or not dst_name or src_name == dst_name:
+            continue
+        source = upsert_node(kb_id, src_name, chunk_id=chunk_id)
+        target = upsert_node(kb_id, dst_name, chunk_id=chunk_id)
+        nodes += 2
+        upsert_edge(kb_id, source["id"], target["id"], rel)
+        edges += 1
+    return {"nodesTouched": nodes, "edgesAdded": edges}
+```
+
+#### 关键设计
+
+- **一个库一个命名空间**：所有表都带 `kb_id`，删除库时按 `kb_id` 级联清掉文档、块、目录、图。
+- **块与文档分表**：文档正文只存一份，块用于检索；列块时不需要把整篇正文再拼回来。
+- **目录是路径不是 parent_id**：路径字符串更容易做“显式/隐式”合并；重命名目录需要批量改前缀，本章未实现。
+- **实体图不依赖向量**：实体节点带 `chunkIds`，后续可以从实体反查块。
+
+#### 与 EvoFlow 的差异
+
+| 主题 | EvoFlow | 本项目 |
+|---|---|---|
+| 存储 | 多库/多表 + 任务/活动/标签/链接 | 单 `owned.sqlite` + 5 张核心表 |
+| 文档来源 | 上传、URL、手动、批量任务 | 只做手动 Markdown 上传 |
+| 目录 | 路径 + 显式/隐式合并 | 同思路，未做重命名/移动 |
+| 实体图 | 完整 KG + 文档链接图 | 节点/边 + 一跳子图 |
+| 检索 | 向量 + 关键词 + 图扩展 | 本章不提供检索，向量在第 2 章 |
+
+#### 测试与实测
+
+覆盖点：
+
+- `test_create_base_filters_owner_scope()`：public 对所有 scope 可见，私有库只对本 scope。
+- `test_upload_markdown_creates_chunks()`：文档与块落库，块带 heading 与 ordinal。
+- `test_folders_include_implicit_parents()`：`work/notes` 自动补出 `work`。
+- `test_kg_add_triples_and_graph()`：两个实体一条边，`graph_payload` 与 `stats` 对得上。
+
+```text
+uv run pytest tests/chapters/test_ch05_03_owned.py -q
+4 passed, 13 warnings
+```
+
+#### 本章不做什么
+
+- 不做文档更新/删除的版本历史。
+- 不做目录重命名、移动、批量导入。
+- 不做文档链接图、标签统计、活动流。
+- 不做异步索引任务；上传是同步落库。
+
+#### 验收清单
+
+- [x] 建库与归属过滤可用。
+- [x] Markdown 上传后文档/块可查。
+- [x] 目录地图包含隐式父目录。
+- [x] 三元组可写节点/边。
+- [x] 图输出带 `nodeCount/edgeCount`。
 
 
 <!-- ===== 05-知识库与代码理解/04-Workspace代码索引.md ===== -->
@@ -8449,234 +9154,281 @@ uv run pytest tests/chapters/test_ch05_03_map.py -q
 ### 第 4 章　Workspace 代码索引与符号上下文
 
 
-> **EvoFlow 对照状态 / Alignment status：** 🔍 结构已核对（路径、行数、符号均取自源码实测），**行为**（调用顺序、边界条件）尚未逐行核对。
+> 状态：✅ 代码已落地；`tests/chapters/test_ch05_04_code_index.py` 4 项通过。
 
-#### 本章目标
-让 Agent 在读代码时不必「全文搜索 + 猜」，而是用符号表和引用关系精确定位。
+#### 目标与范围
 
-#### 最小闭环
-打开工作区 → 建索引 → 「函数 X 定义在哪」→「谁调用了 X」→ 给出文件:行号。
+让 Agent 在自己的代码库里定位“东西在哪”，而不是靠猜：
 
-#### 调用逻辑 / Invocation logic
+- **符号**：Python AST 抽类/函数/方法，给 `path:line` 与签名。
+- **全文**：FTS5 索引路径、符号名与源码，覆盖注释/字符串里的关键词。
+- **引用**：Python import 别名解析后，找“谁调用了这个符号”。
+- **增量**：单个文件重索引先删旧行，再写新行；删除文件时清空旧索引。
+- **安全扫描**：跳过 `.git/.venv/node_modules/.myaf`，单文件超过 2MB 不索引。
+
+本章只覆盖 Python 的引用；JS/TS/Java 的跨文件绑定未实现，不伪装成“全语言 LSP”。
+
+#### 调用逻辑
 
 ```mermaid
 sequenceDiagram
-    participant T as 工具入口
-    participant I as index_file
-    participant C as CodeIndex
-    participant Q as 查询
-    T->>I: index_file(path, text)
-    I-->>C: add_file(path, symbols, calls)
-    Q->>C: find(symbol)
-    C-->>Q: [{path, line, kind}]
+    participant T as 工具调用
+    participant S as code_index.store
+    participant Y as symbols
+    participant I as import_bindings
+    participant R as internal_refs
+    participant F as SQLite FTS5
+    T->>S: build_index(workspace_root)
+    S->>Y: extract_symbols(rel, text)
+    S->>I: python_import_aliases(tree, rel, root)
+    S->>R: extract_internal_refs(root, rel, text)
+    S->>F: INSERT symbols / internal_refs / fts_content
+    T->>S: search_index("helper")
+    S-->>T: hits（path:line）+ internal_ref_users
 ```
 
-- **入口**：`index_file()` 只做「一个文件 → 符号表」，不递归、不读 git，扫描由上层决定。
-- **关键节点**：索引里必须存 `path:line`，只存文件名等于没索引；同名符号要按 kind（def/class）区分。
-- **出口**：`find()` 返回带行号的定义列表，「谁调用了 X」来自 calls 边。
-- **最容易断的地方**：改文件不增量更新；把注释里的同名文本当成定义。
+关键边界：
 
-#### 真实模块地图（已核对：路径 · 行数 · 符号）
+- 索引根默认是显式 `workspace_root`；没有就用当前目录。
+- `relative_path` 不允许 `..` 逃出工作区。
+- 符号查询保留完整标识符，避免 `old_name` 被拆词后误命中 `new_name`。
+- 单文件失败只记录到 `failed`，不阻断整批扫描。
 
-| 文件 | 行数 | 关键符号 | 模块常量 |
-|---|---|---|---|
-| `packages/harness/evoflow/code_index/store.py:104` | 1927 | `resolve_index_root`、`_workspace_hash`、`index_db_path` | CODE_INDEX_REL_DIR、CODE_INDEX_DB_NAME |
-| `packages/harness/evoflow/code_index/symbols.py:38` | 208 | `_append`、`_line_at`、`_regex_python_symbols` | — |
-| `packages/harness/evoflow/code_index/internal_refs.py:19` | 173 | `_append_ref`、`extract_python_internal_refs`、`extract_js_ts_internal_refs` | — |
-| `packages/harness/evoflow/code_index/import_bindings.py:43` | 144 | `python_import_aliases`、`_parse_js_named_bindings`、`js_ts_import_aliases` | — |
-| `packages/harness/evoflow/code_index/type_relations.py:34` | 552 | `_line_at`、`_strip_generics`、`_split_type_parts` | — |
-| `packages/harness/evoflow/code_index/tree_sitter_core.py:79` | 214 | `language_for_path`、`tree_sitter_available`、`parse_tree` | — |
-| `packages/harness/evoflow/code_index/tokenize.py:22` | 145 | `index_tokenizer_version`、`split_identifier`、`_segment_cjk` | — |
-| `packages/harness/evoflow/code_index/lsp_client.py:81` | 217 | `LspClient`；`_kind_name`、`flatten_document_symbols`、`_language_id` | — |
-| `packages/harness/evoflow/code_index/lsp_pool.py:19` | 91 | `_session_key`、`get_lsp_client`、`try_lsp_symbols` | — |
-| `packages/harness/evoflow/code_index/watcher.py:93` | 177 | `CodeIndexWatcherRegistry`；`_watch_key`、`start_index_watch`、`stop_index_watch` | — |
-| `packages/harness/evoflow/code_index/format_results.py:8` | 134 | `format_search_index_body` | — |
-| `packages/harness/evoflow/code_index/deps.py:29` | 395 | `_is_internal_spec`、`_discover_package_roots`、`_resolve_py_module` | — |
+#### 文件地图
 
-#### 核心概念
-- **FTS5 + 符号表**：文本检索给「大概位置」，符号表给「精确跳转」。
-- **tree-sitter 优先，LSP 可选**：前者零依赖可离线，后者精度高但重。
-- **增量**：watcher 只重解变更文件及其反向依赖。
-- **预算**：返回给模型的不是整文件，而是签名 + 片段窗口。
-
-#### 自研实现要点
-```text
-symbols(file, name, kind, start_line, end_line, container)
-refs(from_file, to_symbol, line)
-query: name = "run" → 精确 → 前缀 → FTS
-返回：path:line + 3 行上下文 + 调用者列表
-```
-
-#### 业务规则
-- 索引目录放工作区内（`.evoflow/code_index/`），随项目迁移。
-- 大仓库必须限制索引文件数与体积，超出给警告。
-- 二进制/生成物不索引。
-
-#### 常见坑
-- 每次查询都全量解析 → 慢到不可用。
-- 只做 grep → 同名函数混淆、无法区分定义与调用。
-- 把整文件塞给模型 → 上下文爆。
-
-#### 验收
-- [ ] 定义/引用查询准确率 ≥ 90%
-- [ ] 增量更新 < 10s（中等仓库）
-- [ ] 返回体积可控
-
-##### 源码核对记录（路径与符号实测）
-
-- `packages/harness/evoflow/code_index/store.py`（1927 行）
-  - 模块自述：SQLite FTS5 workspace index. When indexing runs ------------------ - **Full rebuild (blocking API)**: ``POST /…
-- `packages/harness/evoflow/code_index/symbols.py`（208 行）
-  - 模块自述：Per-language symbol extraction (tree-sitter first, LSP, AST/regex fallback).…
-- `packages/harness/evoflow/code_index/internal_refs.py`（173 行）
-  - 模块自述：Workspace-internal symbol use refs (Python / JS / TS / Java).…
-- `packages/harness/evoflow/code_index/import_bindings.py`（144 行）
-  - 模块自述：Map local import binding names -> workspace file paths.…
-- `packages/harness/evoflow/code_index/type_relations.py`（552 行）
-  - 模块自述：Class extends / implements (workspace-internal, best-effort).…
-- `packages/harness/evoflow/code_index/tree_sitter_core.py`（214 行）
-  - 模块自述：Unified tree-sitter symbol extraction (Python / JS / TS / Java).…
-- `packages/harness/evoflow/code_index/tokenize.py`（145 行）
-  - 模块自述：Code-aware tokenization for FTS index + query expansion. SQLite FTS5 ``unicode61`` keeps CamelCase identifiers…
-- `packages/harness/evoflow/code_index/lsp_client.py`（217 行）：类 `LspClient`
-  - 模块自述：Minimal LSP JSON-RPC client over stdio (documentSymbol).…
-- `packages/harness/evoflow/code_index/lsp_pool.py`（91 行）
-  - 模块自述：Pooled LSP sessions per (workspace, language server profile).…
-- `packages/harness/evoflow/code_index/watcher.py`（177 行）：类 `CodeIndexWatcherRegistry`
-  - 模块自述：Background workspace file watcher → incremental code index updates.…
-- `packages/harness/evoflow/code_index/format_results.py`（134 行）
-  - 模块自述：Format ``search_index`` payloads for tool output (shared by search tools).…
-- `packages/harness/evoflow/code_index/deps.py`（395 行）
-  - 模块自述：File-level import dependency extraction (Python / JS / TS / Java).…
-
-> 本节只证明**路径、行数、符号存在**；调用顺序与边界条件仍属「行为」，未逐行核对。
-
-#### 对照 EvoFlow 核对清单
-- [ ] `backend/packages/harness/myagentflow/code_index/store.py` 的表结构与 FTS5 用法
-- [ ] LSP 与 tree-sitter 的降级策略
-
-#### 从零实现（手把手）
-> 读完这章你能用 `ast` 扫出自己的代码地图：模块、类、函数、行号，供 Agent 精确跳转。
-> 文件路径一律写仓库全路径（`backend/...`），代码注释写「为什么」。
-
-##### Step 1　新建 store.py：ast 遍历 + 落表
-**文件**：`backend/packages/harness/myagentflow/code_index/store.py（新建）`
-**要写的逻辑**：只索引定义（模块/类/函数/方法），不索引语句；存 `path, kind, name, line`，供「跳到哪一行」用。
-
-**代码**
-
-```python
-"""代码索引：用 ast 抽符号，不靠正则。
-
-为什么必须用 ast：注释里的 `def foo` 和字符串里的 `class Bar` 会骗过正则，
-索引一旦有两成错，Agent 就会跳到不存在的行。
-"""
-from __future__ import annotations
-
-import ast
-import sqlite3
-from pathlib import Path
-
-_SCHEMA = """
-CREATE TABLE IF NOT EXISTS symbols (
-    path TEXT NOT NULL,
-    kind TEXT NOT NULL,
-    name TEXT NOT NULL,
-    line INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_symbols_name ON symbols(name);
-"""
-
-
-def index_file(py_path: Path) -> list[tuple[str, str, str, int]]:
-    tree = ast.parse(py_path.read_text(encoding="utf-8"), filename=str(py_path))
-    path = str(py_path)
-    out: list[tuple[str, str, str, int]] = [(path, "module", py_path.stem, 1)]
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            out.append((path, "function", node.name, node.lineno))
-        elif isinstance(node, ast.ClassDef):
-            out.append((path, "class", node.name, node.lineno))
-    return out
-
-
-class CodeIndex:
-    def __init__(self, db_path: str | Path):
-        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(str(db_path), check_same_thread=False)
-        self._conn.executescript(_SCHEMA)
-
-    def add_file(self, py_path: Path) -> int:
-        rows = index_file(py_path)
-        self._conn.executemany("INSERT INTO symbols VALUES (?, ?, ?, ?)", rows)
-        self._conn.commit()
-        return len(rows)
-
-    def find(self, name: str) -> list[dict]:
-        rows = self._conn.execute(
-            "SELECT path, kind, line FROM symbols WHERE name=? ORDER BY path, line", (name,)
-        ).fetchall()
-        return [{"path": r[0], "kind": r[1], "line": r[2]} for r in rows]
-```
-
-**验证**
-
-```bash
-uv run python -c "
-from pathlib import Path
-from myagentflow.code_index.store import CodeIndex
-i = CodeIndex('/tmp/myaf-code.sqlite'); print(i.add_file(Path('packages/harness/myagentflow/code_index/store.py')))
-print(i.find('index_file'))
-"
-```
-
-##### Step 2　写测试：类与函数都能找到，行号对得上
-**文件**：`backend/tests/chapters/test_ch05_04_code_index.py（新建）`
-**要写的逻辑**：临时写一个样例 py，索引后按名字查，行号必须有值。
-
-**代码**
-
-```python
-from __future__ import annotations
-
-
-def test_index(tmp_path):
-    from myagentflow.code_index.store import CodeIndex
-
-    src = tmp_path / "demo.py"
-    src.write_text("class A:\n    def m(self):\n        pass\n\ndef f():\n    pass\n", encoding="utf-8")
-
-    idx = CodeIndex(tmp_path / "c.sqlite")
-    idx.add_file(src)
-    assert idx.find("A")[0]["line"] == 1
-    assert idx.find("m")[0]["kind"] == "function"
-    assert idx.find("f")[0]["line"] == 5
-```
-
-**验证**
-
-```bash
-uv run pytest tests/chapters/test_ch05_04_code_index.py -v
-# 期望：1 passed
-```
-
-##### 与 EvoFlow 对照
-
-| 我们的做法 | EvoFlow | 为什么 |
+| 文件（完整路径） | 行数 | 职责 |
 |---|---|---|
-| `ast.walk` 抽定义 | `backend/packages/harness/myagentflow/code_index/store.py` | 正则会被注释/字符串骗 |
-| 存 path/kind/name/line | 同文件 | 少 line 就没法跳转 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/code_index/store.py` | 478 | 索引库、增量、搜索、状态 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/code_index/symbols.py` | 140 | Python AST / 正则符号抽取 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/code_index/tokenize.py` | 93 | 标识符与中文分词、FTS 文本 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/code_index/import_bindings.py` | 85 | Python import 别名 → 文件 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/code_index/internal_refs.py` | 83 | AST Call → 调用引用 |
+| `/Users/main/my-agent-flow/backend/packages/harness/myagentflow/code_index/format_results.py` | 55 | 结果转可读文本 |
+| `/Users/main/my-agent-flow/backend/tests/chapters/test_ch05_04_code_index.py` | 80 | 4 个章节测试 |
 
-##### 知识点
+#### 实现步骤
 
-- [RAG 离线流水线：切块与增量更新（与代码索引同构的部分）](https://harbor404.fushenlin.com/notes/rag-offline-pipeline/)
-- [系统课入口：检索](https://g0-000.github.io/agent-book/)
+##### 1. 增量索引入口只做一件事
 
-##### 验收
+`index_file` 负责解析根、校验相对路径、打开索引库；真正的删除/写入在 `_index_one`，保证全量构建与单文件更新走同一套逻辑。
 
-```bash
-uv run pytest tests/chapters/test_ch05_04_code_index.py -q
+```python
+def index_file(
+    workspace_root: str | Path | None = None,
+    *,
+    relative_path: str,
+    thread_id: str | None = None,
+    deleted: bool = False,
+) -> dict[str, Any]:
+    """增量索引一个文件；deleted=True 或文件消失时只做删除。"""
+    root = Path(resolve_index_root(workspace_root, thread_id=thread_id))
+    rel = _normalize_rel(relative_path)
+    path = root / rel
+    with _connect(root) as conn:
+        return _index_one(conn, root, rel, path, deleted=deleted)
 ```
+
+##### 2. 符号先 AST，解析失败再正则
+
+Python 文件优先 `ast.parse`；语法错误时退回行级 `def/class` 正则，至少保证已存在的符号能被搜到。
+
+```python
+def extract_symbols(
+    workspace_root: str | Path | None,
+    relative_path: str,
+    text: str,
+    *,
+    for_full_build: bool = False,
+) -> list[dict]:
+    """抽取符号；``workspace_root`` 目前只用于统一路径语义，不参与解析。"""
+    del workspace_root, for_full_build  # 保持与上游同名参数，当前实现不需要工作区上下文
+    path = str(relative_path or "")
+    if path.endswith(".py"):
+        try:
+            tree = ast.parse(text)
+        except SyntaxError:
+            return _regex_python_symbols(path, text)
+        symbols: list[dict] = []
+        _walk_python(tree, text, symbols)
+        return symbols
+    return _generic_symbols(path, text)
+```
+
+##### 3. import 别名必须落到工作区文件
+
+`from b import helper as h` 只把 `h` 记成别名还不够，要解析到 `b.py`；否则调用引用只能看到局部名字，无法回答“改动 b.py 会影响谁”。
+
+```python
+def python_import_aliases(
+    tree: ast.AST,
+    from_rel: str | Path,
+    workspace_root: str | Path,
+) -> dict[str, str]:
+    """收集 Python import 别名；解析不到工作区文件的条目直接跳过。"""
+    root = Path(workspace_root).resolve()
+    from_path = Path(from_rel)
+    aliases: dict[str, str] = {}
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            base_parts = _relative_base(from_path, node.level)
+            module_parts = [part for part in (node.module or "").split(".") if part]
+            for alias in node.names:
+                if alias.name == "*":
+                    continue
+                local = alias.asname or alias.name
+                direct = _module_file(root, [*base_parts, *module_parts, alias.name])
+                package = _module_file(root, [*base_parts, *module_parts])
+                target = direct or package
+                if target:
+                    aliases[local] = _rel(target, root)
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                parts = [part for part in alias.name.split(".") if part]
+                target = _module_file(root, parts)
+                if target:
+                    aliases[alias.asname or parts[-1]] = _rel(target, root)
+    return aliases
+```
+
+##### 4. 只把 Call 当引用，避免 import 行误报
+
+`import` 本身不是调用；只遍历 `ast.Call`，名字或属性来自别名时记录 `from/to/line/symbol`。
+
+```python
+def extract_python_internal_refs(
+    tree: ast.AST,
+    from_rel: str | Path,
+    workspace_root: str | Path,
+) -> list[dict]:
+    """遍历 AST 的 Call，把 import 别名解析成目标文件并记录调用行。"""
+    root = Path(workspace_root).resolve()
+    aliases = python_import_aliases(tree, from_rel, root)
+    from_posix = Path(from_rel).as_posix()
+    out: list[dict] = []
+    seen: set[tuple[str, int, str, str]] = set()
+
+    def add(to_path: str, line: int, symbol: str) -> None:
+        key = (to_path, line, symbol, "call")
+        if key in seen:
+            return
+        seen.add(key)
+        out.append(
+            {
+                "from_path": from_posix,
+                "to_path": to_path,
+                "line": line,
+                "ref_kind": "call",
+                "symbol": symbol,
+            }
+        )
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if isinstance(func, ast.Name) and func.id in aliases:
+            add(aliases[func.id], int(node.lineno), func.id)
+        elif isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+            base = func.value.id
+            if base in aliases:
+                add(aliases[base], int(node.lineno), func.attr)
+    return out
+```
+
+##### 5. 查询三路合并，结果按分数与位置排序
+
+符号命中分数最高；FTS 负责注释/字符串；引用单独返回 `internal_ref_users`，不混进 hits 里让模型误以为是定义。
+
+```python
+def search_index(
+    workspace_root: str | Path | None = None,
+    query: str = "",
+    *,
+    queries: list[str] | None = None,
+    thread_id: str | None = None,
+    limit: int = 20,
+) -> dict[str, Any]:
+    """查符号、全文与内部引用；query/queries 合并成一个检索词集合。"""
+    root = Path(resolve_index_root(workspace_root, thread_id=thread_id))
+    db_file = Path(index_db_path(root))
+    terms: list[str] = []
+    seen: set[str] = set()
+    for item in [query, *(queries or [])]:
+        for token in _query_terms(str(item or "")):
+            key = token.casefold()
+            if key not in seen:
+                seen.add(key)
+                terms.append(token)
+    if not terms or not db_file.exists():
+        return {"query": query, "hits": [], "internal_ref_users": [], "total": 0}
+
+    with _connect(root) as conn:
+        hits = _search_symbols(conn, terms)
+        hits.extend(_search_fts(conn, terms))
+        refs = _search_refs(conn, terms)
+        grouped: dict[tuple[str, int, str], dict[str, Any]] = {}
+        for hit in hits:
+            key = (str(hit["path"]), int(hit.get("line") or 0), str(hit["kind"]))
+            if key not in grouped or hit.get("score", 0) > grouped[key].get("score", 0):
+                grouped[key] = hit
+        final_hits = sorted(
+            grouped.values(),
+            key=lambda item: (-item.get("score", 0), item["path"], item.get("line", 0)),
+        )
+        return {
+            "query": query,
+            "hits": final_hits[: max(1, int(limit))],
+            "internal_ref_users": refs,
+            "total": len(final_hits),
+        }
+```
+
+#### 关键设计
+
+- **先结构后语义**：符号名精确命中优先；FTS 只负责兜底，不让“文档里出现过一次”压过真实定义。
+- **索引库放工作区**：`{root}/.myaf/code_index/index.db`，同一工作区的线程共享，换工作区天然隔离。
+- **单文件事务**：一个文件先删旧行再写新行；`deleted=True` 时只删不写。
+- **不追全语言**：Python 引用准确率优先；非 Python 文件只做通用符号正则，不承诺跨文件调用。
+
+#### 与 EvoFlow 的差异
+
+| 主题 | EvoFlow | 本项目 |
+|---|---|---|
+| 解析 | tree-sitter 多语言 + LSP | Python AST + 通用正则 |
+| 引用 | Python/JS/TS 导入绑定 | 只做 Python import 别名 + Call |
+| 文件监听 | watcher 自动增量 | 由调用方显式 `index_file` |
+| 语义检索 | 可能接 embedding/ANN | 只用 FTS5 + 符号表 |
+| 结果格式 | 工具层自有格式 | 单独 `format_results.py` |
+
+#### 测试与实测
+
+覆盖点：
+
+- `test_index_python_symbols_and_hits()`：类/方法可定位到 `service.py:1`。
+- `test_incremental_update_drops_old_symbol()`：重索引后旧符号不再命中。
+- `test_internal_refs_returns_callers()`：`a.py` 调用 `b.py.helper` 返回调用行。
+- `test_build_index_skips_dependency_dirs()`：跳过 `.venv`，文本关键词走 FTS。
+
+```text
+uv run pytest tests/chapters/test_ch05_04_code_index.py -q
+4 passed, 13 warnings
+```
+
+#### 本章不做什么
+
+- 不做 LSP，不提供跳转定义/类型推断。
+- 不做文件 watcher，不自动感知磁盘变化。
+- 不做 JS/TS/Java/Go 的跨文件引用。
+- 不做向量化代码检索；全部走符号 + FTS。
+
+#### 验收清单
+
+- [x] 符号带 `path/line/kind/signature`。
+- [x] 全文能命中注释/字符串关键词。
+- [x] Python 调用引用能返回 `fromPath/toPath/line`。
+- [x] 单文件重索引不残留旧符号。
+- [x] 跳过依赖目录与超大文件。
 
 
 ## 06-委派隔离与危险操作治理

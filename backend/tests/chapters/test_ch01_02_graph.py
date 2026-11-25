@@ -19,6 +19,7 @@ class EchoModel:
     """假模型：不联网，只回显。测试里所有「模型」都该长这样。"""
 
     def invoke(self, messages, *_args, **_kwargs):
+        """同步回显最后一条消息，验证图的输入输出契约。"""
         return AIMessage(content="echo: " + messages[-1].content)
 
 

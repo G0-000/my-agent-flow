@@ -7,6 +7,7 @@
     packages/harness/myagentflow/memory/
     ├── __init__.py
     ├── namespaces.py  ← 本文件
+    ├── consolidate.py 确定性巩固
     ├── store.py       原子表读写
     ├── facade.py      remember / recall / forget
     └── recall_snapshot.py

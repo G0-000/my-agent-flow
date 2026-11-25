@@ -10,6 +10,7 @@
 
 三、关键方法
     list_items()   过滤 status/priority/tag/q，按 updated_at 倒序分页。
+    get_item()     按 id 取事项；缺失时抛 NotFoundError。
     create_item()  title 必填，status/priority 白名单校验。
     update_item()  只允许白名单字段，未知字段忽略。
     delete_item()  物理删除，未命中抛 NotFoundError。

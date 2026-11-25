@@ -1,4 +1,17 @@
-"""第 4 部分第 3 章：产物契约、用户事项、反射解析。"""
+"""一、文件说明
+    第 4 部分第 3 章：产物契约、用户事项 CRUD 与反射解析。
+
+二、覆盖
+    data_dir()                         事项数据和测试缓存隔离到临时目录。
+    test_artifact_normalize_and_dedupe() 产物归一化、稳定 id 和批量去重。
+    test_artifact_state_key_prefers_path() ThreadState 键优先使用 path。
+    test_items_crud_and_filters()      事项创建、查询、更新、删除和过滤。
+    test_items_reject_bad_status()     非法事项状态被拒绝。
+    test_resolve_variable_and_class()  反射变量/类解析和基类校验。
+
+三、运行
+    uv run pytest tests/chapters/test_ch04_03_assets.py -q
+"""
 
 from __future__ import annotations
 

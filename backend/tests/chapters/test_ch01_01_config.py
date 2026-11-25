@@ -12,6 +12,7 @@
 三、运行
     uv run pytest tests/chapters/test_ch01_01_config.py -q
 """
+
 from __future__ import annotations
 
 import pytest
@@ -43,7 +44,7 @@ def test_env_model_becomes_primary(monkeypatch, tmp_path):
     cfg = get_app_config()
     assert cfg.primary_model == "local"
     assert cfg.models[0].vendor == "openai"
-    assert cfg.models[0].model == "gpt-4o-mini"    # model 是模型 ID，name 是条目名
+    assert cfg.models[0].model == "gpt-4o-mini"  # model 是模型 ID，name 是条目名
     assert cfg.checkpointer.type == "memory"
     assert cfg.storage.backend == "sqlite"
 
@@ -55,7 +56,7 @@ def test_blank_base_url_is_none(monkeypatch, tmp_path):
     _isolate(monkeypatch, tmp_path)
     reset_app_config()
     monkeypatch.setenv("MYAF_MODEL_NAME", "m")
-    monkeypatch.setenv("MYAF_MODEL_BASE_URL", "")   # 空字符串当「没配」
+    monkeypatch.setenv("MYAF_MODEL_BASE_URL", "")  # 空字符串当「没配」
 
     assert get_app_config().models[0].base_url is None
 
@@ -156,6 +157,5 @@ models:
     cfg = get_app_config()
     assert [m.name for m in cfg.models] == ["fast", "slow"]
     assert cfg.models[0].vendor == "openai"
-    assert cfg.models[0].base_url == "http://127.0.0.1:1234/v1"   # provider 层共享值下传
+    assert cfg.models[0].base_url == "http://127.0.0.1:1234/v1"  # provider 层共享值下传
     assert cfg.models[0].model == "gpt-4o-mini"
-

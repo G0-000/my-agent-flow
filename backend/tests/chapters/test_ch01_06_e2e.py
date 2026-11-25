@@ -16,7 +16,9 @@ from langchain_core.messages import AIMessage, HumanMessage
 
 class EchoModel:
     """假模型：不联网，只回显；测试里所有模型都该这样替身。"""
+
     def invoke(self, messages, *_a, **_k):
+        """同步回显最后一条消息；不联网、不引入模型依赖。"""
         return AIMessage(content="echo: " + messages[-1].content)
 
 
@@ -33,6 +35,7 @@ def test_end_to_end(monkeypatch, tmp_path):
 
     monkeypatch.setenv("MYAF_DB_PATH", str(tmp_path / "e2e.sqlite"))
     from myagentflow.persistence import db
+
     db.reset_db()
     registry = ToolRegistry()
     register_echo(registry)

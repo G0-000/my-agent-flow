@@ -5,14 +5,16 @@
 
 二、目录结构
     packages/harness/myagentflow/agents/
-    ├── __init__.py
-    ├── content_scanner.py  内容扫描：命中即阻断，返回降级文本。
+    ├── lead_agent/  单节点 Agent 图
+    ├── memory/      agent / task 两层记忆
+    ├── middlewares/ 中间件链与审计
     └── persona.py  ← 本文件
 
 三、关键方法
     Fragment   提示词片段：文本加优先级，用来拼 system prompt。
     compose()  按优先级从高到低拼片段；超预算整段丢弃，不截半句。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -21,9 +23,10 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class Fragment:
     """提示词片段：文本加优先级，用来拼 system prompt。"""
+
     name: str
     text: str
-    priority: int = 10        # 数字越大越先保留
+    priority: int = 10  # 数字越大越先保留
 
 
 def compose(fragments: list[Fragment], max_chars: int = 2000) -> str:
@@ -32,7 +35,7 @@ def compose(fragments: list[Fragment], max_chars: int = 2000) -> str:
     kept, used = [], 0
     for f in ordered:
         if used + len(f.text) > max_chars:
-            continue           # 低优先级的直接丢，不做半句截断
+            continue  # 低优先级的直接丢，不做半句截断
         kept.append(f.text)
         used += len(f.text)
     return "\n\n".join(kept)

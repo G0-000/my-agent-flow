@@ -16,6 +16,7 @@ from types import SimpleNamespace
 
 
 def _request(name: str = "echo", args: dict | None = None):
+    """构造最小工具请求；只保留中间件会读的 name/args。"""
     return SimpleNamespace(tool_call={"name": name, "args": args or {}})
 
 
@@ -26,10 +27,14 @@ def test_chain_is_onion():
     events: list[str] = []
 
     class Rec(Middleware):
+        """记录进入/退出顺序的中间件替身。"""
+
         def __init__(self, name: str) -> None:
+            """保存名字，供事件序列断言。"""
             self.name = name
 
         def wrap_tool_call(self, request, handler):
+            """进入时记 in，退出时记 out；不改变工具结果。"""
             events.append(f"{self.name}:in")
             try:
                 return handler(request)
@@ -53,7 +58,10 @@ def test_chain_propagates_error():
     events: list[str] = []
 
     class Rec(Middleware):
+        """只记录进出的中间件替身，用于验证异常路径也会退出。"""
+
         def wrap_tool_call(self, request, handler):
+            """进入记 in，finally 记 out；异常继续上抛。"""
             events.append("in")
             try:
                 return handler(request)
@@ -61,6 +69,7 @@ def test_chain_propagates_error():
                 events.append("out")
 
     def boom(req):
+        """模拟工具执行失败：记录调用后抛 ValueError。"""
         events.append("call")
         raise ValueError("tool failed")
 
@@ -80,4 +89,6 @@ def test_audit_logs_success(caplog):
             _request("echo", {"text": "hi"}),
             lambda req: "pong",
         )
-    assert any("tool=echo" in r.message and "ok=True" in r.message for r in caplog.records)
+    assert any(
+        "tool=echo" in r.message and "ok=True" in r.message for r in caplog.records
+    )

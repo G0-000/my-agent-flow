@@ -1,68 +1,155 @@
 """一、文件说明
-    切块：先按标题分段，再按窗口滑。
-    为什么保留标题路径：检索命中一段后，模型需要知道「这段属于哪一章」，
-    否则会把某个小节的结论当全局结论。
+    纯文本切块：先按空行切段，再按 token 预算装箱，段内超长时按字符重叠硬切。
+    为什么不直接按字数切：段落是作者给的语义边界，切断段落的块检索命中后上下文会缺一半。
 
 二、目录结构
     packages/harness/myagentflow/knowledge/
     ├── __init__.py
-    ├── chunker.py  ← 本文件
-    ├── map.py  知识地图：文档 → 标题 → 块 id。
-    └── vector_store.py  向量存储：SQLite + Python 余弦。
+    ├── parser.py  文件 → 纯文本
+    ├── chunker.py  ← 本文件：纯文本 → 带字符区间的块
+    ├── wiki_chunker.py  按标题结构切块
+    └── index_builder.py  文档摘要与块索引文本
 
 三、关键方法
-    Chunk              一个切片：正文、所属标题、序号。
-    _split_sections()  按 Markdown 标题把正文切成（标题, 正文）段。
-    chunk_text()       按标题与长度切片；相邻块保留 overlap 个字符的重叠。
+    _count_tokens()     轻量 token 估算：有 tiktoken 就用，没有按 4 字符 ≈ 1 token。
+    chunk_text()        段落装箱 + 相邻块重叠，返回 content/token_count/char_start/char_end。
+    _split_paragraphs() 按空行切段并记录原文起止位置。
 """
+
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from contextlib import suppress
 
-# 只认 1–6 级标题（跳过代码块里的 # 由调用方处理）；分组编号给「按标题切块」用
-_HEADING = re.compile(r"^(#{1,6})\s+(.*)$", re.MULTILINE)
+_tiktoken_enc = None
+with suppress(Exception):  # tiktoken 是可选依赖：有就精确计数，没有不影响切块
+    import tiktoken
 
-
-@dataclass(frozen=True)
-class Chunk:
-    """一个切片：正文、所属标题、序号。"""
-    text: str
-    heading: str
-    index: int
+    _tiktoken_enc = tiktoken.get_encoding("cl100k_base")
 
 
-def _split_sections(text: str) -> list[tuple[str, str]]:
-    """按 Markdown 标题把正文切成（标题, 正文）段。"""
-    sections: list[tuple[str, str]] = []
-    current_heading = ""
-    buf: list[str] = []
-    for line in text.splitlines():
-        m = _HEADING.match(line)
-        if m:
-            if buf:
-                sections.append((current_heading, "\n".join(buf).strip()))
-            current_heading = m.group(2).strip()
-            buf = []
-        else:
-            buf.append(line)
-    if buf:
-        sections.append((current_heading, "\n".join(buf).strip()))
-    return [(h, b) for h, b in sections if b]
+def _count_tokens(text: str) -> int:
+    """估算 token 数；没有 tiktoken 时按 4 字符约 1 token。"""
+    if _tiktoken_enc is not None:
+        return len(_tiktoken_enc.encode(text))
+    return max(1, len(text) // 4)
 
 
-def chunk_text(text: str, max_chars: int = 800, overlap: int = 80) -> list[Chunk]:
-    """按标题与长度切片；相邻块保留 overlap 个字符的重叠。"""
-    chunks: list[Chunk] = []
-    idx = 0
-    for heading, body in _split_sections(text):
-        if len(body) <= max_chars:
-            chunks.append(Chunk(body, heading, idx)); idx += 1
+def chunk_text(
+    text: str,
+    chunk_size: int = 512,
+    overlap: int = 50,
+) -> list[dict]:
+    """把文本切成重叠块，尽量不切断段落。
+
+    返回的每块都带 ``char_start`` / ``char_end``，用于回答时回指原文位置。
+    重叠按 token 计，内部换算成字符时使用 4 字符 ≈ 1 token 的同一套估算。
+    """
+    if not text or not text.strip():
+        return []
+
+    chunk_size = max(1, int(chunk_size))
+    overlap = max(0, min(int(overlap), chunk_size - 1))
+    paragraphs = _split_paragraphs(text)
+    if not paragraphs:
+        return []
+
+    chunks: list[dict] = []
+    current_parts: list[str] = []
+    current_tokens = 0
+    current_start = paragraphs[0]["start"]
+    current_end = paragraphs[0]["end"]
+    overlap_chars = overlap * 4
+
+    for para in paragraphs:
+        para_text = para["text"]
+        para_tokens = _count_tokens(para_text)
+
+        if para_tokens > chunk_size:
+            if current_parts:
+                chunks.append(_make_chunk(current_parts, current_start, current_end))
+                current_parts = []
+                current_tokens = 0
+
+            for piece_text, piece_start, piece_end in _hard_split(
+                para_text,
+                chunk_size=chunk_size,
+                overlap=overlap,
+                base_start=para["start"],
+            ):
+                chunks.append(_make_chunk([piece_text], piece_start, piece_end))
             continue
-        step = max(1, max_chars - overlap)      # 步长 = 窗口 - 重叠
-        for start in range(0, len(body), step):
-            piece = body[start:start + max_chars]
-            if not piece.strip():
-                continue
-            chunks.append(Chunk(piece, heading, idx)); idx += 1
+
+        if current_tokens + para_tokens > chunk_size and current_parts:
+            chunks.append(_make_chunk(current_parts, current_start, current_end))
+            tail = chunks[-1]["content"][-overlap_chars:] if overlap_chars else ""
+            current_parts = [tail] if tail else []
+            current_tokens = _count_tokens(tail) if tail else 0
+            current_start = max(0, para["start"] - len(tail))
+
+        current_parts.append(para_text)
+        current_tokens += para_tokens
+        current_end = para["end"]
+
+    if current_parts:
+        chunks.append(_make_chunk(current_parts, current_start, current_end))
     return chunks
+
+
+def _split_paragraphs(text: str) -> list[dict]:
+    """按空行切段，返回 ``text/start/end``；位置基于原文，便于引用。"""
+    result: list[dict] = []
+    cursor = 0
+    for part in re.split(r"(\n\s*\n)", text):
+        if not part or re.fullmatch(r"\n\s*\n", part):
+            cursor += len(part)
+            continue
+        stripped = part.strip()
+        if not stripped:
+            cursor += len(part)
+            continue
+        leading = len(part) - len(part.lstrip())
+        start = cursor + leading
+        result.append({"text": stripped, "start": start, "end": start + len(stripped)})
+        cursor += len(part)
+    if result:
+        return result
+    stripped = text.strip()
+    start = len(text) - len(text.lstrip())
+    return (
+        [{"text": stripped, "start": start, "end": start + len(stripped)}]
+        if stripped
+        else []
+    )
+
+
+def _make_chunk(parts: list[str], char_start: int, char_end: int) -> dict:
+    """把累计的段落拼成一个块，并补齐 token 与字符区间。"""
+    content = "\n\n".join(part for part in parts if part).strip()
+    return {
+        "content": content,
+        "token_count": _count_tokens(content),
+        "char_start": max(0, int(char_start)),
+        "char_end": max(0, int(char_end)),
+    }
+
+
+def _hard_split(
+    text: str,
+    *,
+    chunk_size: int,
+    overlap: int,
+    base_start: int,
+) -> list[tuple[str, int, int]]:
+    """超长段落按字符窗口硬切；窗口之间保留 overlap 个 token 的重叠。"""
+    window = max(1, chunk_size * 4)
+    step = max(1, window - overlap * 4)
+    out: list[tuple[str, int, int]] = []
+    for start in range(0, len(text), step):
+        piece = text[start : start + window]
+        if not piece.strip():
+            continue
+        out.append((piece, base_start + start, base_start + start + len(piece)))
+        if start + window >= len(text):
+            break
+    return out

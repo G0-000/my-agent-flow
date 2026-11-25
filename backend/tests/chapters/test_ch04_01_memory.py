@@ -1,4 +1,20 @@
-"""第 4 部分第 1 章：短期/长期记忆、命名空间、原子表、门面、召回快照。"""
+"""一、文件说明
+    第 4 部分第 1 章：短期/长期记忆、命名空间、原子表、门面与召回快照。
+
+二、覆盖
+    data_dir()                               每个用例隔离记忆文件和 SQLite 数据库。
+    test_paths_and_agent_memory_roundtrip()  路径、Agent 记忆和 task 历史可读写。
+    test_short_and_long_memory_call_flow()  同一事实分别走 thread 短期写入与跨 thread 长期召回。
+    test_agent_memory_manager_is_cached()    同名 Agent 复用同一管理器。
+    test_namespaces_parse_and_prefix()       命名空间前缀与非法值归一规则。
+    test_subject_key_replaces_old_value()    同 subject 更新原行并递增 revision。
+    test_facade_noise_filter_and_recall()    门面过滤低质量记忆并支持关键词召回。
+    test_get_core_and_format_block()         核心记忆选择与注入文本格式。
+    test_recall_snapshot_trims_and_copies()  快照限量、复制和线程隔离。
+
+三、运行
+    uv run pytest tests/chapters/test_ch04_01_memory.py -q
+"""
 
 from __future__ import annotations
 
@@ -39,6 +55,37 @@ def test_paths_and_agent_memory_roundtrip(data_dir):
     combined = manager.get_combined_memory("thread-1")
     assert combined["agent_memory"]["facts"][0]["text"] == "偏好简洁"
     assert combined["task_memory"]["conversation_history"][0]["role"] == "user"
+
+
+def test_short_and_long_memory_call_flow(data_dir):
+    """一轮输入进 task 历史；明确选出的事实写成长记忆，并在新 thread 召回。"""
+    thread_id = "thread-current"
+    namespace = user_ns("u1")
+    manager = AgentMemoryManager("planner")
+
+    manager.add_to_task_history(thread_id, "user", "我更喜欢简短的中文回答")
+    manager.add_to_task_history(thread_id, "assistant", "好的，我会简洁地用中文回答。")
+    atom_id = facade.remember(
+        namespace,
+        "用户偏好简短的中文回答",
+        kind="preference",
+        subject_key="response_style",
+        importance=0.9,
+        confidence=0.95,
+        source="user",
+    )
+    assert atom_id is not None
+
+    current = manager.load_task_memory(thread_id)
+    assert len(current["conversation_history"]) == 2
+    assert manager.load_task_memory("thread-next")["conversation_history"] == []
+
+    hits = facade.recall([namespace], "中文回答", top_k=3)
+    assert [atom["id"] for atom in hits] == [atom_id]
+    recall_snapshot.record_thread_recall("thread-next", query="中文回答", hits=hits)
+    snapshot = recall_snapshot.get_thread_recall("thread-next")
+    assert snapshot["hit_count"] == 1
+    assert "简短的中文回答" in facade.format_atoms_block(hits)
 
 
 def test_agent_memory_manager_is_cached():

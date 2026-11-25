@@ -17,6 +17,7 @@
     recall()            关键词召回 + 归档过滤 + 字符预算。
     get_core()          pin / 偏好 / 短背景，供 standing 注入。
     forget()            软删一条。
+    consolidate()       显式巩固命名空间；本章不派发异步任务。
     format_atoms_block() 把 atom 列表格式化成可注入文本。
 """
 

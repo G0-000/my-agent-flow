@@ -19,7 +19,7 @@ def test_cap_beats_ratio():
     from myagentflow.context.budget import ABSOLUTE_CAP, compact_threshold
 
     assert compact_threshold(256_000) == ABSOLUTE_CAP
-    assert compact_threshold(100_000) == 90_000     # 小窗口时比例生效
+    assert compact_threshold(100_000) == 90_000  # 小窗口时比例生效
 
 
 def test_refill():
@@ -55,7 +55,7 @@ def test_persist_large(monkeypatch, tmp_path):
     from myagentflow.tools import large_result_store as store
 
     monkeypatch.setenv("MYAF_DATA_DIR", str(tmp_path))
-    content = "line\n" * 4_000                  # 20K 字符，超过 10K 阈值
+    content = "line\n" * 4_000  # 20K 字符，超过 10K 阈值
     envelope = store.maybe_persist(content, "bash", "call-1")
     assert store.is_persisted_output_content(envelope)
     assert "<persisted-output>" in envelope and "</persisted-output>" in envelope

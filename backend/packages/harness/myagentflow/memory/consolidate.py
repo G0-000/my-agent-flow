@@ -6,6 +6,7 @@
 二、目录结构
     packages/harness/myagentflow/memory/
     ├── __init__.py
+    ├── namespaces.py   命名空间 id
     ├── store.py       原子表
     ├── facade.py      门面
     ├── consolidate.py ← 本文件
@@ -14,7 +15,7 @@
 三、关键方法
     text_overlap()            token + 中文二元组的 Jaccard，取较大值。
     consolidate_namespace()   合并同 subject / 高相似 atom，返回统计。
-    should_enqueue_threshold() 条数达到阈值才建议入队。
+    should_enqueue_threshold() 判断活跃 atom 数是否达到巩固阈值。
 """
 
 from __future__ import annotations
@@ -102,7 +103,7 @@ def consolidate_namespace(
     gc_min_confidence: float | None = None,
     gc_idle_days: int | None = None,
 ) -> dict[str, Any]:
-    """合并一个命名空间；后四个参数保留签名，衰减/GC 本章未实现。"""
+    """合并一个命名空间；后四个参数保留上游签名，本章不做衰减或 GC。"""
     del decay_factor, archive_vitality, gc_min_confidence, gc_idle_days
     sim_th = (
         float(similarity_merge) if similarity_merge is not None else _DEFAULT_SIMILARITY
@@ -214,5 +215,5 @@ def consolidate_namespace(
 
 
 def should_enqueue_threshold(namespace_id: str) -> bool:
-    """条数达到阈值才建议入队巩固，避免每条新记忆都跑一遍。"""
+    """判断活跃 atom 数是否达到巩固阈值；不负责入队或启动任务。"""
     return mem_store.count_active_atoms(namespace_id) >= _THRESHOLD_ATOMS

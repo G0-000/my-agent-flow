@@ -9,6 +9,7 @@
 三、运行
     uv run pytest tests/chapters/test_ch01_03_messages.py -q
 """
+
 from __future__ import annotations
 
 
@@ -31,10 +32,10 @@ def test_append_and_list(monkeypatch, tmp_path):
     _fresh_db(monkeypatch, tmp_path)
     assert append_message("a", "user", "1") == 1
     assert append_message("a", "assistant", "2") == 2
-    assert append_message("b", "user", "x") == 1          # 另一个会话从 1 开始
+    assert append_message("b", "user", "x") == 1  # 另一个会话从 1 开始
 
     assert [m["content"] for m in list_messages("a")] == ["1", "2"]
-    assert [m["content"] for m in list_messages("a", limit=1)] == ["2"]   # 取最近一条
+    assert [m["content"] for m in list_messages("a", limit=1)] == ["2"]  # 取最近一条
     assert count_messages("a") == 2
 
 
@@ -64,7 +65,7 @@ def test_session_row_lifecycle(monkeypatch, tmp_path):
     _fresh_db(monkeypatch, tmp_path)
     upsert_session_row("s1", title="第一条")
     upsert_session_row("s2")
-    upsert_session_row("s1")                              # 再 upsert 只刷新时间，标题保留
+    upsert_session_row("s1")  # 再 upsert 只刷新时间，标题保留
 
     row = get_session_row_for_ui("s1")
     assert row is not None and row["title"] == "第一条"

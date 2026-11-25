@@ -25,7 +25,7 @@ def test_one_active_run_per_thread():
     with pytest.raises(RuntimeError):
         reg.start("t1")
     reg.finish(r1.run_id)
-    reg.start("t1")            # 收尾后可以再开
+    reg.start("t1")  # 收尾后可以再开
 
 
 def test_cancel_wins_over_finish():

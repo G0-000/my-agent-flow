@@ -5,6 +5,7 @@
 二、目录结构
     packages/harness/myagentflow/memory/
     ├── __init__.py
+    ├── namespaces.py       命名空间 id
     ├── store.py       原子表
     ├── facade.py      门面
     ├── recall_snapshot.py  ← 本文件

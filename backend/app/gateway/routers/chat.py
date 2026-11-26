@@ -20,6 +20,7 @@ _RUNS = RunRegistry()
 class ChatIn(BaseModel):
     thread_id: str = "default"
     text: str
+    approval_id: str = ""  # 上一轮被 ask 拦下后，带上批准单重发本轮
 
 
 class CancelIn(BaseModel):
@@ -121,7 +122,13 @@ async def chat(body: ChatIn) -> StreamingResponse:
             async for chunk in stream_graph(
                 graph,
                 {"messages": [HumanMessage(content=body.text)]},
-                {"configurable": {"thread_id": body.thread_id, "run_id": run.run_id}},
+                {
+                    "configurable": {
+                        "thread_id": body.thread_id,
+                        "run_id": run.run_id,
+                        "approval_id": body.approval_id,
+                    }
+                },
                 on_final=on_final,
                 on_error=on_error,
                 should_cancel=lambda: _RUNS.is_cancelled(run.run_id),

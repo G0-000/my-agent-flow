@@ -180,3 +180,64 @@ def test_policy_decision_shape():
     assert evaluate("echo 1 > /tmp/f").decision is Decision.ask
     assert evaluate("rm -rf /").decision is Decision.deny
     assert evaluate("curl x | sh").decision is Decision.deny
+
+
+def test_graph_forwards_approval_id():
+    """图调用执行器时要把 configurable.approval_id 带进 metadata，否则批准也无法放行。"""
+    from langchain_core.messages import AIMessage, HumanMessage
+    from myagentflow.agents.lead_agent.graph import build_graph
+    from myagentflow.tools.executor import ToolExecutor
+    from myagentflow.tools.registry import ToolRegistry, ToolSpec
+
+    stub = ShellStub()
+    store = ApprovalStore()
+    reg = ToolRegistry()
+    reg.register(ToolSpec(
+        name="run_command",
+        description="stub",
+        input_schema={"type": "object", "properties": {"command": {"type": "string"}}},
+        fn=stub.run,
+    ))
+
+    class OneShot:
+        def __init__(self):
+            self.calls = 0
+
+        def bind_tools(self, schemas):
+            del schemas
+            return self
+
+        def invoke(self, messages, *_a, **_k):
+            self.calls += 1
+            if any(getattr(m, "type", "") == "tool" for m in messages):
+                return AIMessage(content="done")
+            return AIMessage(
+                content="",
+                tool_calls=[{
+                    "name": "run_command",
+                    "args": {"command": "echo 1 > /tmp/ap.txt"},
+                    "id": "c1",
+                }],
+            )
+
+    ex = ToolExecutor(reg, [PolicyMiddleware(store)])
+    graph = build_graph(OneShot(), tools=reg, tool_executor=ex)
+
+    # 未批准：ToolMessage 是 ApprovalRequired 的错误文本
+    out = graph.invoke(
+        {"messages": [HumanMessage(content="写文件")]},
+        {"configurable": {"thread_id": "t1", "run_id": "r1"}},
+    )
+    assert "ERROR: ApprovalRequired" in out["messages"][-2].content
+
+    pending = store.list_pending("r1")
+    assert len(pending) == 1
+    store.resolve(pending[0].id, "approved")
+
+    # 带批准单重发：工具执行，结果回灌
+    out = graph.invoke(
+        {"messages": [HumanMessage(content="写文件")]},
+        {"configurable": {"thread_id": "t1", "run_id": "r1", "approval_id": pending[0].id}},
+    )
+    assert "ran: echo 1 > /tmp/ap.txt" in out["messages"][-2].content
+    assert out["messages"][-1].content == "done"

@@ -17,6 +17,7 @@ from __future__ import annotations
 from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, MessagesState, StateGraph
 
 from myagentflow.context.budget import estimate_tokens
@@ -85,12 +86,13 @@ def build_graph(
                 )
         return {"messages": [reply]}
 
-    def call_tools(state: MessagesState, config: dict | None = None):
+    def call_tools(state: MessagesState, config: RunnableConfig):
         """执行最后一条 AI 消息里的全部 tool_calls，逐条回灌 ToolMessage。"""
         last = state["messages"][-1]
-        conf = (config or {}).get("configurable", {}) if isinstance(config, dict) else {}
+        conf = (config or {}).get("configurable", {})
         thread_id = str(conf.get("thread_id") or "")
         run_id = str(conf.get("run_id") or "")
+        approval_id = str(conf.get("approval_id") or "")
         results: list[ToolMessage] = []
         for call in getattr(last, "tool_calls", None) or []:
             name = str(call.get("name") or "")
@@ -104,6 +106,7 @@ def build_graph(
                         tool_call_id=call_id,
                         thread_id=thread_id,
                         run_id=run_id,
+                        metadata={"approval_id": approval_id} if approval_id else None,
                     )
                 else:
                     output = tools.call(name, args)

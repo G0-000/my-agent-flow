@@ -1,7 +1,7 @@
 """一、文件说明
     模型工厂：条目名进，模型实例出。
     只做「实例化 provider 类」，不发 HTTP；请求由 provider 自己在调用时才发。
-    目前只实现 openai 一家，其他 vendor 明确报错，不静默退化成假模型。
+    目前实现 openai 与 stub（本地替身）；其余 vendor 明确报错。
 
 二、目录结构
     packages/harness/myagentflow/models/
@@ -15,6 +15,7 @@
 """
 from __future__ import annotations
 
+from importlib import import_module
 from typing import Any
 
 from myagentflow.config.app_config import get_app_config
@@ -31,6 +32,18 @@ def _entry_by_name(name: str) -> ModelConfig:
     raise ValueError(f"config.yaml 的 models 里没有 name={name!r} 这一条")
 
 
+def _load_use_class(path: str) -> type:
+    """按 use=“包:类名” 动态加载类。"""
+    if ":" not in path:
+        raise RuntimeError(f"模型 use 字段应为 'package:Class'，收到 {path!r}")
+    mod, cls = path.split(":", 1)
+    module = import_module(mod)
+    try:
+        return getattr(module, cls)
+    except AttributeError as exc:
+        raise RuntimeError(f"找不到 {path!r} 指定的类") from exc
+
+
 def create_chat_model(
     name: str | None = None,
     thinking_enabled: bool | None = False,
@@ -45,7 +58,15 @@ def create_chat_model(
     resolved = (name or "").strip() or resolve_run_model()
     entry = _entry_by_name(resolved)
 
-    if entry.vendor == "openai":
+    vendor = (entry.vendor or "").strip().lower()
+    if vendor == "stub":
+        # 本地离线替身，不依赖任何外部包
+        UseClass = _load_use_class(entry.use) if entry.use else None
+        if UseClass is None:
+            from myagentflow.models.providers.stub import StubChatModel as UseClass  # type: ignore
+        return UseClass(**kwargs)  # type: ignore[misc]
+
+    if vendor == "openai":
         try:
             from langchain_openai import ChatOpenAI
         except ImportError as exc:
@@ -66,4 +87,4 @@ def create_chat_model(
         model_kwargs.update(kwargs)
         return ChatOpenAI(**model_kwargs)
 
-    raise RuntimeError(f"暂不支持的 vendor：{entry.vendor}（已实现 openai）")
+    raise RuntimeError(f"暂不支持的 vendor：{entry.vendor}（已实现 openai, stub）")

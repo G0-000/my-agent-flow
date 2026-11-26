@@ -48,6 +48,7 @@ async def chat(body: ChatIn) -> StreamingResponse:
     from myagentflow.agents.lead_agent.graph import build_graph
     from myagentflow.agents.lead_agent.prompt import build_system_prompt
     from myagentflow.agents.middlewares.audit import AuditMiddleware
+    from myagentflow.context.short_term import ContextManager
     from myagentflow.memory.injection import build_memory_context
     from myagentflow.memory.namespaces import user_ns
     from myagentflow.models.factory import create_chat_model
@@ -81,13 +82,17 @@ async def chat(body: ChatIn) -> StreamingResponse:
         logger.exception("memory context failed: thread=%s", body.thread_id)
         memory_block = ""
 
-    # 传 checkpointer 后同 thread 的第二轮会带上前一轮消息；不传就是无状态单轮。
+    # 同一模型既做主回答，也做超阈值时的摘要；摘要失败会退化为滑窗。
+    model = create_chat_model()
+    # 传 checkpointer 后同 thread 的第二轮会带上前一轮消息；上下文策略每轮临时裁剪。
     graph = build_graph(
-        create_chat_model(),
+        model,
         get_checkpointer(),
         tools=tools,
         tool_executor=executor,
         system_prompt=build_system_prompt(memory_block=memory_block),
+        context_manager=ContextManager(model=model),
+        max_continuations=2,
     )
 
     def on_final(text: str) -> None:

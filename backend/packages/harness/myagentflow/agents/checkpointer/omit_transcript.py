@@ -23,6 +23,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from langgraph.checkpoint.base import BaseCheckpointSaver
+
 # 要剥离的两个通道：messages 给模型/工具用，ui_messages 给前端投影用，都不是检查点该存的
 _TRANSCRIPT_CHANNELS = ("messages", "ui_messages")
 
@@ -124,19 +126,65 @@ def omit_transcript_channels(checkpoint: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-class OmitTranscriptCheckpointer:
-    """包在真 saver 外面：put/aput 前剥对话，其余方法原样透传。
+class OmitTranscriptCheckpointer(BaseCheckpointSaver[Any]):
+    """包在真 saver 外面：put/aput 前剥对话，其余方法显式透传。
 
-    为什么要包一层而不是改 Saver 子类：memory / sqlite / postgres 三个 saver 的
-    写入口签名一致，包一层就能同时覆盖；子类化要给每个后端各写一遍。
+    LangGraph 现在用 isinstance 校验 checkpointer，单纯 __getattr__ 转发不够；
+    必须继承 BaseCheckpointSaver，并把读写方法显式挂到类上。
     """
 
     def __init__(self, inner: Any) -> None:
+        super().__init__(serde=getattr(inner, "serde", None))
         self._inner = inner
 
-    def __getattr__(self, name: str) -> Any:
-        # 没显式声明的方法一律转给真 saver：capability 探测以外都够用
-        return getattr(self._inner, name)
+    @property
+    def config_specs(self) -> list:
+        return getattr(self._inner, "config_specs", [])
+
+    def get_tuple(self, *args: Any, **kwargs: Any) -> Any:
+        return self._inner.get_tuple(*args, **kwargs)
+
+    def list(self, *args: Any, **kwargs: Any) -> Any:
+        return self._inner.list(*args, **kwargs)
+
+    def get_next_version(self, *args: Any, **kwargs: Any) -> Any:
+        return self._inner.get_next_version(*args, **kwargs)
+
+    def put_writes(self, *args: Any, **kwargs: Any) -> Any:
+        return self._inner.put_writes(*args, **kwargs)
+
+    def delete_thread(self, *args: Any, **kwargs: Any) -> Any:
+        return self._inner.delete_thread(*args, **kwargs)
+
+    def delete_for_runs(self, *args: Any, **kwargs: Any) -> Any:
+        return self._inner.delete_for_runs(*args, **kwargs)
+
+    def copy_thread(self, *args: Any, **kwargs: Any) -> Any:
+        return self._inner.copy_thread(*args, **kwargs)
+
+    def prune(self, *args: Any, **kwargs: Any) -> Any:
+        return self._inner.prune(*args, **kwargs)
+
+    async def aget_tuple(self, *args: Any, **kwargs: Any) -> Any:
+        return await self._inner.aget_tuple(*args, **kwargs)
+
+    async def alist(self, *args: Any, **kwargs: Any) -> Any:
+        return await self._inner.alist(*args, **kwargs)
+
+    async def aput_writes(self, *args: Any, **kwargs: Any) -> Any:
+        return await self._inner.aput_writes(*args, **kwargs)
+
+    async def adelete_thread(self, *args: Any, **kwargs: Any) -> Any:
+        return await self._inner.adelete_thread(*args, **kwargs)
+
+    async def adelete_for_runs(self, *args: Any, **kwargs: Any) -> Any:
+        return await self._inner.adelete_for_runs(*args, **kwargs)
+
+    async def acopy_thread(self, *args: Any, **kwargs: Any) -> Any:
+        return await self._inner.acopy_thread(*args, **kwargs)
+
+    async def aprune(self, *args: Any, **kwargs: Any) -> Any:
+        return await self._inner.aprune(*args, **kwargs)
 
     def put(self, config: Any, checkpoint: Any, metadata: Any, new_versions: Any) -> Any:
         """写检查点前剥对话；开关关闭时原样写。"""
@@ -149,24 +197,6 @@ class OmitTranscriptCheckpointer:
         if omit_transcript_on_checkpoint_put_enabled() and isinstance(checkpoint, dict):
             checkpoint = omit_transcript_channels(checkpoint)
         return await self._inner.aput(config, checkpoint, metadata, new_versions)
-
-    # 下面这些显式声明只为让 LangGraph 的类级 capability 探测看到它们；
-    # 只靠 __getattr__ 的话，类上查不到 adelete_thread，会误报「不支持删线程」。
-    async def aput_writes(self, config: Any, writes: Any, task_id: str, task_path: str = "") -> Any:
-        """透传异步写 writes。"""
-        return await self._inner.aput_writes(config, writes, task_id, task_path)
-
-    async def adelete_thread(self, thread_id: str) -> None:
-        """透传删线程：删的是检查点，不动消息表。"""
-        return await self._inner.adelete_thread(thread_id)
-
-    def delete_thread(self, thread_id: str) -> None:
-        """透传同步删线程。"""
-        return self._inner.delete_thread(thread_id)
-
-    async def alist(self, config: Any, *, filter: dict[str, Any] | None = None, before: Any = None, limit: int | None = None) -> Any:
-        """透传异步列举；返回的是异步迭代器，不要 await。"""
-        return self._inner.alist(config, filter=filter, before=before, limit=limit)
 
 # =============================================================================
 # 说明：这个文件到底在干什么（读代码前先看这一段）

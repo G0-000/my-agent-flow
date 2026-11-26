@@ -16,8 +16,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from langchain_core.messages import SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langgraph.graph import END, START, MessagesState, StateGraph
+
+from myagentflow.context.budget import estimate_tokens
+from myagentflow.context.short_term import CONTINUATION_PROMPT, needs_continuation
 
 DEFAULT_MAX_TOOL_ROUNDS = 4
 
@@ -30,6 +33,8 @@ def build_graph(
     tool_executor: Any = None,
     max_tool_rounds: int = DEFAULT_MAX_TOOL_ROUNDS,
     system_prompt: str | None = None,
+    context_manager: Any = None,
+    max_continuations: int = 0,
 ):
     """建 Agent 图。
 
@@ -40,16 +45,44 @@ def build_graph(
         tool_executor: 可选 ``ToolExecutor``；传了就走中间件链，否则直接 registry.call。
         max_tool_rounds: 最多执行多少次工具批次，防止模型无限调用。
         system_prompt: 每轮临时加到消息前面，不写入检查点历史。
+        context_manager: 可选上下文策略；每轮调用前做 full/滑窗/摘要，不改检查点历史。
+        max_continuations: 模型因长度截断时最多续写几次；0 表示关闭。
     """
     graph = StateGraph(MessagesState)
 
     def call_model(state: MessagesState):
-        """把当前历史（含临时 system）交给模型，把回复塞回 messages。"""
-        messages = list(state["messages"])
+        """先按上下文策略裁剪历史，再交给模型；截断时按需续写。"""
+        history = list(state["messages"])
+        if context_manager is not None:
+            try:
+                history = context_manager.prepare(
+                    history,
+                    reserved_tokens=estimate_tokens(system_prompt or ""),
+                ).messages
+            except Exception:
+                # 上下文策略是增强项：失败时退回全量历史，不打断回答。
+                history = list(state["messages"])
+        messages = list(history)
         if system_prompt:
             messages = [SystemMessage(content=system_prompt), *messages]
         bound = model.bind_tools(tools.schemas()) if tools is not None else model
         reply = bound.invoke(messages)
+
+        if max_continuations > 0:
+            combined = _message_text(reply)
+            current = reply
+            for _ in range(max_continuations):
+                if not needs_continuation(current):
+                    break
+                follow = messages + [current, HumanMessage(content=CONTINUATION_PROMPT)]
+                current = bound.invoke(follow)
+                combined += _message_text(current)
+            if combined != _message_text(reply):
+                reply = AIMessage(
+                    content=combined,
+                    tool_calls=getattr(current, "tool_calls", None) or [],
+                    response_metadata=getattr(current, "response_metadata", None) or {},
+                )
         return {"messages": [reply]}
 
     def call_tools(state: MessagesState):
@@ -78,6 +111,12 @@ def build_graph(
             return END
         used = sum(isinstance(m, ToolMessage) for m in state["messages"])
         return "tools" if used < max_tool_rounds else END
+
+    def _message_text(message: Any) -> str:
+        content = getattr(message, "content", "")
+        if isinstance(content, str):
+            return content
+        return str(content or "")
 
     graph.add_node("call_model", call_model)
     graph.add_edge(START, "call_model")

@@ -83,13 +83,23 @@ def _pg_dsn() -> str:
 
 
 def _wrap_omit_transcript(saver: Checkpointer) -> Checkpointer:
-    """给 saver 套上「写前剥对话」的包装；开关关闭时原样返回。"""
+    """显式开启时才套「写前剥对话」；默认不包。
+
+    当前聊天历史仍由 checkpointer 提供，消息表只是归档副本。若默认剥掉
+    messages，同 thread 第二轮就拿不到历史。等消息表回读接完，再把默认切回来。
+    """
+    import os
+
     from myagentflow.agents.checkpointer.omit_transcript import (
         OmitTranscriptCheckpointer,
-        omit_transcript_on_checkpoint_put_enabled,
     )
 
-    if not omit_transcript_on_checkpoint_put_enabled():
+    if (os.getenv("MYAF_CHECKPOINT_OMIT_TRANSCRIPT") or "").strip().lower() not in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }:
         return saver
     return OmitTranscriptCheckpointer(saver)
 

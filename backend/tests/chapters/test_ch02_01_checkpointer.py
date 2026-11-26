@@ -142,3 +142,34 @@ def test_omit_switch_off(monkeypatch):
         {},
     )
     assert inner.checkpoint["channel_values"]["messages"] == messages
+
+
+def test_provider_does_not_strip_by_default(monkeypatch):
+    """默认不包剥对话：聊天历史仍由 checkpointer 提供。"""
+    monkeypatch.setenv("MYAF_CHECKPOINTER", "memory")
+    monkeypatch.delenv("MYAF_CHECKPOINT_OMIT_TRANSCRIPT", raising=False)
+
+    from myagentflow.agents.checkpointer import provider
+    from myagentflow.agents.checkpointer.omit_transcript import (
+        OmitTranscriptCheckpointer,
+    )
+
+    provider.reset_checkpointer()
+    cp = provider.get_checkpointer()
+    assert not isinstance(cp, OmitTranscriptCheckpointer)
+    provider.reset_checkpointer()
+
+
+def test_omit_wrapper_accepted_by_langgraph(monkeypatch):
+    """显式开启剥对话时，包装也必须能通过 LangGraph 的 saver 校验。"""
+    monkeypatch.setenv("MYAF_CHECKPOINTER", "memory")
+    monkeypatch.setenv("MYAF_CHECKPOINT_OMIT_TRANSCRIPT", "1")
+
+    from myagentflow.agents.checkpointer import provider
+    from myagentflow.agents.lead_agent.graph import build_graph
+
+    provider.reset_checkpointer()
+    cp = provider.get_checkpointer()
+    graph = build_graph(object(), cp)  # 只编译，不调用模型
+    assert graph.checkpointer is cp
+    provider.reset_checkpointer()

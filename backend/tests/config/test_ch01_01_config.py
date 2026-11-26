@@ -13,7 +13,7 @@
     test_stub_vendor_bad_use()           use 字段写错时明确报错，不静默回退。
     test_unknown_vendor_raises()         未实现的 vendor 直接报错。
 三、运行
-    uv run pytest tests/chapters/test_ch01_01_config.py -q
+    uv run pytest tests/config/test_ch01_01_config.py -q
 """
 
 from __future__ import annotations

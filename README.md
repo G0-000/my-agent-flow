@@ -8,7 +8,7 @@
 
 - **站点分章正文（唯一维护来源）**：`/Users/main/agent-book/my-agent-flow/`（Part 00–13）
 - **分章与本地代码对照**：`/Users/main/agent-book/my-agent-flow/00-导论/06-总文档分章与代码落地对照.md`
-- **单文件合订本**：`../agent-book/my-agent-flow/EvoFlow-学习规划-总文档.md`，由 Agent-Book 脚本生成，禁止直接手改。
+- **单文件合订本**：`../agent-book/public/EvoFlow-学习规划-总文档.md`，由 Agent-Book 脚本生成，禁止直接手改。
 - **溯源归档**：`/Users/main/agent-book/my-agent-flow/溯源/`
 
 > 分章目录现有 58 篇教材章节正文（00 导论 6 篇、Part 01–13 共 52 篇），另有各 Part README 与逐章代码落地审计附页。合订本按脚本收录口径当前为 73 篇、570,318 字符 / 16,230 行，已重建核验。

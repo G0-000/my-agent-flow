@@ -1,11 +1,20 @@
-"""聊天接口：一个 POST，一条 SSE 流。"""
+"""聊天接口：一个 POST，一条 SSE 流。
+
+入口职责按顺序：注册 run → 写 user 消息 → 建图 → 流式回答 → 写 assistant 消息 → 收尾 run。
+组件失败不能阻断回答，但 run 状态必须落到终态。
+"""
 from __future__ import annotations
 
-from fastapi import APIRouter
+import logging
+
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
+from myagentflow.session_execution.lifecycle import RunRegistry
 from pydantic import BaseModel
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
+_RUNS = RunRegistry()
 
 
 class ChatIn(BaseModel):
@@ -13,34 +22,112 @@ class ChatIn(BaseModel):
     text: str
 
 
+class CancelIn(BaseModel):
+    thread_id: str = "default"
+
+
+def _safe_append(thread_id: str, role: str, content: str) -> None:
+    """消息落库失败只记日志；聊天回答不能被归档故障阻断。"""
+    if not content.strip():
+        return
+    try:
+        from myagentflow.persistence.chat_message_repositories import append_message
+        from myagentflow.persistence.session_repositories import upsert_session_row
+
+        if role == "user":
+            upsert_session_row(thread_id, title=content.strip()[:40])
+        append_message(thread_id, role, content)
+    except Exception:
+        logger.exception("append_message failed: thread=%s role=%s", thread_id, role)
+
+
 @router.post("/chat")
 async def chat(body: ChatIn) -> StreamingResponse:
     from langchain_core.messages import HumanMessage
     from myagentflow.agents.checkpointer import get_checkpointer
     from myagentflow.agents.lead_agent.graph import build_graph
+    from myagentflow.agents.lead_agent.prompt import build_system_prompt
+    from myagentflow.agents.middlewares.audit import AuditMiddleware
+    from myagentflow.memory.injection import build_memory_context
+    from myagentflow.memory.namespaces import user_ns
     from myagentflow.models.factory import create_chat_model
     from myagentflow.runtime.streaming import stream_graph
     from myagentflow.tools.builtins.echo import register_echo
+    from myagentflow.tools.executor import ToolExecutor
     from myagentflow.tools.registry import ToolRegistry
+
+    try:
+        run = _RUNS.start(body.thread_id)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    # 用户消息先落库：即使模型失败，也能看到用户发过什么。
+    _safe_append(body.thread_id, "user", body.text)
 
     # 本轮先注册最小工具集；后续工具宿主会替换这里，但入口不再是无工具图。
     tools = ToolRegistry()
     register_echo(tools)
+    executor = ToolExecutor(tools, [AuditMiddleware()])
+
+    # 记忆是增强项：召回/快照失败降级为空块，不阻断回答。
+    # 身份系统未接前固定 default，不能从 body 取 user_id，否则任意客户端可读别人的记忆。
+    try:
+        memory_block = build_memory_context(
+            [user_ns("default")],
+            body.text,
+            thread_id=body.thread_id,
+        )
+    except Exception:
+        logger.exception("memory context failed: thread=%s", body.thread_id)
+        memory_block = ""
 
     # 传 checkpointer 后同 thread 的第二轮会带上前一轮消息；不传就是无状态单轮。
     graph = build_graph(
         create_chat_model(),
         get_checkpointer(),
         tools=tools,
+        tool_executor=executor,
+        system_prompt=build_system_prompt(memory_block=memory_block),
     )
 
+    def on_final(text: str) -> None:
+        _safe_append(body.thread_id, "assistant", text)
+        _RUNS.finish(run.run_id, "finished")
+
+    def on_error(message: str) -> None:
+        logger.error("chat run failed: thread=%s error=%s", body.thread_id, message)
+        _RUNS.finish(run.run_id, "error")
+
+    def on_cancel() -> None:
+        logger.info("chat run cancelled: thread=%s run=%s", body.thread_id, run.run_id)
+        _RUNS.finish(run.run_id, "cancelled")
+
     async def gen():
-        # 断线时 StreamingResponse 会取消这个生成器，资源随 with 清理
-        async for chunk in stream_graph(
-            graph,
-            {"messages": [HumanMessage(content=body.text)]},
-            {"configurable": {"thread_id": body.thread_id}},
-        ):
-            yield chunk
+        try:
+            async for chunk in stream_graph(
+                graph,
+                {"messages": [HumanMessage(content=body.text)]},
+                {"configurable": {"thread_id": body.thread_id}},
+                on_final=on_final,
+                on_error=on_error,
+                should_cancel=lambda: _RUNS.is_cancelled(run.run_id),
+                on_cancel=on_cancel,
+            ):
+                yield chunk
+        finally:
+            # 客户端断开时生成器被关闭，run 不能永远停在 running。
+            if run.status == "running":
+                _RUNS.finish(run.run_id, "cancelled")
 
     return StreamingResponse(gen(), media_type="text/event-stream")
+
+
+@router.post("/chat/cancel")
+def cancel_chat(body: CancelIn) -> dict[str, str | bool]:
+    """给指定 thread 的活跃 run 发取消信号；真正收尾由流式生成器完成。"""
+    rec = _RUNS.active_for_thread(body.thread_id)
+    if rec is None:
+        raise HTTPException(status_code=404, detail=f"thread {body.thread_id} 没有活跃 run")
+    if not _RUNS.cancel(rec.run_id):
+        raise HTTPException(status_code=409, detail=f"run {rec.run_id} 已无法取消")
+    return {"ok": True, "run_id": rec.run_id}

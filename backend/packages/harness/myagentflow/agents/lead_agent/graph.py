@@ -27,6 +27,7 @@ def build_graph(
     checkpointer: Any = None,
     *,
     tools: Any = None,
+    tool_executor: Any = None,
     max_tool_rounds: int = DEFAULT_MAX_TOOL_ROUNDS,
     system_prompt: str | None = None,
 ):
@@ -36,6 +37,7 @@ def build_graph(
         model: 聊天模型；传 tools 时必须支持 ``bind_tools``。
         checkpointer: 可选检查点；不传则不保留线程历史。
         tools: 可选 ``ToolRegistry``；不传就是单轮图。
+        tool_executor: 可选 ``ToolExecutor``；传了就走中间件链，否则直接 registry.call。
         max_tool_rounds: 最多执行多少次工具批次，防止模型无限调用。
         system_prompt: 每轮临时加到消息前面，不写入检查点历史。
     """
@@ -59,7 +61,10 @@ def build_graph(
             args = call.get("args") or {}
             call_id = str(call.get("id") or "")
             try:
-                output = tools.call(name, args)
+                if tool_executor is not None:
+                    output = tool_executor.execute(name, args, tool_call_id=call_id)
+                else:
+                    output = tools.call(name, args)
                 content = str(output)
             except Exception as exc:  # 工具失败要回灌给模型，不能把整轮打断
                 content = f"ERROR: {type(exc).__name__}: {exc}"

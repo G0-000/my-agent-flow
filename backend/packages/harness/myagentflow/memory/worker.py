@@ -70,10 +70,14 @@ class MemoryWorker:
         self,
         model_factory: Callable[[], Any],
         *,
-        interval: float = 5.0,
+        interval: float | None = None,
         queue: MemoryUpdateQueue | None = None,
     ) -> None:
         self._model_factory = model_factory
+        if interval is None:
+            from myagentflow.config.app_config import get_app_config
+
+            interval = get_app_config().memory.worker_interval
         self.interval = max(0.1, float(interval))
         self.queue = queue or get_queue()
         self._stop = threading.Event()
@@ -121,8 +125,15 @@ class MemoryWorker:
         return stats
 
 
-def start_worker(model_factory: Callable[[], Any], *, interval: float = 5.0) -> MemoryWorker:
-    """取全局 worker 并启动；模型工厂延迟到 tick 时才调用。"""
+def start_worker(
+    model_factory: Callable[[], Any],
+    *,
+    interval: float | None = None,
+) -> MemoryWorker:
+    """取全局 worker 并启动；模型工厂延迟到 tick 时才调用。
+
+    interval 缺省读 config.yaml 的 ``memory.worker_interval``（部署可调，不硬编码）。
+    """
     global _worker
     with _worker_lock:
         if _worker is None:

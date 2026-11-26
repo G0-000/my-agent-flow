@@ -138,3 +138,30 @@ def test_chat_final_enqueues_memory(monkeypatch, tmp_path):
     db.reset_db()
     reset_checkpointer()
     worker.reset_queue()
+
+
+def test_worker_interval_defaults_to_config(monkeypatch, tmp_path):
+    """interval 缺省读 config.yaml 的 memory.worker_interval；显式传参优先。"""
+    _reset_worker(monkeypatch, tmp_path)
+
+    from myagentflow.config.app_config import (
+        AppConfig,
+        get_app_config,
+        reset_app_config,
+        set_app_config,
+    )
+    from myagentflow.config.memory_config import MemoryConfig
+    from myagentflow.memory import worker
+
+    get_app_config()  # 先建立缓存路径，set_app_config 的注入才能被读到
+    try:
+        set_app_config(AppConfig(memory=MemoryConfig(worker_interval=1.5)))
+        w = worker.MemoryWorker(lambda: None, queue=worker.get_queue())
+        assert w.interval == 1.5
+        set_app_config(AppConfig())
+        w2 = worker.MemoryWorker(lambda: None, queue=worker.get_queue())
+        assert w2.interval == 5.0
+        w3 = worker.MemoryWorker(lambda: None, interval=60, queue=worker.get_queue())
+        assert w3.interval == 60
+    finally:
+        reset_app_config()

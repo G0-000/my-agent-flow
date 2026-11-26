@@ -41,6 +41,14 @@ mcp:
   #    prefix: mcp__fs__              # 可省略，缺省 mcp__<name>__
   allow: []
 
+chat:
+  # 聊天入口（04.1）：从消息表回读历史时，最多带最近多少条给模型。
+  history_limit: 40
+
+memory:
+  # 记忆抽取 worker（05.4）：后台线程两轮 tick 的间隔秒数。
+  worker_interval: 5.0
+
 # —— 离线开发替身（stub）：不联网、不装第三方 SDK，仅供本地开发/演示与测试，切勿进生产 ——
 # 想离线跑通 demo 与测试时：取消下面注释，并删掉上面的 models 列表（两者只能留一个），
 # 让 primary_model 指向 stub：

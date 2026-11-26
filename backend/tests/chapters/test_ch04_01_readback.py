@@ -168,3 +168,38 @@ def test_consistency_mismatch_logs_but_does_not_block(monkeypatch, tmp_path, cap
 
     db.reset_db()
     reset_checkpointer()
+
+
+def test_history_limit_from_config(monkeypatch, tmp_path):
+    """chat.history_limit 进配置：_history_from_table 缺省按配置条数回读。"""
+    _prepare(monkeypatch, tmp_path)
+
+    from myagentflow.config.app_config import (
+        AppConfig,
+        get_app_config,
+        reset_app_config,
+        set_app_config,
+    )
+    from myagentflow.config.chat_config import ChatConfig
+    from myagentflow.persistence.chat_message_repositories import append_message
+
+    from app.gateway.routers.chat import _history_from_table
+
+    for i in range(4):
+        append_message("t-limit", "user" if i % 2 == 0 else "assistant", f"m{i}")
+
+    get_app_config()  # 先建立缓存路径，set_app_config 的注入才能被读到
+    set_app_config(AppConfig(chat=ChatConfig(history_limit=2)))
+    try:
+        rows = _history_from_table("t-limit")
+        assert [m.content for m in rows] == ["m2", "m3"]
+        set_app_config(AppConfig())
+        assert len(_history_from_table("t-limit")) == 4
+    finally:
+        reset_app_config()
+
+    from myagentflow.agents.checkpointer import reset_checkpointer
+    from myagentflow.persistence import db
+
+    db.reset_db()
+    reset_checkpointer()

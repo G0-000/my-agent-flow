@@ -42,15 +42,20 @@ def _safe_append(thread_id: str, role: str, content: str) -> None:
         logger.exception("append_message failed: thread=%s role=%s", thread_id, role)
 
 
-def _history_from_table(thread_id: str, limit: int = 40):
+def _history_from_table(thread_id: str, limit: int | None = None):
     """把消息表里的 user/assistant 还原成 LangChain 消息。
 
     只还原对话正文，不还原 tool 消息：工具结果属于图状态，消息表只归档
     「用户看到的内容」。这也意味着重建历史时不能声称与检查点逐字节一致。
+    limit 缺省读 config.yaml 的 ``chat.history_limit``：回读条数是部署可调
+    参数，不硬编码在路由里。
     """
     from langchain_core.messages import AIMessage, HumanMessage
+    from myagentflow.config.app_config import get_app_config
     from myagentflow.persistence.chat_message_repositories import list_messages
 
+    if limit is None:
+        limit = get_app_config().chat.history_limit
     messages = []
     for row in list_messages(thread_id, limit=limit):
         if row["role"] == "user":

@@ -150,7 +150,7 @@ async def chat(body: ChatIn) -> StreamingResponse:
     register_echo(tools)
     register_workspace_files(tools)
     register_shell(tools)
-    # MCP 是可选扩展：没配 MYAF_MCP_SERVERS 就不启动子进程；失败也不影响内置工具。
+    # MCP 是可选扩展：config.yaml 没配 mcp.servers 就不启动子进程；失败也不影响内置工具。
     try:
         from myagentflow.mcp.assembly import register_configured_mcp_tools
 

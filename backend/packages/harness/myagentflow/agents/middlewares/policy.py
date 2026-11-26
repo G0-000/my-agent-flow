@@ -52,15 +52,19 @@ class PolicyMiddleware(Middleware):
         tool = getattr(request, "name", "")
         args = getattr(request, "args", {}) or {}
 
-        # 外部 MCP 工具默认不可信：未显式 allow 的写操作必须先审批。
+        # 外部 MCP 工具默认不可信：白名单 = config.yaml 的 mcp.allow，
+        # 环境变量 MYAF_MCP_ALLOW 只做运行时追加（两处取并集）；名单外必须先审批。
         if tool.startswith(_MCP_PREFIX):
             import os
 
-            allowed = {
+            from myagentflow.config.app_config import get_app_config
+
+            allowed = set(get_app_config().mcp.allow)
+            allowed.update(
                 x.strip()
                 for x in os.getenv(_MCP_ALLOW_ENV, "").split(",")
                 if x.strip()
-            }
+            )
             if tool in allowed:
                 return handler(request)
             return self._gate(request, handler, "外部 MCP 工具默认需要审批")

@@ -1,7 +1,7 @@
 """一、文件说明
     应用根配置：把各配置节拼起来，并负责加载与缓存。
     配置文件不是一个：`app_config.py` 只是根对象，子配置各在自己的文件里：
-    字段分区只保留 5 个：log_level / models / primary_model / checkpointer / storage；
+    字段分区只保留 6 个：log_level / models / primary_model / checkpointer / storage / mcp；
     沙箱、web、技能、可观测等分区等读到对应章节再加，字段名保持同一套。
     缓存按文件 mtime 判断：配置改完不用重启，下一次 get_app_config() 自动重读。
 
@@ -12,6 +12,7 @@
     ├── checkpointer_config.py  LangGraph 检查点的配置节：存哪种后端、连到哪。
     ├── model_config.py  单个模型的配置：连接信息 + 采样参数。
     ├── models_yaml.py  YAML 里 `models` 的两种写法：嵌套 `providers` 与扁平
+    ├── mcp_config.py  MCP 服务器声明：servers 列表 + 免审批 allow 白名单。
     └── storage_config.py  应用 SQLite 存储配置：只回答「应用库放哪」。
 
 三、关键方法
@@ -36,6 +37,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from myagentflow.config.checkpointer_config import CheckpointerConfig
+from myagentflow.config.mcp_config import McpConfig
 from myagentflow.config.model_config import ModelConfig
 from myagentflow.config.models_yaml import coerce_models_field_for_appconfig
 from myagentflow.config.storage_config import StorageConfig
@@ -52,6 +54,7 @@ class AppConfig(BaseModel):
     primary_model: str | None = Field(default=None, description="主模型条目名（字符串，不是对象）")
     checkpointer: CheckpointerConfig = Field(default_factory=CheckpointerConfig)
     storage: StorageConfig = Field(default_factory=StorageConfig)
+    mcp: McpConfig = Field(default_factory=McpConfig, description="MCP 外部工具服务器：结构化配置；环境变量只做运行时覆盖")
 
     model_config = ConfigDict(extra="allow")
 
@@ -171,6 +174,7 @@ def set_app_config(config: AppConfig) -> None:
 __all__ = [
     "AppConfig",
     "CheckpointerConfig",
+    "McpConfig",
     "ModelConfig",
     "StorageConfig",
     "get_app_config",

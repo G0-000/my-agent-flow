@@ -1,8 +1,6 @@
-"""03.6 / 03.7：MCP 配置装配与「外部工具默认需审批」。"""
+"""03.6 / 03.7：MCP 配置装配（config.yaml 的 mcp 段）与「外部工具默认需审批」。"""
 
 from __future__ import annotations
-
-import json
 
 import pytest
 
@@ -32,32 +30,30 @@ class FakeMcpClient:
 
 
 def test_parse_specs_skips_bad_entries():
+    from myagentflow.config.mcp_config import McpConfig
     from myagentflow.mcp.assembly import parse_server_specs
 
-    assert parse_server_specs("not json") == []
-    assert parse_server_specs(json.dumps({"name": "x"})) == []
+    # 缺 command 的条目直接跳过，不让启动失败；前缀缺省 mcp__<name>__
     specs = parse_server_specs(
-        json.dumps(
-            [
-                {"name": "fs", "command": ["echo"]},
-                {"name": "bad"},
-            ]
-        )
+        McpConfig(servers=[{"name": "fs", "command": ["echo"]}, {"name": "bad"}])
     )
     assert len(specs) == 1
     assert specs[0]["prefix"] == "mcp__fs__"
 
+    # 没配 mcp.servers → 空列表，不启动任何子进程
+    assert parse_server_specs(McpConfig()) == []
 
-def test_register_configured_tools(monkeypatch):
+
+def test_register_configured_tools():
+    from myagentflow.config.mcp_config import McpConfig
     from myagentflow.mcp.assembly import register_configured_mcp_tools, reset_clients
     from myagentflow.tools.registry import ToolRegistry
 
-    monkeypatch.setenv(
-        "MYAF_MCP_SERVERS",
-        json.dumps([{"name": "fs", "command": ["fake"]}]),
-    )
+    config = McpConfig(servers=[{"name": "fs", "command": ["fake"]}])
     registry = ToolRegistry()
-    names = register_configured_mcp_tools(registry, client_factory=FakeMcpClient)
+    names = register_configured_mcp_tools(
+        registry, config=config, client_factory=FakeMcpClient
+    )
 
     assert names == ["mcp__fs__read_file"]
     assert registry.call("mcp__fs__read_file", {"path": "a.md"}) == "read_file:a.md"
@@ -85,12 +81,51 @@ def test_mcp_tool_requires_approval_by_default():
     assert middleware.wrap_tool_call(request, lambda r: "ok") == "ok"
 
 
-def test_mcp_tool_allowed_by_env(monkeypatch):
+def test_mcp_tool_allow_via_config_or_env(monkeypatch):
     from myagentflow.agents.middlewares.policy import PolicyMiddleware
+    from myagentflow.config.app_config import (
+        AppConfig,
+        reset_app_config,
+        set_app_config,
+    )
+    from myagentflow.config.mcp_config import McpConfig
     from myagentflow.sandbox.approvals import ApprovalStore
     from myagentflow.tools.executor import ToolCallRequest
 
-    monkeypatch.setenv("MYAF_MCP_ALLOW", "mcp__fs__read_file")
-    middleware = PolicyMiddleware(ApprovalStore())
     request = ToolCallRequest(tool_call={"name": "mcp__fs__read_file", "args": {}, "id": "c1"})
-    assert middleware.wrap_tool_call(request, lambda r: "ok") == "ok"
+
+    # 环境变量 MYAF_MCP_ALLOW：运行时覆盖仍然有效
+    monkeypatch.setenv("MYAF_MCP_ALLOW", "mcp__fs__read_file")
+    assert PolicyMiddleware(ApprovalStore()).wrap_tool_call(request, lambda r: "ok") == "ok"
+
+    # config.yaml 的 mcp.allow：结构化配置同样放行（此时不带环境变量）
+    monkeypatch.delenv("MYAF_MCP_ALLOW", raising=False)
+    set_app_config(AppConfig(mcp=McpConfig(allow=["mcp__fs__read_file"])))
+    try:
+        assert PolicyMiddleware(ApprovalStore()).wrap_tool_call(request, lambda r: "ok") == "ok"
+    finally:
+        reset_app_config()  # 还原「未加载」状态，避免污染其它测试
+
+
+def test_parse_specs_defaults_to_app_config(monkeypatch, tmp_path):
+    """不设环境变量、只写 config.yaml 的 mcp 段也能装配（缺省走 get_app_config）。"""
+    from myagentflow.config.app_config import reset_app_config
+    from myagentflow.mcp.assembly import parse_server_specs
+
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        "mcp:\n"
+        "  servers:\n"
+        "    - name: fs\n"
+        "      command: [echo]\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("MYAGENTFLOW_CONFIG_PATH", str(config_file))
+    monkeypatch.delenv("MYAF_MCP_SERVERS", raising=False)
+    reset_app_config()
+    try:
+        specs = parse_server_specs()
+        assert [s["name"] for s in specs] == ["fs"]
+        assert specs[0]["prefix"] == "mcp__fs__"
+    finally:
+        reset_app_config()

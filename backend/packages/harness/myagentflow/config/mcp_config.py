@@ -1,7 +1,8 @@
 """一、文件说明
     MCP 配置节：外部工具服务器的声明式配置，和 models/checkpointer/storage 同级。
     为什么进 config.yaml：MCP server 是运行时依赖，不是一次性开关；
-    写进结构化配置后才能被配置检查、复用与审计。环境变量只做运行时覆盖。
+    写进结构化配置后才能被配置检查、复用与审计。环境变量只做运行时覆盖
+    （MYAF_MCP_ALLOW 在免审批白名单上追加，逗号分隔）。
 
 二、目录结构
     packages/harness/myagentflow/config/
@@ -21,7 +22,10 @@ class McpServerConfig(BaseModel):
     """一个 MCP server：用 command 启动 stdio 子进程。"""
 
     name: str
-    command: list[str]
+    command: list[str] = Field(
+        default_factory=list,
+        description="启动命令；缺 command 的条目在装配时跳过，不让启动失败",
+    )
     prefix: str | None = Field(default=None, description="工具名前缀；缺省用 mcp__<name>__")
 
 
@@ -31,5 +35,5 @@ class McpConfig(BaseModel):
     servers: list[McpServerConfig] = Field(default_factory=list)
     allow: list[str] = Field(
         default_factory=list,
-        description="免审批的 MCP 工具全名；不在名单里的默认需要审批",
+        description="免审批的 MCP 工具全名；不在名单里的默认需要审批（MYAF_MCP_ALLOW 可运行时追加）",
     )

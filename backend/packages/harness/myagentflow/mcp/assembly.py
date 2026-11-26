@@ -1,56 +1,46 @@
 """按配置装配 MCP 工具：聊天入口不再只认内置工具。
 
-配置来源是 ``MYAF_MCP_SERVERS``（JSON 数组），例如：
-``[{"name":"fs","command":["npx","-y","@modelcontextprotocol/server-filesystem","."]}]``
+配置来源是 config.yaml 的 ``mcp.servers`` 段（与 models/checkpointer/storage 同级），例如::
 
-为什么用环境变量而不是 config.yaml：MCP server 是可选的本地进程，
-默认不配置就不启动；把它写进主配置会让「离线跑通」多一个必填项。
+    mcp:
+      servers:
+        - name: fs
+          command: [npx, -y, "@modelcontextprotocol/server-filesystem", "."]
+
+为什么进 config.yaml：MCP server 是运行时依赖，声明式配置才能被检查、复用与审计；
+环境变量只保留 ``MYAF_MCP_ALLOW``，作为免审批白名单的运行时追加。
 """
 from __future__ import annotations
 
-import json
 import logging
-import os
 from collections.abc import Callable
 from typing import Any
 
+from myagentflow.config.app_config import get_app_config
+from myagentflow.config.mcp_config import McpConfig
 from myagentflow.mcp.bridge import McpToolClient, register_mcp_tools
 from myagentflow.tools.registry import ToolRegistry
 
 logger = logging.getLogger(__name__)
 
-ENV = "MYAF_MCP_SERVERS"
-
 # 进程内保留客户端：注册进 registry 的闭包要一直能调到子进程。
 _clients: list[McpToolClient] = []
 
 
-def parse_server_specs(raw: str | None = None) -> list[dict[str, Any]]:
-    """解析配置；坏 JSON / 缺 command 的条目直接跳过，不让启动失败。"""
-    text = (raw if raw is not None else os.getenv(ENV, "")).strip()
-    if not text:
-        return []
-    try:
-        data = json.loads(text)
-    except json.JSONDecodeError:
-        logger.warning("invalid %s: not JSON", ENV)
-        return []
-    if not isinstance(data, list):
-        logger.warning("invalid %s: expected a list", ENV)
-        return []
+def parse_server_specs(config: McpConfig | None = None) -> list[dict[str, Any]]:
+    """把 mcp.servers 摊平成装配项；缺 command 的条目跳过，不让启动失败。"""
+    if config is None:
+        config = get_app_config().mcp
     specs: list[dict[str, Any]] = []
-    for item in data:
-        if not isinstance(item, dict):
-            continue
-        command = item.get("command")
-        if not isinstance(command, list) or not command:
-            logger.warning("skip MCP server without command: %r", item.get("name"))
+    for item in config.servers:
+        if not item.command:
+            logger.warning("skip MCP server without command: %r", item.name)
             continue
         specs.append(
             {
-                "name": str(item.get("name") or "mcp"),
-                "command": [str(x) for x in command],
-                "prefix": str(item.get("prefix") or f"mcp__{item.get('name') or 'server'}__"),
+                "name": item.name,
+                "command": list(item.command),
+                "prefix": item.prefix or f"mcp__{item.name}__",
             }
         )
     return specs
@@ -59,10 +49,11 @@ def parse_server_specs(raw: str | None = None) -> list[dict[str, Any]]:
 def register_configured_mcp_tools(
     registry: ToolRegistry,
     *,
+    config: McpConfig | None = None,
     client_factory: Callable[[list[str]], McpToolClient] | None = None,
 ) -> list[str]:
     """把配置里的 MCP server 全部接进注册表；单个 server 失败不影响其它。"""
-    specs = parse_server_specs()
+    specs = parse_server_specs(config)
     if not specs:
         return []
     if client_factory is None:

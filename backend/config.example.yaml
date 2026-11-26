@@ -29,6 +29,18 @@ storage:
   backend: sqlite
   sqlite_path: data/app/myagentflow.db
 
+mcp:
+  # MCP 外部工具服务器（03.6）：每条用 command 启动一个 stdio 子进程。
+  # servers 为空就不启动任何子进程，离线跑通不受影响。
+  # 免审批白名单写在 allow（工具全名，如 mcp__fs__read_file）；
+  # 环境变量 MYAF_MCP_ALLOW 可运行时追加（逗号分隔），两处取并集。
+  # 不在白名单里的 mcp__* 工具默认需要人工审批。
+  servers: []
+  #  - name: fs
+  #    command: [npx, -y, "@modelcontextprotocol/server-filesystem", "."]
+  #    prefix: mcp__fs__              # 可省略，缺省 mcp__<name>__
+  allow: []
+
 # —— 离线开发替身（stub）：不联网、不装第三方 SDK，仅供本地开发/演示与测试，切勿进生产 ——
 # 想离线跑通 demo 与测试时：取消下面注释，并删掉上面的 models 列表（两者只能留一个），
 # 让 primary_model 指向 stub：

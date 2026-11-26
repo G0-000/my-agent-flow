@@ -99,3 +99,41 @@ def test_plugin_load_and_failure_isolation():
 
     assert load(PluginSpec(name="ok", entry="json:dumps")) is not None
     assert load(PluginSpec(name="bad", entry="no_such_module:fn")) is None
+
+
+class _FakeMcp:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, dict]] = []
+
+    def list_tools(self):
+        return [
+            {"name": "search", "description": "搜", "inputSchema": {"type": "object", "properties": {"q": {"type": "string"}}}},
+            {"name": "no_schema", "description": ""},
+        ]
+
+    def call_tool(self, name, args):
+        self.calls.append((name, args))
+        return {"content": [{"type": "text", "text": f"{name}:{args.get('q', '')}"}]}
+
+
+def test_mcp_bridge_registers_tools_and_calls_remote():
+    from myagentflow.mcp.bridge import register_mcp_tools
+    from myagentflow.tools.registry import ToolRegistry
+
+    fake = _FakeMcp()
+    reg = ToolRegistry()
+    names = register_mcp_tools(reg, fake)
+    assert names == ["mcp__search", "mcp__no_schema"]
+    assert [s["function"]["name"] for s in reg.schemas()] == names
+    assert reg.call("mcp__search", {"q": "x"}) == "search:x"
+    assert fake.calls == [("search", {"q": "x"})]
+
+
+def test_mcp_bridge_does_not_overwrite_builtin():
+    from myagentflow.mcp.bridge import register_mcp_tools
+    from myagentflow.tools.registry import ToolRegistry, ToolSpec
+
+    reg = ToolRegistry()
+    reg.register(ToolSpec("mcp__search", "内置", {"type": "object"}, lambda **_: "local"))
+    with pytest.raises(ValueError, match="工具重名"):
+        register_mcp_tools(reg, _FakeMcp())

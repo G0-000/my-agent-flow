@@ -101,8 +101,13 @@ def list_items(
     principal: Any = None,
     filter_visibility: bool = False,
 ) -> dict[str, Any]:
-    """可见性参数保留签名但本章未实现（没有 principal 体系），不做假过滤。"""
-    del is_admin, personal_scope, org_scope, principal, filter_visibility
+    """可见性最小实现：过滤开启时按 scope 白名单收敛，admin 不过滤。
+
+    principal 尚未接入账号体系，当前只认调用方显式传入的 scope；
+    没有 scope 一律看不到，避免「参数没传就全量」的越权。
+    """
+    del principal
+    allowed_scopes = {s for s in (personal_scope, org_scope) if str(s or "").strip()}
     status_f = str(status or "").strip().lower() or None
     priority_f = str(priority or "").strip().lower() or None
     tag_f = str(tag or "").strip() or None
@@ -137,6 +142,9 @@ def list_items(
             if query not in blob:
                 continue
         rows.append(item.to_public_dict())
+    if filter_visibility and not is_admin:
+        # fail-closed：没给 scope 就一条都不返回，避免默认全量
+        rows = [r for r in rows if str(r.get("owner_scope_id") or "") in allowed_scopes]
     rows.sort(
         key=lambda r: (r.get("updated_at") or "", r.get("created_at") or ""),
         reverse=True,

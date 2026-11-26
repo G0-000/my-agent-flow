@@ -92,3 +92,21 @@ def test_resolve_variable_and_class():
     assert resolve_class("pathlib:Path") is __import__("pathlib").Path
     with pytest.raises(ImportError):
         resolve_variable("json:not_exists")
+
+
+def test_items_visibility_scope_filter(data_dir):
+    """开启可见性过滤时按 scope 收敛；admin 不过滤；无 scope 看不到任何事项。"""
+    a = service.create_item(title="我的", owner_scope_id="personal:u1")
+    b = service.create_item(title="别人的", owner_scope_id="personal:u2")
+    o = service.create_item(title="组织", owner_scope_id="org:o1")
+
+    res = service.list_items(filter_visibility=True, personal_scope="personal:u1", org_scope="org:o1")
+    assert {i["title"] for i in res["items"]} == {"我的", "组织"}
+    assert res["total"] == 2
+
+    res = service.list_items(filter_visibility=True)
+    assert res["items"] == [] and res["total"] == 0
+
+    res = service.list_items(filter_visibility=True, is_admin=True)
+    assert {i["title"] for i in res["items"]} == {"我的", "别人的", "组织"}
+    assert {i["id"] for i in res["items"]} == {a["item"]["id"], b["item"]["id"], o["item"]["id"]}

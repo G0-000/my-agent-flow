@@ -42,9 +42,77 @@ def _safe_append(thread_id: str, role: str, content: str) -> None:
         logger.exception("append_message failed: thread=%s role=%s", thread_id, role)
 
 
+def _history_from_table(thread_id: str, limit: int = 40):
+    """把消息表里的 user/assistant 还原成 LangChain 消息。
+
+    只还原对话正文，不还原 tool 消息：工具结果属于图状态，消息表只归档
+    「用户看到的内容」。这也意味着重建历史时不能声称与检查点逐字节一致。
+    """
+    from langchain_core.messages import AIMessage, HumanMessage
+    from myagentflow.persistence.chat_message_repositories import list_messages
+
+    messages = []
+    for row in list_messages(thread_id, limit=limit):
+        if row["role"] == "user":
+            messages.append(HumanMessage(content=row["content"]))
+        elif row["role"] == "assistant":
+            messages.append(AIMessage(content=row["content"]))
+    return messages
+
+
+def _checkpoint_messages(graph, config) -> list:
+    """读检查点里的消息；没有检查点或线程不存在时返回空列表。"""
+    try:
+        snapshot = graph.get_state(config)
+    except Exception:
+        return []
+    values = getattr(snapshot, "values", None) or {}
+    return list(values.get("messages") or [])
+
+
+def _log_consistency(thread_id: str, checkpoint_messages: list, table_history: list) -> None:
+    """比对两套事实源；只告警，不在这里自动修复（修复策略属于 04.2）。"""
+    from langchain_core.messages import AIMessage
+
+    if not checkpoint_messages or not table_history:
+        return
+    checkpoint_ai = [m for m in checkpoint_messages if isinstance(m, AIMessage)]
+    table_ai = [m for m in table_history if isinstance(m, AIMessage)]
+    if not checkpoint_ai or not table_ai:
+        return
+    if str(getattr(checkpoint_ai[-1], "content", "")) != str(table_ai[-1].content):
+        logger.warning(
+            "message table / checkpoint mismatch: thread=%s table=%d checkpoint=%d",
+            thread_id,
+            len(table_history),
+            len(checkpoint_messages),
+        )
+
+
+def _initial_state(graph, config, thread_id: str, text: str, table_history: list) -> dict:
+    """决定本轮从哪份历史开始。
+
+    检查点有状态时以检查点为准（它含 tool 消息与图中间态）；
+    检查点为空（换了后端、进程重启、或首次请求）时，用消息表回填，
+    这样「表里有、图里没有」不会表现为失忆。
+    """
+    from langchain_core.messages import HumanMessage
+
+    checkpoint_messages = _checkpoint_messages(graph, config)
+    if checkpoint_messages:
+        _log_consistency(thread_id, checkpoint_messages, table_history)
+        return {"messages": [HumanMessage(content=text)]}
+    if table_history:
+        logger.info(
+            "seeding thread from message table: thread=%s messages=%d",
+            thread_id,
+            len(table_history),
+        )
+    return {"messages": [*table_history, HumanMessage(content=text)]}
+
+
 @router.post("/chat")
 async def chat(body: ChatIn) -> StreamingResponse:
-    from langchain_core.messages import HumanMessage
     from myagentflow.agents.checkpointer import get_checkpointer
     from myagentflow.agents.lead_agent.graph import build_graph
     from myagentflow.agents.lead_agent.prompt import build_system_prompt
@@ -67,6 +135,13 @@ async def chat(body: ChatIn) -> StreamingResponse:
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
+    # 先读历史再写本轮：否则刚写进去的 user 消息会被当成「上一轮」，重复送给模型。
+    try:
+        table_history = _history_from_table(body.thread_id)
+    except Exception:
+        logger.exception("read history failed: thread=%s", body.thread_id)
+        table_history = []
+
     # 用户消息先落库：即使模型失败，也能看到用户发过什么。
     _safe_append(body.thread_id, "user", body.text)
 
@@ -75,6 +150,13 @@ async def chat(body: ChatIn) -> StreamingResponse:
     register_echo(tools)
     register_workspace_files(tools)
     register_shell(tools)
+    # MCP 是可选扩展：没配 MYAF_MCP_SERVERS 就不启动子进程；失败也不影响内置工具。
+    try:
+        from myagentflow.mcp.assembly import register_configured_mcp_tools
+
+        register_configured_mcp_tools(tools)
+    except Exception:
+        logger.exception("mcp assembly failed")
     executor = ToolExecutor(
         tools,
         [AuditMiddleware(), PolicyMiddleware(get_approval_store())],
@@ -105,8 +187,32 @@ async def chat(body: ChatIn) -> StreamingResponse:
         max_continuations=2,
     )
 
+    # 图建好后再决定从哪份历史开始：检查点优先，空了用消息表回填。
+    graph_config = {
+        "configurable": {
+            "thread_id": body.thread_id,
+            "run_id": run.run_id,
+            "approval_id": body.approval_id,
+        }
+    }
+    initial_state = _initial_state(
+        graph,
+        graph_config,
+        body.thread_id,
+        body.text,
+        table_history,
+    )
+
     def on_final(text: str) -> None:
         _safe_append(body.thread_id, "assistant", text)
+        # 记忆抽取是旁路：入队失败只记日志，回答已经成功，不能因此报错。
+        try:
+            from myagentflow.memory.namespaces import user_ns
+            from myagentflow.memory.worker import enqueue_exchange
+
+            enqueue_exchange(user_ns("default"), body.thread_id, body.text, text)
+        except Exception:
+            logger.exception("enqueue memory update failed: thread=%s", body.thread_id)
         _RUNS.finish(run.run_id, "finished")
 
     def on_error(message: str) -> None:
@@ -121,14 +227,8 @@ async def chat(body: ChatIn) -> StreamingResponse:
         try:
             async for chunk in stream_graph(
                 graph,
-                {"messages": [HumanMessage(content=body.text)]},
-                {
-                    "configurable": {
-                        "thread_id": body.thread_id,
-                        "run_id": run.run_id,
-                        "approval_id": body.approval_id,
-                    }
-                },
+                initial_state,
+                graph_config,
                 on_final=on_final,
                 on_error=on_error,
                 should_cancel=lambda: _RUNS.is_cancelled(run.run_id),

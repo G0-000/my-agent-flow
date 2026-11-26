@@ -72,19 +72,29 @@ def list_messages(
     thread_id: str,
     *,
     limit: int | None = None,
+    before_seq: int | None = None,
     conn: sqlite3.Connection | None = None,
 ) -> list[dict[str, Any]]:
-    """按 seq 正序读回；limit 取「最近 N 条」而不是「最前 N 条」才有意义，故先倒序再翻转。"""
+    """按 seq 正序读回；limit 取「最近 N 条」而不是「最前 N 条」才有意义，故先倒序再翻转。
+
+    ``before_seq`` 是分页游标：只读 seq 小于它的消息，长会话因此能往前翻，
+    而不是每次都被「最近 N 条」截断。
+    """
     db = conn or get_db()
+    where = "thread_id = ?"
+    params: list[Any] = [thread_id]
+    if before_seq is not None:
+        where += " AND seq < ?"
+        params.append(before_seq)
     if limit is None:
         rows = db.execute(
-            "SELECT seq, role, content, created_at FROM chat_messages WHERE thread_id = ? ORDER BY seq ASC",
-            (thread_id,),
+            f"SELECT seq, role, content, created_at FROM chat_messages WHERE {where} ORDER BY seq ASC",
+            params,
         ).fetchall()
     else:
         rows = db.execute(
-            "SELECT seq, role, content, created_at FROM chat_messages WHERE thread_id = ? ORDER BY seq DESC LIMIT ?",
-            (thread_id, limit),
+            f"SELECT seq, role, content, created_at FROM chat_messages WHERE {where} ORDER BY seq DESC LIMIT ?",
+            [*params, limit],
         ).fetchall()[::-1]
     return [
         {"seq": r[0], "role": r[1], "content": r[2], "created_at": r[3]} for r in rows

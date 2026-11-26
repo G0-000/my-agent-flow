@@ -52,3 +52,35 @@ def refill_target(threshold: int, same_turn: bool = False) -> int:
     """压缩后的回填目标：按同轮/跨轮比例把阈值换算成可用预算。"""
     ratio = SAME_TURN_REFILL if same_turn else POST_COMPRESS_REFILL
     return int(threshold / ratio)
+
+
+# 分层预算的份额：system 与工具 schema 是「必须完整」的，先留固定上限；
+# 工具结果是「可裁剪」的，留一份上限；剩下全给历史对话。
+SYSTEM_SHARE = 0.15
+TOOL_SCHEMA_SHARE = 0.15
+TOOL_RESULT_SHARE = 0.25
+
+
+def layered_quotas(
+    context_length: int = DEFAULT_CONTEXT,
+    *,
+    system_tokens: int = 0,
+    tool_tokens: int = 0,
+    tool_result_tokens: int = 0,
+) -> dict[str, int]:
+    """把压缩阈值拆成四层配额。
+
+    system 与工具 schema 不按配额截断（截断安全声明比省 token 更危险），
+    配额只用于给历史和工具结果设上限；调用方应按 ``min(实际, 配额)`` 规划。
+    """
+    usable = compact_threshold(context_length)
+    system_quota = min(max(0, system_tokens), int(usable * SYSTEM_SHARE))
+    tool_quota = min(max(0, tool_tokens), int(usable * TOOL_SCHEMA_SHARE))
+    result_quota = min(max(0, tool_result_tokens), int(usable * TOOL_RESULT_SHARE))
+    history_quota = max(1, usable - system_quota - tool_quota - result_quota)
+    return {
+        "system": system_quota,
+        "tools": tool_quota,
+        "tool_results": result_quota,
+        "history": history_quota,
+    }

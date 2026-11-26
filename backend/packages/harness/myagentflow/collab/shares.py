@@ -16,11 +16,13 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import secrets
 import sqlite3
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 # 分享表只存 token 的哈希，不存明文：库泄露也拿不到可用链接（明文下发仅一次）。
 _SCHEMA = """
@@ -29,7 +31,8 @@ CREATE TABLE IF NOT EXISTS shares (
     thread_id  TEXT NOT NULL,
     created_at REAL NOT NULL,
     expires_at REAL,
-    revoked_at REAL
+    revoked_at REAL,
+    snapshot_json TEXT
 );
 """
 
@@ -52,15 +55,42 @@ class ShareStore:
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(db_path), check_same_thread=False)
         self._conn.executescript(_SCHEMA)
+        # 兼容旧库：新增列不能靠 CREATE TABLE IF NOT EXISTS 补上。
+        columns = {row[1] for row in self._conn.execute("PRAGMA table_info(shares)")}
+        if "snapshot_json" not in columns:
+            self._conn.execute("ALTER TABLE shares ADD COLUMN snapshot_json TEXT")
+            self._conn.commit()
 
-    def create(self, thread_id: str, ttl_seconds: int = 7 * 86400) -> str:
+    def create(
+        self,
+        thread_id: str,
+        ttl_seconds: int = 7 * 86400,
+        *,
+        snapshot: list[dict[str, Any]] | None = None,
+    ) -> str:
         token = secrets.token_urlsafe(24)
+        payload = json.dumps(snapshot, ensure_ascii=False) if snapshot is not None else None
         self._conn.execute(
-            "INSERT INTO shares (token_hash, thread_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
-            (_hash(token), thread_id, time.time(), time.time() + ttl_seconds),
+            "INSERT INTO shares (token_hash, thread_id, created_at, expires_at, snapshot_json)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (_hash(token), thread_id, time.time(), time.time() + ttl_seconds, payload),
         )
         self._conn.commit()
         return token          # 明文只在这里出现一次
+
+    def snapshot(self, token: str) -> list[dict[str, Any]] | None:
+        """创建分享时冻结的消息；没有快照返回 None，由调用方决定是否读实时表。"""
+        row = self._conn.execute(
+            "SELECT snapshot_json FROM shares WHERE token_hash = ?",
+            (_hash(token),),
+        ).fetchone()
+        if row is None or row[0] is None:
+            return None
+        try:
+            data = json.loads(row[0])
+        except json.JSONDecodeError:
+            return None
+        return data if isinstance(data, list) else None
 
     def resolve(self, token: str, now: float | None = None) -> ShareResult:
         row = self._conn.execute(
@@ -76,9 +106,20 @@ class ShareStore:
             return ShareResult("expired")
         return ShareResult("ok", thread_id)
 
-    def revoke(self, token: str) -> None:
-        self._conn.execute(
-            "UPDATE shares SET revoked_at = ? WHERE token_hash = ?",
+    def revoke(self, token: str) -> int:
+        """吊销单个 token；返回受影响行数，0 表示 token 不存在或早已吊销。"""
+        cur = self._conn.execute(
+            "UPDATE shares SET revoked_at = ? WHERE token_hash = ? AND revoked_at IS NULL",
             (time.time(), _hash(token)),
         )
         self._conn.commit()
+        return int(cur.rowcount or 0)
+
+    def revoke_thread(self, thread_id: str) -> int:
+        """按会话批量吊销：分享泄露时不必逐个找 token。"""
+        cur = self._conn.execute(
+            "UPDATE shares SET revoked_at = ? WHERE thread_id = ? AND revoked_at IS NULL",
+            (time.time(), thread_id),
+        )
+        self._conn.commit()
+        return int(cur.rowcount or 0)

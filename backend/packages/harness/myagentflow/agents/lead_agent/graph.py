@@ -14,16 +14,21 @@
 """
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
-from langgraph.graph import END, START, MessagesState, StateGraph
+from langgraph.graph import END, START, StateGraph
 
+from myagentflow.agents.lead_agent.state import AgentState
+from myagentflow.artifacts.collect import collect_artifacts, merge_into
 from myagentflow.context.budget import estimate_tokens
 from myagentflow.context.short_term import CONTINUATION_PROMPT, needs_continuation
 
 DEFAULT_MAX_TOOL_ROUNDS = 4
+
+logger = logging.getLogger(__name__)
 
 
 def build_graph(
@@ -49,16 +54,22 @@ def build_graph(
         context_manager: 可选上下文策略；每轮调用前做 full/滑窗/摘要，不改检查点历史。
         max_continuations: 模型因长度截断时最多续写几次；0 表示关闭。
     """
-    graph = StateGraph(MessagesState)
+    graph = StateGraph(AgentState)
 
-    def call_model(state: MessagesState):
+    def call_model(state: AgentState):
         """先按上下文策略裁剪历史，再交给模型；截断时按需续写。"""
         history = list(state["messages"])
         if context_manager is not None:
             try:
+                tool_tokens = 0
+                if tools is not None:
+                    import json
+
+                    tool_tokens = estimate_tokens(json.dumps(tools.schemas(), ensure_ascii=False))
                 history = context_manager.prepare(
                     history,
                     reserved_tokens=estimate_tokens(system_prompt or ""),
+                    tool_tokens=tool_tokens,
                 ).messages
             except Exception:
                 # 上下文策略是增强项：失败时退回全量历史，不打断回答。
@@ -86,7 +97,7 @@ def build_graph(
                 )
         return {"messages": [reply]}
 
-    def call_tools(state: MessagesState, config: RunnableConfig):
+    def call_tools(state: AgentState, config: RunnableConfig):
         """执行最后一条 AI 消息里的全部 tool_calls，逐条回灌 ToolMessage。"""
         last = state["messages"][-1]
         conf = (config or {}).get("configurable", {})
@@ -94,10 +105,12 @@ def build_graph(
         run_id = str(conf.get("run_id") or "")
         approval_id = str(conf.get("approval_id") or "")
         results: list[ToolMessage] = []
+        artifacts: dict[str, dict] = {}
         for call in getattr(last, "tool_calls", None) or []:
             name = str(call.get("name") or "")
             args = call.get("args") or {}
             call_id = str(call.get("id") or "")
+            output = None
             try:
                 if tool_executor is not None:
                     output = tool_executor.execute(
@@ -113,10 +126,16 @@ def build_graph(
                 content = str(output)
             except Exception as exc:  # 工具失败要回灌给模型，不能把整轮打断
                 content = f"ERROR: {type(exc).__name__}: {exc}"
+            else:
+                # 产物登记是旁路：解析失败不能影响工具结果回灌。
+                try:
+                    artifacts = merge_into(artifacts, collect_artifacts(name, args, output))
+                except Exception:
+                    logger.exception("collect artifacts failed: tool=%s", name)
             results.append(ToolMessage(content=content, tool_call_id=call_id))
-        return {"messages": results}
+        return {"messages": results, "artifacts": artifacts}
 
-    def route_after_model(state: MessagesState) -> str:
+    def route_after_model(state: AgentState) -> str:
         """有 tool_calls 且未超轮次就去 tools，否则结束。"""
         last = state["messages"][-1]
         if not getattr(last, "tool_calls", None):

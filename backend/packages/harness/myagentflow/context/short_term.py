@@ -16,12 +16,18 @@ import json
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import (
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+)
 
 from myagentflow.context.budget import (
     DEFAULT_CONTEXT,
     compact_threshold,
     estimate_tokens,
+    layered_quotas,
     refill_target,
 )
 
@@ -78,6 +84,35 @@ def split_message_groups(messages: list[BaseMessage]) -> list[list[BaseMessage]]
     if current:
         groups.append(current)
     return groups
+
+
+def prune_tool_results(
+    messages: list[BaseMessage],
+    *,
+    keep_recent_groups: int = 1,
+    head_chars: int = 240,
+    tail_chars: int = 240,
+) -> list[BaseMessage]:
+    """旧轮的工具结果只留头尾：工具输出是上下文膨胀的最大来源。
+
+    最近 ``keep_recent_groups`` 轮保持原样，因为模型可能还要引用完整结果；
+    更旧的只保留头尾，中间用固定标记替代，避免摘要前就先把窗口撑爆。
+    """
+    groups = split_message_groups(messages)
+    cutoff = max(0, len(groups) - max(1, keep_recent_groups))
+    out: list[BaseMessage] = []
+    for idx, group in enumerate(groups):
+        if idx >= cutoff:
+            out.extend(group)
+            continue
+        for msg in group:
+            text = _content_text(getattr(msg, "content", ""))
+            if isinstance(msg, ToolMessage) and len(text) > head_chars + tail_chars:
+                pruned = text[:head_chars] + "\n…（旧工具结果已裁剪）…\n" + text[-tail_chars:]
+                out.append(msg.model_copy(update={"content": pruned}))
+            else:
+                out.append(msg)
+    return out
 
 
 def _truncate_text(text: str, max_tokens: int) -> str:
@@ -151,39 +186,63 @@ class ContextManager:
             return "sliding_window"
         return "summary"
 
-    def prepare(self, messages: list[BaseMessage], *, reserved_tokens: int = 0) -> PreparedContext:
-        before = count_message_tokens(messages) + max(0, reserved_tokens)
+    def prepare(
+        self,
+        messages: list[BaseMessage],
+        *,
+        reserved_tokens: int = 0,
+        tool_tokens: int = 0,
+    ) -> PreparedContext:
+        # 先裁旧工具结果：它们通常占得最多，且不影响当前轮语义。
+        messages = prune_tool_results(messages)
+        tool_result_tokens = sum(
+            message_tokens(m) for m in messages if isinstance(m, ToolMessage)
+        )
+        quotas = layered_quotas(
+            self.context_length,
+            system_tokens=reserved_tokens,
+            tool_tokens=tool_tokens,
+            tool_result_tokens=tool_result_tokens,
+        )
+        reserved = max(0, reserved_tokens) + max(0, tool_tokens)
+        before = count_message_tokens(messages) + reserved
         strategy = self.pick_strategy(before)
         if strategy == "full":
             return PreparedContext(list(messages), "full", before, before)
 
         if strategy == "sliding_window":
-            budget = max(1, int(self.context_length * self.full_ratio) - reserved_tokens)
+            budget = max(
+                1,
+                min(int(self.context_length * self.full_ratio) - reserved, quotas["history"]),
+            )
             prepared = self._slide(messages, budget)
             return PreparedContext(
                 prepared,
                 "sliding_window",
                 before,
-                count_message_tokens(prepared) + max(0, reserved_tokens),
+                count_message_tokens(prepared) + reserved,
             )
 
-        prepared, summarized = self._summarize(messages, reserved_tokens)
+        prepared, summarized = self._summarize(messages, reserved, quotas["history"])
         if summarized:
             return PreparedContext(
                 prepared,
                 "summary",
                 before,
-                count_message_tokens(prepared) + max(0, reserved_tokens),
+                count_message_tokens(prepared) + reserved,
                 True,
             )
         # 摘要不可用（无模型/旧消息不足/调用失败）时退化为滑窗，不让整轮失败。
-        budget = max(1, int(self.context_length * self.full_ratio) - reserved_tokens)
+        budget = max(
+            1,
+            min(int(self.context_length * self.full_ratio) - reserved, quotas["history"]),
+        )
         prepared = self._slide(messages, budget)
         return PreparedContext(
             prepared,
             "sliding_window",
             before,
-            count_message_tokens(prepared) + max(0, reserved_tokens),
+            count_message_tokens(prepared) + reserved,
         )
 
     def _slide(self, messages: list[BaseMessage], budget: int) -> list[BaseMessage]:
@@ -201,7 +260,10 @@ class ContextManager:
         return [m for g in kept for m in g]
 
     def _summarize(
-        self, messages: list[BaseMessage], reserved_tokens: int
+        self,
+        messages: list[BaseMessage],
+        reserved_tokens: int,
+        history_quota: int | None = None,
     ) -> tuple[list[BaseMessage], bool]:
         groups = split_message_groups(messages)
         if len(groups) <= _MIN_KEEP_GROUPS:
@@ -209,6 +271,8 @@ class ContextManager:
 
         threshold = compact_threshold(self.context_length)
         target = max(1, refill_target(threshold) - max(0, reserved_tokens))
+        if history_quota:
+            target = min(target, max(1, history_quota))
         keep: list[list[BaseMessage]] = []
         used = 0
         cut_at = len(groups)

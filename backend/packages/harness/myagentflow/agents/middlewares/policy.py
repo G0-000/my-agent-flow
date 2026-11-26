@@ -21,6 +21,8 @@ class ApprovalRequired(RuntimeError):
 
 
 _SHELL_TOOLS = {"run_command", "start_background_command"}
+_MCP_PREFIX = "mcp__"
+_MCP_ALLOW_ENV = "MYAF_MCP_ALLOW"
 
 
 class PolicyMiddleware(Middleware):
@@ -31,9 +33,38 @@ class PolicyMiddleware(Middleware):
     def __init__(self, store: ApprovalStore | None = None) -> None:
         self.store = store or ApprovalStore()
 
+    def _gate(self, request: Any, handler: Any, reason: str) -> Any:
+        """ask 分支：有匹配的批准单就放行，否则挂起并抛 ApprovalRequired。"""
+        tool = getattr(request, "name", "")
+        args = getattr(request, "args", {}) or {}
+        approval_id = str((getattr(request, "metadata", {}) or {}).get("approval_id") or "")
+        if approval_id and self.store.is_approved(approval_id, tool, args):
+            return handler(request)
+        pending = self.store.find_pending(
+            str(getattr(request, "run_id", "") or ""), tool, args
+        )
+        ap = pending or self.store.create(
+            str(getattr(request, "run_id", "") or ""), tool, args
+        )
+        raise ApprovalRequired(ap.id, reason)
+
     def wrap_tool_call(self, request: Any, handler: Any) -> Any:
         tool = getattr(request, "name", "")
         args = getattr(request, "args", {}) or {}
+
+        # 外部 MCP 工具默认不可信：未显式 allow 的写操作必须先审批。
+        if tool.startswith(_MCP_PREFIX):
+            import os
+
+            allowed = {
+                x.strip()
+                for x in os.getenv(_MCP_ALLOW_ENV, "").split(",")
+                if x.strip()
+            }
+            if tool in allowed:
+                return handler(request)
+            return self._gate(request, handler, "外部 MCP 工具默认需要审批")
+
         if tool not in _SHELL_TOOLS:
             return handler(request)
 
@@ -43,15 +74,6 @@ class PolicyMiddleware(Middleware):
             raise PolicyDenied(f"拒绝执行：{result.reason}")
 
         if result.decision is Decision.ask:
-            approval_id = str((getattr(request, "metadata", {}) or {}).get("approval_id") or "")
-            if approval_id and self.store.is_approved(approval_id, tool, args):
-                return handler(request)
-            pending = self.store.find_pending(
-                str(getattr(request, "run_id", "") or ""), tool, args
-            )
-            ap = pending or self.store.create(
-                str(getattr(request, "run_id", "") or ""), tool, args
-            )
-            raise ApprovalRequired(ap.id, result.reason)
+            return self._gate(request, handler, result.reason)
 
         return handler(request)

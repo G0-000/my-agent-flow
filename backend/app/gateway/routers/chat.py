@@ -48,12 +48,16 @@ async def chat(body: ChatIn) -> StreamingResponse:
     from myagentflow.agents.lead_agent.graph import build_graph
     from myagentflow.agents.lead_agent.prompt import build_system_prompt
     from myagentflow.agents.middlewares.audit import AuditMiddleware
+    from myagentflow.agents.middlewares.policy import PolicyMiddleware
     from myagentflow.context.short_term import ContextManager
     from myagentflow.memory.injection import build_memory_context
     from myagentflow.memory.namespaces import user_ns
     from myagentflow.models.factory import create_chat_model
     from myagentflow.runtime.streaming import stream_graph
+    from myagentflow.sandbox.approvals import get_approval_store
     from myagentflow.tools.builtins.echo import register_echo
+    from myagentflow.tools.builtins.shell import register_shell
+    from myagentflow.tools.builtins.workspace_files import register_workspace_files
     from myagentflow.tools.executor import ToolExecutor
     from myagentflow.tools.registry import ToolRegistry
 
@@ -68,7 +72,12 @@ async def chat(body: ChatIn) -> StreamingResponse:
     # 本轮先注册最小工具集；后续工具宿主会替换这里，但入口不再是无工具图。
     tools = ToolRegistry()
     register_echo(tools)
-    executor = ToolExecutor(tools, [AuditMiddleware()])
+    register_workspace_files(tools)
+    register_shell(tools)
+    executor = ToolExecutor(
+        tools,
+        [AuditMiddleware(), PolicyMiddleware(get_approval_store())],
+    )
 
     # 记忆是增强项：召回/快照失败降级为空块，不阻断回答。
     # 身份系统未接前固定 default，不能从 body 取 user_id，否则任意客户端可读别人的记忆。
@@ -112,7 +121,7 @@ async def chat(body: ChatIn) -> StreamingResponse:
             async for chunk in stream_graph(
                 graph,
                 {"messages": [HumanMessage(content=body.text)]},
-                {"configurable": {"thread_id": body.thread_id}},
+                {"configurable": {"thread_id": body.thread_id, "run_id": run.run_id}},
                 on_final=on_final,
                 on_error=on_error,
                 should_cancel=lambda: _RUNS.is_cancelled(run.run_id),

@@ -10,10 +10,14 @@ from fastapi import FastAPI
 
 
 def create_app() -> FastAPI:
+    from app.gateway.routers.approvals import router as approvals_router
     from app.gateway.routers.chat import router as chat_router
+    from app.gateway.routers.cua import router as cua_router
 
     app = FastAPI(title="my-agent-flow")
     app.include_router(chat_router, prefix="/api")
+    app.include_router(approvals_router, prefix="/api")
+    app.include_router(cua_router, prefix="/api")
 
     @app.get("/health")
     def health() -> dict[str, str]:

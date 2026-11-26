@@ -85,9 +85,12 @@ def build_graph(
                 )
         return {"messages": [reply]}
 
-    def call_tools(state: MessagesState):
+    def call_tools(state: MessagesState, config: dict | None = None):
         """执行最后一条 AI 消息里的全部 tool_calls，逐条回灌 ToolMessage。"""
         last = state["messages"][-1]
+        conf = (config or {}).get("configurable", {}) if isinstance(config, dict) else {}
+        thread_id = str(conf.get("thread_id") or "")
+        run_id = str(conf.get("run_id") or "")
         results: list[ToolMessage] = []
         for call in getattr(last, "tool_calls", None) or []:
             name = str(call.get("name") or "")
@@ -95,7 +98,13 @@ def build_graph(
             call_id = str(call.get("id") or "")
             try:
                 if tool_executor is not None:
-                    output = tool_executor.execute(name, args, tool_call_id=call_id)
+                    output = tool_executor.execute(
+                        name,
+                        args,
+                        tool_call_id=call_id,
+                        thread_id=thread_id,
+                        run_id=run_id,
+                    )
                 else:
                     output = tools.call(name, args)
                 content = str(output)

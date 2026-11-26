@@ -21,7 +21,7 @@ class StubChatModel:
         self.prefix = prefix
 
     # 与 LangChain ChatModel 的 bind_tools 签名对齐（最小化）
-    def bind_tools(self, _tools: Any, **_kwargs: Any) -> "StubChatModel":
+    def bind_tools(self, _tools: Any, **_kwargs: Any) -> StubChatModel:
         return self
 
     # 与 ChatModel.invoke 约定对齐：messages 列表进，AIMessage 出

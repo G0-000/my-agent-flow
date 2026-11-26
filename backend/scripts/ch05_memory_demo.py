@@ -13,9 +13,9 @@ _OUT_DIR = Path(__file__).resolve().parents[1] / "tmp" / "ch05"
 os.environ["MYAF_DATA_DIR"] = str(_OUT_DIR / "data")
 os.environ["MYAF_MEMORY_DB"] = str(_OUT_DIR / "memory.sqlite")
 
-from myagentflow.config.paths import reset_paths_cache  # noqa: E402
-from myagentflow.memory import facade, recall_snapshot  # noqa: E402
-from myagentflow.memory.namespaces import user_ns  # noqa: E402
+from myagentflow.config.paths import reset_paths_cache
+from myagentflow.memory import facade, recall_snapshot
+from myagentflow.memory.namespaces import user_ns
 
 PREFERENCE = "用户偏好简短的中文回答"
 QUERY = "中文回答 偏好"

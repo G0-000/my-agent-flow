@@ -14,10 +14,9 @@ _OUT_DIR = Path(__file__).resolve().parents[1] / "tmp" / "ch04"
 os.environ["MYAF_CHECKPOINTER"] = "sqlite"
 os.environ["MYAF_CHECKPOINT_SQLITE_PATH"] = str(_OUT_DIR / "checkpoints.sqlite")
 
-from langchain_core.messages import AIMessage, HumanMessage  # noqa: E402
-
-from myagentflow.agents.checkpointer import provider  # noqa: E402
-from myagentflow.agents.lead_agent.graph import build_graph  # noqa: E402
+from langchain_core.messages import AIMessage, HumanMessage
+from myagentflow.agents.checkpointer import provider
+from myagentflow.agents.lead_agent.graph import build_graph
 
 
 class CountingModel:
@@ -74,8 +73,10 @@ def main() -> int:
         return 1
 
     lines = [
-        f"OK: resumed=True messages={len(out2['messages'])} "
-        f"order={','.join(types)} history_seen_by_new_graph={len(model_turn2.seen[0])}",
+        (
+            f"OK: resumed=True messages={len(out2['messages'])} "
+            f"order={','.join(types)} history_seen_by_new_graph={len(model_turn2.seen[0])}"
+        ),
         f"thread_id={thread_id}",
         "恢复后的消息序列：",
     ]

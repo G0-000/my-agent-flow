@@ -34,3 +34,12 @@ cd backend
 uv sync
 cp config.example.yaml config.yaml
 ```
+
+离线跑通（不调外部 API、不需要 key）：编辑 `config.yaml`，取消文件内「离线开发替身（stub）」注释段的注释并把 `primary_model` 指向 `stub`（stub 是开发替身，勿用于生产），然后：
+
+```bash
+export MYAGENTFLOW_CONFIG_PATH="$(pwd)/config.yaml"
+echo "你好" | uv run python scripts/ch01_model_smoke.py   # 预期首行：echo: 你好
+uv run python scripts/ch01_agent_loop.py                  # 预期首行：OK: …
+uv run python scripts/ch02_context_demo.py                # ch02–ch05 同理，首行 OK:
+```

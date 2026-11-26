@@ -7,7 +7,8 @@ log_level: info
 models:
   # name  —— 条目名，primary_model 指向它（唯一）
   # model —— 真正发给厂商的模型 ID
-  # use   —— provider 类路径（目前只实现 langchain_openai:ChatOpenAI）
+  # use   —— provider 类路径（openai 用 langchain_openai:ChatOpenAI；
+  #          开发用 stub 见下方注释段：工厂内置 StubChatModel，use 可省略）
   - name: local
     vendor: openai
     use: langchain_openai:ChatOpenAI
@@ -28,6 +29,22 @@ storage:
   backend: sqlite
   sqlite_path: data/app/myagentflow.db
 
+# —— 离线开发替身（stub）：不联网、不装第三方 SDK，仅供本地开发/演示与测试，切勿进生产 ——
+# 想离线跑通 demo 与测试时：取消下面注释，并删掉上面的 models 列表（两者只能留一个），
+# 让 primary_model 指向 stub：
+#
+# models:
+#   - name: stub
+#     vendor: stub
+#     use: myagentflow.models.providers.stub:StubChatModel   # 可省略，工厂会内置
+#     model: stub
+#     temperature: 0.0
+#
+# primary_model: stub
+#
+# checkpointer:
+#   type: memory
+
 # 另一种写法：按网关分组（同一组共享连接配置），由 config/models_yaml.py 摊平
 # 想用就删掉上面的 models 列表，改用下面这段（两者只能留一个）
 # models:
@@ -39,4 +56,3 @@ storage:
 #       api_key: ""
 #       models:
 #         - { name: local, model: gpt-4o-mini }
-

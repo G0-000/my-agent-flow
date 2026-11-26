@@ -9,6 +9,9 @@
     test_config_path_env_override()       改 MYAF_CONFIG_PATH 后解析结果跟着变，说明没有走旧缓存。
     test_providers_layout_is_flattened()  providers 嵌套写法被摊平成扁平模型列表，顺序保持。
 
+    test_stub_vendor()                   vendor=stub 时工厂返回 StubChatModel，invoke 回显。
+    test_stub_vendor_bad_use()           use 字段写错时明确报错，不静默回退。
+    test_unknown_vendor_raises()         未实现的 vendor 直接报错。
 三、运行
     uv run pytest tests/chapters/test_ch01_01_config.py -q
 """
@@ -159,3 +162,78 @@ models:
     assert cfg.models[0].vendor == "openai"
     assert cfg.models[0].base_url == "http://127.0.0.1:1234/v1"  # provider 层共享值下传
     assert cfg.models[0].model == "gpt-4o-mini"
+
+
+
+def test_stub_vendor(monkeypatch, tmp_path):
+    """vendor=stub 时工厂返回 StubChatModel，invoke 回显最后一条用户消息（echo: 前缀）。"""
+    from langchain_core.messages import HumanMessage
+    from myagentflow.config.app_config import reset_app_config
+    from myagentflow.models.factory import create_chat_model
+    from myagentflow.models.providers.stub import StubChatModel
+
+    _isolate(monkeypatch, tmp_path)
+    (tmp_path / "config.yaml").write_text(
+        """
+primary_model: local
+models:
+  - name: local
+    vendor: stub
+    use: myagentflow.models.providers.stub:StubChatModel
+    model: stub
+    temperature: 0.0
+""".lstrip(),
+        encoding="utf-8",
+    )
+    reset_app_config()
+
+    model = create_chat_model()
+    assert isinstance(model, StubChatModel)
+    reply = model.invoke([HumanMessage(content="你好")])
+    assert str(reply.content) == "echo: 你好"
+
+
+def test_stub_vendor_bad_use(monkeypatch, tmp_path):
+    """use 字段不是 'package:Class' 形式时，工厂明确报错而不是静默回退。"""
+    from myagentflow.config.app_config import reset_app_config
+    from myagentflow.models.factory import create_chat_model
+
+    _isolate(monkeypatch, tmp_path)
+    (tmp_path / "config.yaml").write_text(
+        """
+primary_model: local
+models:
+  - name: local
+    vendor: stub
+    use: not-a-valid-use-path
+    model: stub
+""".lstrip(),
+        encoding="utf-8",
+    )
+    reset_app_config()
+
+    with pytest.raises(RuntimeError):
+        create_chat_model()
+
+
+def test_unknown_vendor_raises(monkeypatch, tmp_path):
+    """未实现的 vendor 直接报错，错误信息列出已实现项（openai、stub）。"""
+    from myagentflow.config.app_config import reset_app_config
+    from myagentflow.models.factory import create_chat_model
+
+    _isolate(monkeypatch, tmp_path)
+    (tmp_path / "config.yaml").write_text(
+        """
+primary_model: local
+models:
+  - name: local
+    vendor: anthropic
+    use: somewhere:Something
+    model: claude
+""".lstrip(),
+        encoding="utf-8",
+    )
+    reset_app_config()
+
+    with pytest.raises(RuntimeError, match="vendor"):
+        create_chat_model()
